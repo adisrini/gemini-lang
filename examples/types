@@ -1,0 +1,29 @@
+/*---------- TYPES ----------
+ *
+ * this covers basic built-in types, as well as the optimization of
+ * underlying representations for certain kind of types
+ *
+ *---------------------------*/
+val ab := real<23, 8, 1>(4382.253)      // custom mantissa, exponent, and sign bit amounts
+
+// --- smart datatype representation ---
+// instances of the following type would be represented using 65 bits.
+// the first bit would be whether it is an X or not
+// the remaining bits would either be X, or the other types with their encodings
+datatype my_data = X of bit vec<64>
+                 | Y of bit vec<57>
+                 | Z of bit vec<8>
+                 | Q of bit vec<2>
+                 | W of bit vec<1>
+
+// this would require 66 bits.
+// the first bit would be whether it is an X or Y, or not
+// the second bit would be whether it is X (if first bit is 1)
+// the remaining bits would either be X, Y, or the other types with their encodings
+ datatype my_data = X of bit vec<64>
+                  | Y of bit vec<64>
+                  | Z of bit vec<8>
+                  | Q of bit vec<2>
+                  | W of bit vec<1>
+
+// this kind of logic can be applied recursively to determine the most space-efficient encoding

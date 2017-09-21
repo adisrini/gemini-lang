@@ -1,0 +1,25 @@
+/*---------- TIMING ----------
+ *
+ * this covers how timing is enforced as a type
+ *
+ *----------------------------*/
+
+fun latch(b: bit, d: dff) = DFF.latch(d, b)   // The latch method has the following signature:
+                                              // ('a dff * 'a -> 'a dff) @ 1
+
+// by default, if no timing is specified, it is inferred by the compiler
+fun pipeline(...) = ...                       // compiler infers timing for pipeline, which could be something like ('a -> 'b) @ 10
+
+// can enforce a certain timing if desired (but will error if it is less than the minimum number of cycles)
+fun pipeline(...) @ 20 = ...                  // compiler infers 10 cycles, but is overridden to 20
+
+// can specify timing of functions to accept as parameters
+fun my_fun(pipeline: ('a -> 'b) @ 10) = ...      // can pass any function from in -> out that has at most latency 10
+fun my_fun(pipeline: ('a -> 'b) @: 10) = ...     // can pass any function from in -> out that has strictly latency 10
+
+// can enforce latency inline too, without having to declare a function
+let
+  val a := 32'd6 + 32'ha44 with latency = 3   (addition over 3 cycles)
+in
+  a
+end

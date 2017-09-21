@@ -1,0 +1,125 @@
+/* core library types, operations, and functions */
+
+/*---------- BITS ----------
+ * a bit is the fundamental type. can take one of two values: 0 or 1
+ * unary operations:
+ *    • negation (~, not)
+ * binary operations:
+ *    • or (|, or)
+ *    • and (&, and)
+ *    • xor (^, xor)
+ ---------------------------*/
+
+// bit declaration
+val a := 'b0;
+val b := 'b1;                   // any value other than 0 or 1 is invalid syntax
+val c := (x = y)                // booleans are actually bits (more on this later)
+
+// bit operations
+val d := ~'b0;
+val e := 'b0 & 'b1;
+
+
+
+/*---------- ARRAYS ----------
+ * an array is a sequence of values that belong to a certain type (arrays with values of multiple types are not supported)
+ * arrays can be indexed using standard subscript notation
+ ----------------------------*/
+
+// bit vector declaration
+val f := bit [32] of 'b0        // 32-bit array initialized with 0s
+val g := bit [32] of 'b1        // 32-bit array initialized with 1s
+val h := 10'b1010011            // 10-bit array initialized (and left-padded) to binary 1010011: [0, 0, 0, 1, 0, 1, 0, 0, 1, 1]
+val i := 8'd6                   // 8-bit array with decimal 6: [0, 0, 0, 0, 0, 1, 1, 0]
+val j := 3'ha                   // 3-bit array with hex a: [0, 1, 0] (truncated from 1010 to 010 to fit in 3 bits)
+val k := ['b0, 'b1, 'b0, 'b0]   // literal declaration
+
+// general array/vector declarations
+val l := int [100] of 0                     // 32-int array initialized with 0s
+val m := bit vec [100] of (bit [32] of 'b0) // 2D array of bits initialized with 0s
+val n : int vec<100> := int [100] of 0      // strict 100-int array initialized with 0s
+val o := [[0, 1, 2], [3, 4, 5]]             // literal 2D array declaration
+
+// array comprehension
+val p := [i in 0..15 => i]                // int array from 0 to 15
+val q := [i in 0..15 => n[i % 2][i/5]]    // int array referencing another array
+val r := [i in 0..2 => j in 0..3 => i*j]  // 2D int array: [[0, 0, 0, 0], [0, 1, 2, 3], [0, 2, 4, 6]]
+
+
+
+/*---------- RAWBITS ----------
+ * the rawbit type is an eq type that allows comparisons and operations to be performed between various arrangements of bits
+ *
+ * it is recursively defined as follows:
+ * type rawbit = bit
+ *             | rawbit vec
+ *             | (rawbit * rawbit)
+ *
+ * the rawbit is the supertype of bits, arrays of bits, tuples of bits, arrays of tuples of bits, etc.
+ *
+ * the rawbits that are being compared need to have the same structure (can't compare array of bits to tuple)
+ ------------------------------*/
+
+val s := (bit [32] of 'b1, 'b0) or (16'b1001100, 'b1)                     // returns a tuple: (32'b1 or 16'b1001100, 'b0 or 'b1)
+val t := (bit, bit) [64] of ('b1, 'b0) > (bit, bit) [64] of ('b0, 'b1)    // returns a 64-tuple array
+
+
+
+/*---------- EQ OPERATIONS ----------
+ * an eq operation is an operation that can be performed to compare values
+ *
+ * supported operations:
+ *    • equals (=)
+ *    • not equals (<>)
+ *    • less than (<)
+ *    • less than or equal to (<=)
+ *    • greater than (>)
+ *    • greater than or equal to (>=)
+ ------------------------------------*/
+
+// comparing rawbits
+val u := ('b0 = 'b1)
+val v := (32'b10010 > 24'b101)      // comparisons must be of same type, but can differ in lengths (will truncate longer one)
+
+
+
+/*---------- STANDARD LIBRARY ----------
+ * the standard library supports a variety of built-in functions for:
+ *  • data-type conversion
+ *  • exception handling
+ *
+ * and many built-in types such as:
+ *  • 'a queue
+ *  • 'a stack
+ *  • 'a vec (resizable array)
+ *  • 'a vec<n> (array of strict size n)
+ *  • 'a tree
+ *  • 'a dff
+ *  • real<e, m, b> (num exponent bits, num mantissa bits, num sign bits)
+ ---------------------------------------*/
+
+// data conversions
+val w := Bit.toInt(32'b10011)           // converts binary to integer (two signatures):
+                                        // bit -> int
+                                        // bit vec -> int
+
+val x := Int.toBitVec(40, 32)           // converts integer to bit vec:
+                                        // int * int -> bit vec
+                                        // arg0: num, arg1: len
+
+val x := Int.toStrictBitVec(40, 32)     // converts integer to strict bit vec:
+                                        // int * int -> bit vec<n>
+                                        // arg0: num, arg1: len
+
+val y := BitVec.toBit(32'b1011)         // converts (strict) bit vec to bit (takes LSB):
+                                        // bit vec -> bit
+                                        // bit vec<n> -> bit
+
+
+val z := Bit.toBitVec('b0, 32)          // converts bit to bit vec (pads with 0s):
+                                        // bit * int -> bit vec
+                                        // arg0: num, arg2: len
+
+val aa := Bit.toStrictBitVec('b0, 32)   // converts bit to strict bit vec (pads with 0s):
+                                        // bit * int -> bit vec<n>
+                                        // arg0: num, arg2: len

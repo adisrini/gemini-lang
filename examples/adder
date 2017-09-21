@@ -1,0 +1,48 @@
+/* n-bit adder */
+skeleton AdderSkeleton<n:int> {
+
+    fun add: (bit vec<n> * bit vec<n>) -> bit vec<n>      // method signature
+
+}
+
+module Adder<n:int> : AdderSkeleton<n> {               // akin to "implements"
+
+    fun add(a, b) =
+      let fun addHelper(a, b, cin, res, i) = case (a, b) of
+          ([], []) => res
+        | (as;;a, bs;;b) => let
+                              val (A, cout) := fullAdder(a, b, cin)
+                            in
+                              res[i] := A;
+                              addHelper(as, bs, cout, res, i + 1)
+                            end
+      in
+          addHelper(a, b, 0, n'b0, 0)
+      end
+
+    fun fullAdder(a, b, cin) =
+        let
+            val p := x xor y
+            val A := p xor cin
+            val r := p and cin
+            val s := x and y
+            val cout := r or s
+        in
+            (A, cout)                                  // return tuple
+        end
+
+}
+
+module Main : skeleton { fun main: unit -> int } {     // inline skeleton specification
+
+    fun main() =
+        let
+            val adder := Adder<32>()
+            val a := 32'd20
+            val b := 32'd15
+            val c := adder.add(a, b)
+        in
+            btoi(c)
+        end
+
+}

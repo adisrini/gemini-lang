@@ -1,0 +1,8 @@
+/*---------- MODULES ----------
+ *
+ * this covers built-in modules
+ *
+ *-----------------------------*/
+
+fun latch(b: bit, d: dff) = DFF.latch(d, b)   // The latch method has the following signature:
+                                              // ('a dff * 'a -> 'a dff) @ 1
