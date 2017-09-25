@@ -7,6 +7,8 @@
 fun latch(b: bit, d: dff) = DFF.latch(d, b)   // The latch method has the following signature:
                                               // ('a dff * 'a -> 'a dff) @ 1
 
+// dff: 'a -> 'a @ 1
+
 // by default, if no timing is specified, it is inferred by the compiler
 fun pipeline(...) = ...                       // compiler infers timing for pipeline, which could be something like ('a -> 'b) @ 10
 
@@ -23,3 +25,13 @@ let
 in
   a
 end
+
+// option 1
+// if all inputs go through to output with same latency then has temporal type
+// else doesn't
+// can specify expected temporal type (and latency match if different)
+// can also specify timing for each distinct type in a tuple ('a @ 1, 'b @ 2, 'c @ 3)
+// operations between times of different timings creates weirdness in temporal type
+
+// option 2
+// temporal type is range (1 - 3 cycles for example)

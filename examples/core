@@ -63,7 +63,8 @@ val r := [i in 0..2 => j in 0..3 => i*j]  // 2D int array: [[0, 0, 0, 0], [0, 1,
 val s := (bit [32] of 'b1, 'b0) or (16'b1001100, 'b1)                     // returns a tuple: (32'b1 or 16'b1001100, 'b0 or 'b1)
 val t := (bit, bit) [64] of ('b1, 'b0) > (bit, bit) [64] of ('b0, 'b1)    // returns a 64-tuple array
 
-
+// special-case float comparisons
+// have with clause in type definition to define operators (=, <, <=, >=, >, >=, +, -, *, /, %, explicit negate)
 
 /*---------- EQ OPERATIONS ----------
  * an eq operation is an operation that can be performed to compare values
@@ -79,7 +80,9 @@ val t := (bit, bit) [64] of ('b1, 'b0) > (bit, bit) [64] of ('b0, 'b1)    // ret
 
 // comparing rawbits
 val u := ('b0 = 'b1)
-val v := (32'b10010 > 24'b101)      // comparisons must be of same type, but can differ in lengths (will truncate longer one)
+val v := (32'b10010 > 24'b101)      // error if different lengths
+
+// Int<n>.zeroExtend<m>(...) has type bit vec<m> -> bit vec<n>
 
 
 
