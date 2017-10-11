@@ -1,5 +1,6 @@
 type pos = int
 type lexresult = Tokens.token
+datatype bit = Tokens.bit
 
 val lineNum = ErrorMsg.lineNum
 val linePos = ErrorMsg.linePos

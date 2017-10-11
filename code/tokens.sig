@@ -83,9 +83,9 @@ val AT: location -> token
 val TICK: location -> token
 
 (******* LITERALS *******)
-val INT: (int) *  location -> token
-val FLOAT: (real) * location -> token
-val BIT: (bit) * location -> token
+val INT: (int *  location) -> token
+val REAL: (real * location) -> token
+val BIT: (bit * location) -> token
 val ID: (string) *  location -> token
 val EOF:  location -> token
 
