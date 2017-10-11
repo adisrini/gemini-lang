@@ -1,26 +1,12 @@
-*.annot
-*.cmo
-*.cma
-*.cmi
-*.a
-*.o
-*.cmx
-*.cmxs
-*.cmxa
-
-# ocamlbuild working directory
-_build/
-
-# ocamlbuild targets
-*.byte
-*.native
-
-# oasis generated files
-setup.data
-setup.log
-
-# Merlin configuring file for Vim and Emacs
-.merlin
+# Generated files
+*.aux
+*.bbl
+*.blg
+*.idx
+*.log
+*.pdf
+*.toc
+*.synctex.gz
 
 # Mac artifacts
 .DS_Store
