@@ -2,7 +2,6 @@ signature GEMINI_TOKENS =
 sig
 type pos (* int *)
 type location (* pos * pos *)
-type bit
 type token
 
 (******* KEYWORDS *******)
@@ -85,7 +84,8 @@ val TICK: location -> token
 (******* LITERALS *******)
 val INT: (int *  location) -> token
 val REAL: (real * location) -> token
-val BIT: (bit * location) -> token
+val BIT: (Bit.bit * location) -> token
+val STRING: (string * location) -> token
 val ID: (string) *  location -> token
 val EOF:  location -> token
 

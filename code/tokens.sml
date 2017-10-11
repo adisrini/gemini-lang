@@ -3,11 +3,10 @@ struct
 
 type pos = int
 type location = pos * pos
-datatype bit = ZERO of 0 | ONE of 1
 type token = string
 
 (* helper functions *)
-fun locationToString loc = "(" ^ Int.toString(#1 loc) ^ ", " ^ Int.toString(#2 loc) ^ ")"
+fun locationToString (loc: location) = "(" ^ Int.toString(#1 loc) ^ ", " ^ Int.toString(#2 loc) ^ ")"
 
 (******* KEYWORDS *******)
 (* declarations *)
@@ -90,7 +89,8 @@ fun TICK(loc) = "TICK @" ^ locationToString(loc)
 (******* LITERALS *******)
 fun INT(value, loc) = "INT(" ^ Int.toString(value) ^ ") @" ^ locationToString(loc)
 fun REAL(value, loc) = "REAL(" ^ Real.toString(value) ^ ") @" ^ locationToString(loc)
-fun BIT(value, loc) = "BIT(" ^ (case value of (ZERO(v) | ONE(v)) => Int.toString(v)) ^ ") @" ^ locationToString(loc)
+fun BIT(value, loc) = "BIT(" ^ Bit.toString(value) ^ ") @" ^ locationToString(loc)
+fun STRING(value, loc) = "STRING(" ^ value ^ ") @" ^ locationToString(loc)
 fun ID(id, loc) = "STRING(" ^ id ^ ") @" ^ locationToString(loc)
 fun EOF(loc) = "EOF @" ^ locationToString(loc)
 end

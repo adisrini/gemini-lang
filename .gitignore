@@ -10,3 +10,7 @@
 
 # Mac artifacts
 .DS_Store
+
+# Auto-generated
+*.lex.sml
+*/.cm/*

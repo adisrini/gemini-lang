@@ -1,6 +1,5 @@
 type pos = int
 type lexresult = Tokens.token
-datatype bit = Tokens.bit
 
 val lineNum = ErrorMsg.lineNum
 val linePos = ErrorMsg.linePos
@@ -26,8 +25,8 @@ fun escape "\\\"" = "\""
   | escape x      = x
 
 fun eof() = let val pos = hd(!linePos) in
-  if(!netCommentBalance <> 0) then ErrorMsg.error pos ("unclosed comment!")
-  else if (!stringLiteralClosed = false) then ErrorMsg.error pos ("unclosed string literal!")
+  if(!netCommentBalance <> 0) then ErrorMsg.error pos ("SyntaxError: Unclosed comment.")
+  else if (!stringLiteralClosed = false) then ErrorMsg.error pos ("SyntaxError: Unclosed string literal.")
   else ();
   ErrorMsg.lineNum := 1;
   netCommentBalance := 0;
