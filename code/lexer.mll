@@ -11,3 +11,12 @@ let next_line lexbuf =
                pos_lnum = pos.pos_lnum + 1
     }
 }
+
+(* Numerics *)
+let digit = ['0'-'9']
+let sign_opt = ['-' '+']?
+let frac = '.' digit*
+let exp = ['e' 'E'] sign_opt digit+
+
+let int = sign_opt digit+
+let float = sign_opt digit* frac exp?
