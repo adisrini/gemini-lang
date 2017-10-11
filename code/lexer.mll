@@ -20,3 +20,10 @@ let exp = ['e' 'E'] sign_opt digit+
 
 let int = sign_opt digit+
 let float = sign_opt digit* frac exp?
+
+(* Whitespace *)
+let white = [' ' '\t']+
+let newline = '\r' | '\n' | "\r\n"
+
+(* Identifier *)
+let id = ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*
