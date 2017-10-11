@@ -1,15 +1,16 @@
 %%
 %term
     EOF
-  | ID of string
-  | INT of int | STRING of string
-  | COMMA | COLON | SEMICOLON | LPAREN | RPAREN | LBRACK | RBRACK
-  | LBRACE | RBRACE | DOT
-  | PLUS | MINUS | TIMES | DIVIDE | EQ | NEQ | LT | LE | GT | GE
-  | AND | OR | ASSIGN
-  | ARRAY | IF | THEN | ELSE | WHILE | FOR | TO | DO | LET | IN | END | OF
-  | BREAK | NIL
-  | FUNCTION | VAR | TYPE
+  | DATATYPE | TYPE | VAL | REF | FUN | MODULE | STRUCTURE | STRUCT | SIGNATURE | SIG
+  | LET | IN | END | IF | THEN | ELSE
+  | ORELSE | ANDALSO | NOT
+  | NIL | WITH | OF | OP
+  | BIT_NOT | BIT_OR | BIT_AND | BIT_XOR | BIT_SLL | BIT_SRL | BIT_SRA
+  | GE | GT | LE | LT | NEQ | EQ
+  | INT_DIVIDE | INT_TIMES | INT_PLUS | INT_MINUS | INT_MOD | REAL_DIVIDE | REAL_TIMES | REAL_PLUS | REAL_MINUS
+  | RBRACE | LBRACE | RBRACK | LBRACK | RPAREN | LPAREN
+  | DOT | SEMICOLON | COLON | COMMA | POUND | AT | TICK | ASSIGN
+  | ID of string | INT of int | STRING of string | REAL of real | BIT of Bit.bit
   | UMINUS
 
 %nonterm  program
