@@ -1,4 +1,4 @@
-signature Gemini_TOKENS =
+signature GEMINI_TOKENS =
 sig
 type pos (* int *)
 type location (* pos * pos *)
@@ -34,7 +34,7 @@ val NOT: location -> token
 val NIL:  location -> token
 val WITH: location -> token
 val OF: location -> token
-val OPERATOR: location -> token
+val OP: location -> token
 
 (******* OPERATORS *******)
 (* bitwise *)
