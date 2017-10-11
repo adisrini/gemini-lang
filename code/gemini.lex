@@ -44,23 +44,38 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL, COMMENT>\n                           => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <INITIAL, COMMENT>[ \b\r\t]+                   => (continue());
 
-<INITIAL>"var"  	                             => (Tokens.VAR(yypos,yypos+3));
-<INITIAL>"function"                            => (Tokens.FUNCTION(yypos,yypos+8));
-<INITIAL>"type"                                => (Tokens.TYPE(yypos,yypos+4));
-<INITIAL>"if"                                  => (Tokens.IF(yypos,yypos+2));
-<INITIAL>"then"                                => (Tokens.THEN(yypos,yypos+4));
-<INITIAL>"else"                                => (Tokens.ELSE(yypos,yypos+4));
-<INITIAL>"while"                               => (Tokens.WHILE(yypos,yypos+5));
-<INITIAL>"do"                                  => (Tokens.DO(yypos,yypos+2));
-<INITIAL>"for"                                 => (Tokens.FOR(yypos,yypos+3));
-<INITIAL>"to"                                  => (Tokens.TO(yypos,yypos+2));
-<INITIAL>"break"                               => (Tokens.BREAK(yypos,yypos+5));
-<INITIAL>"end"                                 => (Tokens.END(yypos,yypos+3));
-<INITIAL>"in"                                  => (Tokens.IN(yypos,yypos+2));
-<INITIAL>"nil"                                 => (Tokens.NIL(yypos,yypos+3));
-<INITIAL>"let"                                 => (Tokens.LET(yypos,yypos+3));
-<INITIAL>"array"                               => (Tokens.ARRAY(yypos,yypos+5));
-<INITIAL>"of"                                  => (Tokens.OF(yypos,yypos+2));
+// declarations
+<INITIAL>"datatype"  	                         => (Tokens.DATATYPE(yypos, yypos + 8));
+<INITIAL>"type"  	                             => (Tokens.TYPE(yypos, yypos + 4));
+<INITIAL>"val"  	                             => (Tokens.VAL(yypos, yypos + 3));
+<INITIAL>"ref"  	                             => (Tokens.REF(yypos, yypos + 3));
+<INITIAL>"fun"  	                             => (Tokens.FUN(yypos, yypos + 3));
+<INITIAL>"module"  	                           => (Tokens.MODULE(yypos, yypos + 6));
+<INITIAL>"structure"  	                       => (Tokens.STRUCTURE(yypos, yypos + 9));
+<INITIAL>"struct"  	                           => (Tokens.STRUCT(yypos, yypos + 6));
+<INITIAL>"signature"  	                       => (Tokens.SIGNATURE(yypos, yypos + 9));
+<INITIAL>"sig"  	                             => (Tokens.SIG(yypos, yypos + 3));
+
+// constructs
+<INITIAL>"let"  	                             => (Tokens.LET(yypos, yypos + 3));
+<INITIAL>"in"  	                               => (Tokens.IN(yypos, yypos + 2));
+<INITIAL>"end"  	                             => (Tokens.END(yypos, yypos + 3));
+<INITIAL>"if"  	                               => (Tokens.IF(yypos, yypos + 2));
+<INITIAL>"then"  	                             => (Tokens.THEN(yypos, yypos + 4));
+<INITIAL>"else"  	                             => (Tokens.ELSE(yypos, yypos + 4));
+
+// operator keywords
+<INITIAL>"orelse"  	                           => (Tokens.ORELSE(yypos, yypos + 6));
+<INITIAL>"andalso"  	                         => (Tokens.ANDALSO(yypos, yypos + 7));
+<INITIAL>"not"  	                             => (Tokens.NOT(yypos, yypos + 3));
+
+// misc keywords
+<INITIAL>"nil"  	                             => (Tokens.NIL(yypos, yypos + 3));
+<INITIAL>"with"  	                             => (Tokens.WITH(yypos, yypos + 4));
+<INITIAL>"of"  	                               => (Tokens.OF(yypos, yypos + 2));
+<INITIAL>"op"  	                               => (Tokens.OP(yypos, yypos + 2));
+
+// bitwise operators
 
 <INITIAL>","	                                 => (Tokens.COMMA(yypos,yypos+1));
 <INITIAL>"+"                                   => (Tokens.PLUS(yypos,yypos+1));

@@ -21,7 +21,7 @@ fun STRUCT(loc) = "STRUCT @" ^ locationToString(loc)
 fun SIGNATURE(loc) = "SIGNATURE @" ^ locationToString(loc)
 fun SIG(loc) = "SIG @" ^ locationToString(loc)
 
-(* structures *)
+(* constructs *)
 fun LET(loc) = "LET @" ^ locationToString(loc)
 fun IN(loc) = "IN @" ^ locationToString(loc)
 fun END(loc) = "END @" ^ locationToString(loc)

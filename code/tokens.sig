@@ -16,7 +16,7 @@ val STRUCT: location -> token
 val SIGNATURE: location -> token
 val SIG: location -> token
 
-(* structures *)
+(* constructs *)
 val LET:  location -> token
 val IN:  location -> token
 val END:  location -> token
