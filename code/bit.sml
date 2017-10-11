@@ -7,4 +7,13 @@ struct
     ZERO => "'b0"
   | ONE => "'b1"
 
+  fun toInt b = case b of
+    ZERO => 0
+  | ONE => 1
+
+  fun fromString s = case s of
+    "'b0" => ZERO
+  | "'b1" => ONE
+  | _ => raise Match
+
 end

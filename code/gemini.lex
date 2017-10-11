@@ -44,7 +44,6 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL, COMMENT>\n                           => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <INITIAL, COMMENT>[ \b\r\t]+                   => (continue());
 
-// declarations
 <INITIAL>"datatype"  	                         => (Tokens.DATATYPE(yypos, yypos + 8));
 <INITIAL>"type"  	                             => (Tokens.TYPE(yypos, yypos + 4));
 <INITIAL>"val"  	                             => (Tokens.VAL(yypos, yypos + 3));
@@ -56,7 +55,6 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"signature"  	                       => (Tokens.SIGNATURE(yypos, yypos + 9));
 <INITIAL>"sig"  	                             => (Tokens.SIG(yypos, yypos + 3));
 
-// constructs
 <INITIAL>"let"  	                             => (Tokens.LET(yypos, yypos + 3));
 <INITIAL>"in"  	                               => (Tokens.IN(yypos, yypos + 2));
 <INITIAL>"end"  	                             => (Tokens.END(yypos, yypos + 3));
@@ -64,18 +62,15 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"then"  	                             => (Tokens.THEN(yypos, yypos + 4));
 <INITIAL>"else"  	                             => (Tokens.ELSE(yypos, yypos + 4));
 
-// operator keywords
 <INITIAL>"orelse"  	                           => (Tokens.ORELSE(yypos, yypos + 6));
 <INITIAL>"andalso"  	                         => (Tokens.ANDALSO(yypos, yypos + 7));
 <INITIAL>"not"  	                             => (Tokens.NOT(yypos, yypos + 3));
 
-// misc keywords
 <INITIAL>"nil"  	                             => (Tokens.NIL(yypos, yypos + 3));
 <INITIAL>"with"  	                             => (Tokens.WITH(yypos, yypos + 4));
 <INITIAL>"of"  	                               => (Tokens.OF(yypos, yypos + 2));
 <INITIAL>"op"  	                               => (Tokens.OP(yypos, yypos + 2));
 
-// bitwise operators
 <INITIAL>"~"	                                 => (Tokens.BIT_NOT(yypos, yypos + 1));
 <INITIAL>"|"	                                 => (Tokens.BIT_OR(yypos, yypos + 1));
 <INITIAL>"&"	                                 => (Tokens.BIT_AND(yypos, yypos + 1));
@@ -84,7 +79,6 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>">>"	                                 => (Tokens.BIT_SRL(yypos, yypos + 2));
 <INITIAL>">>>"	                               => (Tokens.BIT_SRA(yypos, yypos + 3));
 
-// comparison operators
 <INITIAL>"="                                   => (Tokens.EQ(yypos, yypos + 1));
 <INITIAL>">="                                  => (Tokens.GE(yypos, yypos + 2));
 <INITIAL>"<="                                  => (Tokens.LE(yypos, yypos + 2));
@@ -92,41 +86,36 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>">"                                   => (Tokens.GT(yypos, yypos + 1));
 <INITIAL>"<"                                   => (Tokens.LT(yypos, yypos + 1));
 
-// arithmetic
 <INITIAL>"+"                                   => (Tokens.INT_PLUS(yypos, yypos + 1));
 <INITIAL>"-"                                   => (Tokens.INT_MINUS(yypos, yypos + 1));
 <INITIAL>"*"                                   => (Tokens.INT_TIMES(yypos, yypos + 1));
 <INITIAL>"/"                                   => (Tokens.INT_DIVIDE(yypos, yypos + 1));
-<INITIAL>"%%"                                  => (Tokens.INT_MOD(yypos, yypos + 1));
+<INITIAL>"%"                                  => (Tokens.INT_MOD(yypos, yypos + 1));
 <INITIAL>"+."                                  => (Tokens.REAL_PLUS(yypos, yypos + 2));
 <INITIAL>"-."                                  => (Tokens.REAL_MINUS(yypos, yypos + 2));
 <INITIAL>"*."                                  => (Tokens.REAL_TIMES(yypos, yypos + 2));
 <INITIAL>"/."                                  => (Tokens.REAL_DIVIDE(yypos, yypos + 2));
 
+<INITIAL>"["                                   => (Tokens.LBRACK(yypos, yypos + 1));
+<INITIAL>"]"                                   => (Tokens.RBRACK(yypos, yypos + 1));
+<INITIAL>"{"                                   => (Tokens.LBRACE(yypos, yypos + 1));
+<INITIAL>"}"                                   => (Tokens.RBRACE(yypos, yypos + 1));
+<INITIAL>"("                                   => (Tokens.LPAREN(yypos, yypos + 1));
+<INITIAL>")"                                   => (Tokens.RPAREN(yypos, yypos + 1));
 
-<INITIAL>"["                                   => (Tokens.LBRACK(yypos, yypos+1));
-<INITIAL>"]"                                   => (Tokens.RBRACK(yypos, yypos+1));
-<INITIAL>"."                                   => (Tokens.DOT(yypos, yypos+1));
-<INITIAL>":="                                  => (Tokens.ASSIGN(yypos,yypos+2));
-<INITIAL>":"                                   => (Tokens.COLON(yypos,yypos+1));
-<INITIAL>"&"                                   => (Tokens.AND(yypos,yypos+1));
-<INITIAL>"|"                                   => (Tokens.OR(yypos,yypos+1));
+<INITIAL>"."                                   => (Tokens.DOT(yypos, yypos + 1));
+<INITIAL>","                                   => (Tokens.COMMA(yypos, yypos + 1));
+<INITIAL>":="                                  => (Tokens.ASSIGN(yypos, yypos + 2));
+<INITIAL>":"                                   => (Tokens.COLON(yypos, yypos + 1));
+<INITIAL>";"                                   => (Tokens.SEMICOLON(yypos, yypos + 1));
+<INITIAL>"#"                                   => (Tokens.POUND(yypos, yypos + 1));
+<INITIAL>"@"                                   => (Tokens.AT(yypos, yypos + 1));
+<INITIAL>"`"                                   => (Tokens.TICK(yypos, yypos + 1));
 
-<INITIAL>"{"                                   => (Tokens.LBRACE(yypos,yypos+1));
-<INITIAL>"}"                                   => (Tokens.RBRACE(yypos,yypos+1));
-<INITIAL>";"                                   => (Tokens.SEMICOLON(yypos,yypos+1));
-<INITIAL>"("                                   => (Tokens.LPAREN(yypos,yypos+1));
-<INITIAL>")"                                   => (Tokens.RPAREN(yypos,yypos+1));
-
-<INITIAL>"/*"                                  => (YYBEGIN COMMENT; netCommentBalance := 1; continue());
-<INITIAL>"*/"                                  => (ErrorMsg.error yypos ("closing nonexistent comment!"); continue());
-<COMMENT>"/*"                                  => (netCommentBalance := (!netCommentBalance) + 1; continue());
-<COMMENT>"*/"                                  => (netCommentBalance := (!netCommentBalance) - 1; if !netCommentBalance = 0 then YYBEGIN INITIAL else (); continue());
-<COMMENT>.                                     => (continue());
-
-<INITIAL>[a-zA-Z][a-zA-Z0-9_]*                 => (Tokens.ID(yytext, yypos, yypos + size yytext));
-<INITIAL>[0-9]+                                => (Tokens.INT(valOf (Int.fromString yytext), yypos, yypos + size yytext));
-
+<INITIAL>[a-zA-Z_][a-zA-Z0-9_]*                => (Tokens.ID(yytext, (yypos, yypos + size(yytext))));
+<INITIAL>[-+]?[0-9]+                           => (Tokens.INT(valOf(Int.fromString(yytext)), (yypos, yypos + size(yytext))));
+<INITIAL>[-+]?[0-9]*\.[0-9]*                   => (Tokens.REAL(valOf(Real.fromString(yytext)), (yypos, yypos + size(yytext))));
+<INITIAL>'b(0 | 1)                             => (Tokens.BIT(Bit.fromString(yytext), (yypos, yypos + size(yytext))));
 <INITIAL>"\""                                  => (YYBEGIN STRING; stringLiteralClosed := false; buffer:= ""; stringStartPosition := yypos; continue());
 <STRING>[ -!#-\[\]-~]*                         => (buffer := !buffer ^ yytext; continue());
 <STRING>\\n                                    => (buffer := !buffer ^ (escape yytext); continue());
@@ -136,8 +125,14 @@ fun eof() = let val pos = hd(!linePos) in
 <STRING>\\[ \b\r\t\n]+\\                       => (lineNum:= !lineNum + (count (fn c => c = #"\n") (String.explode yytext)); linePos := yypos :: !linePos; continue());
 <STRING>\\\^[@-_]                              => (buffer := !buffer ^ escape (convertControlCharacter(String.substring (yytext, 2, 1))); continue());
 <STRING>\\(0[0-9][0-9]|1[0-1][0-9]|12[0-7])    => (buffer := !buffer ^ escape (asciiCode(String.substring (yytext, 1, 3))); continue());
-<STRING>"\""                                   => (YYBEGIN INITIAL; stringLiteralClosed := true; Tokens.STRING(!buffer, !stringStartPosition, yypos));
-<STRING>\n                                     => (YYBEGIN INITIAL; stringLiteralClosed := true; ErrorMsg.error yypos ("illegal new-line within string"); lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
-<STRING>.                                      => (ErrorMsg.error yypos ("illegal character within string " ^ yytext); continue());
+<STRING>"\""                                   => (YYBEGIN INITIAL; stringLiteralClosed := true; Tokens.STRING(!buffer, (!stringStartPosition, yypos)));
+<STRING>\n                                     => (YYBEGIN INITIAL; stringLiteralClosed := true; ErrorMsg.error yypos ("StringParseError: New-line within string."); lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
+<STRING>.                                      => (ErrorMsg.error yypos ("StringParseError: Illegal character within string: " ^ yytext); continue());
 
-.                                              => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
+<INITIAL>"/*"                                  => (YYBEGIN COMMENT; netCommentBalance := 1; continue());
+<INITIAL>"*/"                                  => (ErrorMsg.error yypos ("SyntaxError: Cannot close unopened comment."); continue());
+<COMMENT>"/*"                                  => (netCommentBalance := (!netCommentBalance) + 1; continue());
+<COMMENT>"*/"                                  => (netCommentBalance := (!netCommentBalance) - 1; if !netCommentBalance = 0 then YYBEGIN INITIAL else (); continue());
+<COMMENT>.                                     => (continue());
+
+.                                              => (ErrorMsg.error yypos ("SyntaxError: Illegal character: " ^ yytext); continue());

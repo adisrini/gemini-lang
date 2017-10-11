@@ -9,6 +9,7 @@ type token
 val DATATYPE: location -> token
 val TYPE:  location -> token
 val VAL:  location -> token
+val REF: location -> token
 val FUN:  location -> token
 val MODULE: location -> token
 val STRUCTURE: location -> token
@@ -80,6 +81,7 @@ val COMMA:  location -> token
 val POUND: location -> token
 val AT: location -> token
 val TICK: location -> token
+val ASSIGN: location -> token
 
 (******* LITERALS *******)
 val INT: (int *  location) -> token
