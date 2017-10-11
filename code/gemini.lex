@@ -76,25 +76,42 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"op"  	                               => (Tokens.OP(yypos, yypos + 2));
 
 // bitwise operators
+<INITIAL>"~"	                                 => (Tokens.BIT_NOT(yypos, yypos + 1));
+<INITIAL>"|"	                                 => (Tokens.BIT_OR(yypos, yypos + 1));
+<INITIAL>"&"	                                 => (Tokens.BIT_AND(yypos, yypos + 1));
+<INITIAL>"^"	                                 => (Tokens.BIT_XOR(yypos, yypos + 1));
+<INITIAL>"<<"	                                 => (Tokens.BIT_SLL(yypos, yypos + 2));
+<INITIAL>">>"	                                 => (Tokens.BIT_SRL(yypos, yypos + 2));
+<INITIAL>">>>"	                               => (Tokens.BIT_SRA(yypos, yypos + 3));
 
-<INITIAL>","	                                 => (Tokens.COMMA(yypos,yypos+1));
-<INITIAL>"+"                                   => (Tokens.PLUS(yypos,yypos+1));
-<INITIAL>"-"                                   => (Tokens.MINUS(yypos,yypos+1));
-<INITIAL>"*"                                   => (Tokens.TIMES(yypos,yypos+1));
-<INITIAL>"/"                                   => (Tokens.DIVIDE(yypos,yypos+1));
-<INITIAL>"["                                   => (Tokens.LBRACK(yypos,yypos+1));
-<INITIAL>"]"                                   => (Tokens.RBRACK(yypos,yypos+1));
-<INITIAL>"."                                   => (Tokens.DOT(yypos,yypos+1));
+// comparison operators
+<INITIAL>"="                                   => (Tokens.EQ(yypos, yypos + 1));
+<INITIAL>">="                                  => (Tokens.GE(yypos, yypos + 2));
+<INITIAL>"<="                                  => (Tokens.LE(yypos, yypos + 2));
+<INITIAL>"<>"                                  => (Tokens.NEQ(yypos, yypos + 2));
+<INITIAL>">"                                   => (Tokens.GT(yypos, yypos + 1));
+<INITIAL>"<"                                   => (Tokens.LT(yypos, yypos + 1));
+
+// arithmetic
+<INITIAL>"+"                                   => (Tokens.INT_PLUS(yypos, yypos + 1));
+<INITIAL>"-"                                   => (Tokens.INT_MINUS(yypos, yypos + 1));
+<INITIAL>"*"                                   => (Tokens.INT_TIMES(yypos, yypos + 1));
+<INITIAL>"/"                                   => (Tokens.INT_DIVIDE(yypos, yypos + 1));
+<INITIAL>"%%"                                  => (Tokens.INT_MOD(yypos, yypos + 1));
+<INITIAL>"+."                                  => (Tokens.REAL_PLUS(yypos, yypos + 2));
+<INITIAL>"-."                                  => (Tokens.REAL_MINUS(yypos, yypos + 2));
+<INITIAL>"*."                                  => (Tokens.REAL_TIMES(yypos, yypos + 2));
+<INITIAL>"/."                                  => (Tokens.REAL_DIVIDE(yypos, yypos + 2));
+
+
+<INITIAL>"["                                   => (Tokens.LBRACK(yypos, yypos+1));
+<INITIAL>"]"                                   => (Tokens.RBRACK(yypos, yypos+1));
+<INITIAL>"."                                   => (Tokens.DOT(yypos, yypos+1));
 <INITIAL>":="                                  => (Tokens.ASSIGN(yypos,yypos+2));
 <INITIAL>":"                                   => (Tokens.COLON(yypos,yypos+1));
 <INITIAL>"&"                                   => (Tokens.AND(yypos,yypos+1));
 <INITIAL>"|"                                   => (Tokens.OR(yypos,yypos+1));
-<INITIAL>"="                                   => (Tokens.EQ(yypos,yypos+1));
-<INITIAL>">="                                  => (Tokens.GE(yypos,yypos+2));
-<INITIAL>"<="                                  => (Tokens.LE(yypos,yypos+2));
-<INITIAL>"<>"                                  => (Tokens.NEQ(yypos,yypos+2));
-<INITIAL>">"                                   => (Tokens.GT(yypos,yypos+1));
-<INITIAL>"<"                                   => (Tokens.LT(yypos,yypos+1));
+
 <INITIAL>"{"                                   => (Tokens.LBRACE(yypos,yypos+1));
 <INITIAL>"}"                                   => (Tokens.RBRACE(yypos,yypos+1));
 <INITIAL>";"                                   => (Tokens.SEMICOLON(yypos,yypos+1));

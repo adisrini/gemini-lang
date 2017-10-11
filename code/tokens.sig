@@ -59,10 +59,10 @@ val INT_TIMES:  location -> token
 val INT_MINUS:  location -> token
 val INT_PLUS:  location -> token
 val INT_MOD: location -> token
-val FLOAT_DIVIDE: location -> token
-val FLOAT_TIMES: location -> token
-val FLOAT_MINUS: location -> token
-val FLOAT_PLUS: location -> token
+val REAL_DIVIDE: location -> token
+val REAL_TIMES: location -> token
+val REAL_MINUS: location -> token
+val REAL_PLUS: location -> token
 
 (******* GROUPING *******)
 val RBRACE:  location -> token
