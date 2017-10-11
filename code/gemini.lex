@@ -36,8 +36,8 @@ fun eof() = let val pos = hd(!linePos) in
   ErrorMsg.reset();
   Tokens.EOF(pos,pos) end
 
-
 %%
+%header (functor GeminiLexFun(structure Tokens: GEMINI_TOKENS));
 %s STRING COMMENT;
 %%
 

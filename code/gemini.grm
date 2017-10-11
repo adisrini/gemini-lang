@@ -1,0 +1,224 @@
+%%
+%term
+    EOF
+  | ID of string
+  | INT of int | STRING of string
+  | COMMA | COLON | SEMICOLON | LPAREN | RPAREN | LBRACK | RBRACK
+  | LBRACE | RBRACE | DOT
+  | PLUS | MINUS | TIMES | DIVIDE | EQ | NEQ | LT | LE | GT | GE
+  | AND | OR | ASSIGN
+  | ARRAY | IF | THEN | ELSE | WHILE | FOR | TO | DO | LET | IN | END | OF
+  | BREAK | NIL
+  | FUNCTION | VAR | TYPE
+  | UMINUS
+
+%nonterm  program
+        | exp
+        | lvalue
+        | field
+        | subscript
+        | operation
+        | letinend
+        | decs
+        | tydec
+        | ty
+        | tyfields
+        | tyfieldtail
+        | vardec
+        | fundec
+        | varOrFunDec
+        | tyOrVarDec
+        | letbody
+        | expSCtail
+        | whileloop
+        | forloop
+        | expseq
+        | expseqtail
+        | funcall
+        | callParams
+        | expCtail
+        | assign
+        | recdec
+        | recdecbody
+        | fieldCtail
+        | arraydec
+        | ifthenelse
+        | epsilon
+
+%pos int
+%verbose
+%start program
+%eop EOF
+%noshift EOF
+
+%name Gemini
+
+%keyword WHILE FOR TO BREAK LET IN END FUNCTION VAR TYPE ARRAY IF THEN ELSE
+	DO OF NIL
+
+%prefer THEN ELSE LPAREN
+
+%value ID ("foo")
+%value INT (1)
+%value STRING ("")
+
+%change -> IN ID END
+      | EQ -> ASSIGN
+      | ASSIGN -> EQ
+      | SEMICOLON ELSE -> ELSE
+      | LET ID EQ -> LET TYPE ID EQ
+      | LET ID ASSIGN -> LET VAR ID ASSIGN
+      | LET ID COLON ID ASSIGN -> LET VAR ID COLON ID ASSIGN
+      | LET ID LPAREN -> LET FUNCTION ID LPAREN
+      | COMMA -> SEMICOLON
+      | SEMICOLON -> COMMA
+      | SEMICOLON -> COLON
+      | COLON -> SEMICOLON
+      | SEMICOLON THEN -> THEN
+      | SEMICOLON TO -> TO
+      | SEMICOLON DO -> DO
+      | SEMICOLON VAR -> VAR
+      | SEMICOLON TYPE -> TYPE
+      | SEMICOLON FUNCTION -> FUNCTION
+      | SEMICOLON END -> END
+      | SEMICOLON IN -> IN
+
+%nonassoc ID
+%nonassoc OF
+%nonassoc DO ASSIGN
+%nonassoc THEN
+%nonassoc ELSE
+%nonassoc LBRACK RBRACK
+%left OR
+%left AND
+%nonassoc EQ NEQ GT LT GE LE
+%left MINUS PLUS
+%left DIVIDE TIMES
+%left UMINUS
+
+%%
+
+(* This is a skeleton grammar file, meant to illustrate what kind of
+ * declarations are necessary above the %% mark.  Students are expected
+ *  to replace the two dummy productions below with an actual grammar.
+ *)
+
+program	      : exp                                                         ()
+
+exp           : INT                                                         ()
+              | STRING                                                      ()
+              | NIL                                                         ()
+              | BREAK                                                       ()
+              | lvalue                                                      ()
+              | operation                                                   ()
+              | letinend                                                    ()
+              | whileloop                                                   ()
+              | forloop                                                     ()
+              | expseq                                                      ()
+              | assign                                                      ()
+              | funcall                                                     ()
+              | arraydec                                                    ()
+              | recdec                                                      ()
+              | ifthenelse                                                  ()
+              | LPAREN RPAREN                                               ()
+
+lvalue        : ID                                                          ()
+              | subscript                                                   ()
+              | field                                                       ()
+
+field         : lvalue DOT ID                                               ()
+
+subscript     : ID LBRACK exp RBRACK                                        ()
+              | lvalue LBRACK exp RBRACK                                    ()
+
+operation     : MINUS exp %prec UMINUS                                      ()
+              | exp PLUS exp                                                ()
+              | exp MINUS exp                                               ()
+              | exp TIMES exp                                               ()
+              | exp DIVIDE exp                                              ()
+              | exp EQ exp                                                  ()
+              | exp NEQ exp                                                 ()
+              | exp GT exp                                                  ()
+              | exp LT exp                                                  ()
+              | exp GE exp                                                  ()
+              | exp LE exp                                                  ()
+
+letinend      : LET decs IN letbody END                                     ()
+
+decs          : vardec decs                                                 ()
+              | fundec tyOrVarDec                                           ()
+              | tydec varOrFunDec                                           ()
+              | epsilon                                                     ()
+
+tyOrVarDec    : tydec varOrFunDec                                           ()
+              | vardec decs                                                 ()
+              | epsilon                                                     ()
+
+varOrFunDec   : vardec decs                                                 ()
+              | fundec tyOrVarDec                                           ()
+              | epsilon                                                     ()
+
+tydec         : TYPE ID EQ ty                                               ()
+              | TYPE ID EQ ty tydec                                         ()
+
+ty            : ID                                                          ()
+              | LBRACE tyfields RBRACE                                      ()
+              | ARRAY OF ID                                                 ()
+
+tyfields      : tyfieldtail                                                 ()
+              | epsilon                                                     ()
+
+tyfieldtail   : ID COLON ID                                                 ()
+              | tyfieldtail COMMA ID COLON ID                               ()
+
+vardec        : VAR ID ASSIGN exp                                           ()
+              | VAR ID COLON ID ASSIGN exp                                  ()
+
+fundec        : FUNCTION ID LPAREN tyfields RPAREN EQ exp                   ()
+              | FUNCTION ID LPAREN tyfields RPAREN COLON ID EQ exp          ()
+              | FUNCTION ID LPAREN tyfields RPAREN EQ exp fundec            ()
+              | FUNCTION ID LPAREN tyfields RPAREN COLON ID EQ exp fundec   ()
+
+letbody       : exp expSCtail                                               ()
+              | epsilon                                                     ()
+
+expSCtail     : SEMICOLON exp expSCtail                                     ()
+              | epsilon                                                     ()
+
+whileloop     : WHILE exp DO exp                                            ()
+
+forloop       : FOR ID ASSIGN exp TO exp DO exp                             ()
+
+expseq        : LPAREN exp RPAREN                                           ()
+              | LPAREN exp expseqtail RPAREN                                ()
+
+expseqtail    : SEMICOLON exp                                               ()
+              | SEMICOLON exp expseqtail                                    ()
+
+funcall       : ID LPAREN callParams RPAREN                                 ()
+
+callParams    : exp expCtail                                                ()
+              | epsilon                                                     ()
+
+expCtail      : COMMA exp expCtail                                          ()
+              | epsilon                                                     ()
+
+assign        : lvalue ASSIGN exp                                           ()
+
+fieldCtail    : COMMA ID EQ exp fieldCtail                                  ()
+              | epsilon                                                     ()
+
+recdecbody    : ID EQ exp fieldCtail                                        ()
+              | epsilon                                                     ()
+
+recdec        : ID LBRACE recdecbody RBRACE                                 ()
+
+
+arraydec      : ID LBRACK exp RBRACK OF exp                                 ()
+
+ifthenelse    : IF exp THEN exp ELSE exp                                    ()
+              | IF exp THEN exp                                             ()
+              | exp AND exp                                                 ()
+              | exp OR exp                                                  ()
+
+epsilon       :                                                             ()

@@ -13,4 +13,5 @@
 
 # Auto-generated
 *.lex.sml
+*.grm.*
 */.cm/*

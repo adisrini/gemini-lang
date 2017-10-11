@@ -6,5 +6,7 @@ errormsg.sml
 tokens.sig
 tokens.sml
 gemini.lex
+gemini.grm
+$/ml-yacc-lib.cm
 $/smlnj-lib.cm
 $/basis.cm
