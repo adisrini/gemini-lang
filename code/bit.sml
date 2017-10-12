@@ -16,4 +16,9 @@ struct
   | "'b1" => ONE
   | _ => raise Match
 
+  fun fromInt s = case s of
+    0 => ZERO
+  | 1 => ONE
+  | _ => raise Match
+
 end
