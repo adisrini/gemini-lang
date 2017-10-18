@@ -19,7 +19,7 @@
         | field
         | subscript
         | operation
-        | letinend
+        | letblock
         | decs
         | tydec
         | ty
@@ -31,8 +31,6 @@
         | tyOrVarDec
         | letbody
         | expSCtail
-        | whileloop
-        | forloop
         | expseq
         | expseqtail
         | funcall
@@ -112,13 +110,12 @@ program	      : exp                                                         ()
 
 exp           : INT                                                         ()
               | STRING                                                      ()
+              | REAL                                                        ()
+              | BIT                                                         ()
               | NIL                                                         ()
-              | BREAK                                                       ()
               | lvalue                                                      ()
               | operation                                                   ()
-              | letinend                                                    ()
-              | whileloop                                                   ()
-              | forloop                                                     ()
+              | letblock                                                    ()
               | expseq                                                      ()
               | assign                                                      ()
               | funcall                                                     ()
