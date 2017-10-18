@@ -101,11 +101,6 @@
 
 %%
 
-(* This is a skeleton grammar file, meant to illustrate what kind of
- * declarations are necessary above the %% mark.  Students are expected
- *  to replace the two dummy productions below with an actual grammar.
- *)
-
 program	      : exp                                                         ()
 
 exp           : INT                                                         ()
