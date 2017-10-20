@@ -25,22 +25,27 @@
                 | compare_op
             | let_block
                 | let_body
+                    | semicolon_exp0
                 | decs
-                    | var_dec
+                    | val_dec
                     | fun_dec
-                    | module_dec
+                        | fun_dec_no_type
+                        | fun_dec_with_type
+                        | fun_params
+                            | fun_param
                     | ty_dec
-                    | ty_or_var_dec
-                    | var_or_fun_dec
+                        | ty
+                    | dataty_dec
+                    | module_dec
+                    | non_fun_dec
+                    | non_ty_dec
+                    | non_dataty_dec
+                    | non_module_dec
             | exp_seq
-
+                | semicolon_exp1
         | ty
-        | tyfields
-        | tyfieldtail
-        | letbody
-        | expSCtail
-        | expseq
-        | expseqtail
+        | ty_fields
+        | ty_field_tail
         | funcall
         | callParams
         | expCtail
@@ -171,60 +176,85 @@ compare_op    : exp EQ exp                                                  ()
 
 let_block     : LET decs IN let_body END                                    ()
 
-decs          : var_dec decs                                                ()
+decs          : val_dec decs                                                ()
               | fun_dec non_fun_dec                                         ()
               | ty_dec non_ty_dec                                           ()
+              | dataty_dec non_dataty_dec                                   ()
               | module_dec non_module_dec                                   ()
               | epsilon                                                     ()
 
-var_dec       : VAR ID EQ exp                                               ()
-              | VAR ID COLON ID EQ exp                                      ()
-
-non_fun_dec   : tydec varOrFunDec                                           ()
-              | vardec decs                                                 ()
+non_fun_dec   : val_dec decs                                                ()
+              | ty_dec non_ty_dec                                           ()
+              | dataty_dec non_dataty_dec                                   ()
+              | module_dec non_module_dec                                   ()
               | epsilon                                                     ()
 
-non_ty_dec    : vardec decs                                                 ()
-              | fundec tyOrVarDec                                           ()
+non_ty_dec    : val_dec decs                                                ()
+              | fun_dec non_fun_dec                                         ()
+              | dataty_dec non_dataty_dec                                   ()
+              | module_dec non_module_dec                                   ()
               | epsilon                                                     ()
 
-non_module_dec: vardec decs                                                 ()
-              | fundec tyOrVarDec                                           ()
+non_dataty_dec: val_dec decs                                                ()
+              | ty_dec non_ty_dec                                           ()
+              | fun_dec non_fun_dec                                         ()
+              | module_dec non_module_dec                                   ()
               | epsilon                                                     ()
 
-tydec         : TYPE ID EQ ty                                               ()
-              | TYPE ID EQ ty tydec                                         ()
+non_module_dec: val_dec decs                                                ()
+              | fun_dec non_fun_dec                                         ()
+              | ty_dec non_ty_dec                                           ()
+              | dataty_dec non_dataty_dec                                   ()
+              | epsilon                                                     ()
+
+val_dec       : VAL ID EQ exp                                               ()
+              | VAL ID COLON ID EQ exp                                      ()
+
+fun_dec       : fun_dec_no_type                                             ()
+              | fun_dec_with_type                                           ()
+              | fun_dec_no_type fun_dec                                     ()
+              | fun_dec_with_type fun_dec                                   ()
+
+fun_dec_no_type: FUN ID fun_params EQ exp                                   ()
+
+fun_dec_with_type: FUN ID fun_params COLON ID EQ exp                        ()
+
+fun_params    : fun_param fun_params                                        ()
+              | fun_param                                                   ()
+
+fun_param     : LPAREN ID RPAREN                                            ()
+              | ID                                                          ()
+              | LPAREN ty_fields RPAREN                                     ()
+
+ty_dec        : TYPE ID EQ ty                                               ()
+              | TYPE ID EQ ty ty_dec                                        ()
 
 ty            : ID                                                          ()
-              | LBRACE tyfields RBRACE                                      ()
-              | ARRAY OF ID                                                 ()
+              | ty INT_TIMES ty                                             ()
+              | LBRACE ty_fields RBRACE                                     ()
+              | ty AT INT                                                   ()
+              | ty LBRACK INT RBRACK                                        ()
+              | ty LBRACK RBRACK                                            ()
+              | ty INT_MINUS GT ty                                          ()
+              | ty LIST                                                     ()
 
-tyfields      : tyfieldtail                                                 ()
+ty_fields     : ty_field_tail                                               ()
               | epsilon                                                     ()
 
-tyfieldtail   : ID COLON ID                                                 ()
-              | tyfieldtail COMMA ID COLON ID                               ()
+ty_field_tail : ID COLON ty                                                 ()
+              | ty_field_tail COMMA ID COLON ty                             ()
 
-fundec        : FUNCTION ID LPAREN tyfields RPAREN EQ exp                   ()
-              | FUNCTION ID LPAREN tyfields RPAREN COLON ID EQ exp          ()
-              | FUNCTION ID LPAREN tyfields RPAREN EQ exp fundec            ()
-              | FUNCTION ID LPAREN tyfields RPAREN COLON ID EQ exp fundec   ()
-
-let_body      : exp expSCtail                                               ()
+let_body      : exp semicolon_exp0                                          ()
               | epsilon                                                     ()
 
-expSCtail     : SEMICOLON exp expSCtail                                     ()
+semicolon_exp0: SEMICOLON exp semicolon_exp0                                ()
               | epsilon                                                     ()
 
-whileloop     : WHILE exp DO exp                                            ()
+exp_seq       : LPAREN exp RPAREN                                           ()
+              | LPAREN exp semicolon_exp1 RPAREN                            ()
 
-forloop       : FOR ID ASSIGN exp TO exp DO exp                             ()
-
-expseq        : LPAREN exp RPAREN                                           ()
-              | LPAREN exp expseqtail RPAREN                                ()
-
-expseqtail    : SEMICOLON exp                                               ()
-              | SEMICOLON exp expseqtail                                    ()
+semicolon_exp1: SEMICOLON exp semicolon_exp1                                ()
+              | SEMICOLON exp                                               ()
 
 funcall       : ID LPAREN callParams RPAREN                                 ()
 

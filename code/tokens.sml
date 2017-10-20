@@ -20,6 +20,7 @@ fun STRUCTURE(loc) = "STRUCTURE @" ^ locationToString(loc)
 fun STRUCT(loc) = "STRUCT @" ^ locationToString(loc)
 fun SIGNATURE(loc) = "SIGNATURE @" ^ locationToString(loc)
 fun SIG(loc) = "SIG @" ^ locationToString(loc)
+fun LIST(loc) = "LIST @" ^ locationToString(loc)
 
 (* constructs *)
 fun LET(loc) = "LET @" ^ locationToString(loc)
