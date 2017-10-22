@@ -9,7 +9,7 @@
   | GE | GT | LE | LT | NEQ | EQ
   | INT_DIVIDE | INT_TIMES | INT_PLUS | INT_MINUS | INT_MOD | REAL_DIVIDE | REAL_TIMES | REAL_PLUS | REAL_MINUS
   | RBRACE | LBRACE | RBRACK | LBRACK | RPAREN | LPAREN
-  | DOT | SEMICOLON | COLON | COMMA | POUND | AT | TICK | ASSIGN
+  | DOT | SEMICOLON | COLON | COMMA | POUND | AT | TICK | ASSIGN | PIPE
   | ID of string | INT of int | STRING of string | REAL of real | BIT of Bit.bit
   | UMINUS
 
@@ -45,15 +45,22 @@
                     | non_module_dec
             | exp_seq
                 | semicolon_exp1
-        | funcall
-        | callParams
-        | expCtail
-        | assign
-        | recdec
-        | recdecbody
-        | fieldCtail
-        | arraydec
-        | ifthenelse
+            | assign
+            | fun_call
+                | call_params
+                | call_param
+                | exp_comma_tail
+            | conditional
+            | insts
+            | rec_inst
+                | rec_inst_body
+                | rec_field_comma_tail
+            | ref_inst
+            | array_inst
+                | array_index_fn
+                | index_fn_tail
+            | list_inst
+                | list_elements
         | epsilon
 
 %pos int
@@ -123,12 +130,11 @@ exp           : INT                                                         ()
               | lvalue                                                      ()
               | operation                                                   ()
               | let_block                                                   ()
-              | exp_seq                                                      ()
+              | exp_seq                                                     ()
               | assign                                                      ()
-              | funcall                                                     ()
-              | arraydec                                                    ()
-              | recdec                                                      ()
-              | ifthenelse                                                  ()
+              | fun_call                                                    ()
+              | conditional                                                 ()
+              | insts                                                       ()
               | LPAREN RPAREN                                               ()
 
 lvalue        : ID                                                          ()
@@ -145,14 +151,14 @@ operation     : int_op                                                      ()
               | bit_op                                                      ()
               | compare_op                                                  ()
 
-int_op        : INT_MINUS exp %prec UMINUS                                      ()
+int_op        : INT_MINUS exp %prec UMINUS                                  ()
               | exp INT_PLUS exp                                            ()
               | exp INT_MINUS exp                                           ()
               | exp INT_TIMES exp                                           ()
               | exp INT_DIVIDE exp                                          ()
               | exp INT_MOD exp                                             ()
 
-real_op       : INT_MINUS exp %prec UMINUS                                      ()
+real_op       : INT_MINUS exp %prec UMINUS                                  ()
               | exp REAL_PLUS exp                                           ()
               | exp REAL_MINUS exp                                          ()
               | exp REAL_TIMES exp                                          ()
@@ -244,7 +250,6 @@ ty_field_tail : ID COLON ty                                                 ()
               | ty_field_tail COMMA ID COLON ty                             ()
 
 let_body      : exp semicolon_exp0                                          ()
-              | epsilon                                                     ()
 
 semicolon_exp0: SEMICOLON exp semicolon_exp0                                ()
               | epsilon                                                     ()
@@ -255,30 +260,53 @@ exp_seq       : LPAREN exp RPAREN                                           ()
 semicolon_exp1: SEMICOLON exp semicolon_exp1                                ()
               | SEMICOLON exp                                               ()
 
-funcall       : ID LPAREN callParams RPAREN                                 ()
-
-callParams    : exp expCtail                                                ()
-              | epsilon                                                     ()
-
-expCtail      : COMMA exp expCtail                                          ()
-              | epsilon                                                     ()
-
 assign        : lvalue ASSIGN exp                                           ()
 
-fieldCtail    : COMMA ID EQ exp fieldCtail                                  ()
+fun_call      : ID call_params                                              ()
+
+call_params   : call_param call_params                                      ()
               | epsilon                                                     ()
 
-recdecbody    : ID EQ exp fieldCtail                                        ()
+call_param    : LPAREN exp exp_comma_tail RPAREN                            ()
+              | exp                                                         ()
+
+exp_comma_tail: COMMA exp exp_comma_tail                                    ()
               | epsilon                                                     ()
 
-recdec        : ID LBRACE recdecbody RBRACE                                 ()
-
-
-arraydec      : ID LBRACK exp RBRACK OF exp                                 ()
-
-ifthenelse    : IF exp THEN exp ELSE exp                                    ()
+conditional   : IF exp THEN exp ELSE exp                                    ()
               | IF exp THEN exp                                             ()
-              | exp ANDALSO exp                                            ()
-              | exp ORELSE exp                                             ()
+              | exp ANDALSO exp                                             ()
+              | exp ORELSE exp                                              ()
+
+insts         : rec_inst                                                    ()
+              | ref_inst                                                    ()
+              | array_inst                                                  ()
+              | list_inst                                                   ()
+
+rec_inst      : LBRACE rec_inst_body RBRACE                                 ()
+
+rec_inst_body : ID EQ exp rec_field_comma_tail                              ()
+              | epsilon                                                     ()
+
+rec_field_comma_tail
+              : COMMA ID EQ exp rec_field_comma_tail                        ()
+              | epsilon                                                     ()
+
+ref_inst      : REF exp                                                     ()
+
+array_inst    : POUND LBRACK exp exp_comma_tail RBRACK                      ()
+              | POUND LBRACK exp COMMA array_index_fn RBRACK                ()
+
+array_index_fn: ID EQ GT exp index_fn_tail                                  ()
+              | INT EQ GT exp index_fn_tail                                 ()
+
+index_fn_tail : PIPE ID EQ GT exp index_fn_tail                             ()
+              | PIPE INT EQ GT exp index_fn_tail                            ()
+              | epsilon                                                     ()
+
+list_inst     : LBRACK list_elements RBRACK                                 ()
+
+list_elements : exp exp_comma_tail                                          ()
+              | epsilon                                                     ()
 
 epsilon       :                                                             ()
