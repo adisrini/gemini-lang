@@ -1,4 +1,4 @@
-structure Lexer =
+(*structure Lexer =
 struct
   fun run filename =
     let
@@ -19,11 +19,11 @@ struct
       lex_it();
       TextIO.closeIn file
     end
-end
+end*)
 
 structure Parser =
 struct
-  structure GeminiLrVals = GeminiLrVals(structure Token = LrParser.Token)
+  structure GeminiLrVals = GeminiLrValsFun(structure Token = LrParser.Token)
   structure Lex = GeminiLexFun(structure Tokens = GeminiLrVals.Tokens)
   structure GeminiP = Join(structure ParserData = GeminiLrVals.ParserData
 			structure Lex = Lex
@@ -34,7 +34,7 @@ struct
 	  fun get _ = TextIO.input file
 	  fun parseerror(s,p1,p2) = ErrorMsg.error p1 s
 	  val lexer = LrParser.Stream.streamify (Lex.makeLexer get)
-	  val (absyn, _) = GeminiP.parse(30,lexer,parseerror,())
+	  val (absyn, _) = GeminiP.parse(30, lexer, parseerror, ())
        in TextIO.closeIn file;
 	   absyn
       end handle LrParser.ParseError => raise ErrorMsg.Error

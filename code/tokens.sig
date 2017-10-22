@@ -1,95 +1,94 @@
-signature GEMINI_TOKENS =
+signature Gemini_TOKENS =
 sig
-type pos (* int *)
-type location (* pos * pos *)
+type linenum (* = int *)
 type token
 
 (******* KEYWORDS *******)
 (* declarations *)
-val DATATYPE: location -> token
-val TYPE:  location -> token
-val VAL:  location -> token
-val REF: location -> token
-val FUN:  location -> token
-val MODULE: location -> token
-val STRUCTURE: location -> token
-val STRUCT: location -> token
-val SIGNATURE: location -> token
-val SIG: location -> token
-val LIST: location -> token
+val DATATYPE: linenum * linenum -> token
+val TYPE:  linenum * linenum -> token
+val VAL:  linenum * linenum -> token
+val REF: linenum * linenum -> token
+val FUN:  linenum * linenum -> token
+val MODULE: linenum * linenum -> token
+val STRUCTURE: linenum * linenum -> token
+val STRUCT: linenum * linenum -> token
+val SIGNATURE: linenum * linenum -> token
+val SIG: linenum * linenum -> token
+val LIST: linenum * linenum -> token
 
 (* constructs *)
-val LET:  location -> token
-val IN:  location -> token
-val END:  location -> token
-val IF:  location -> token
-val THEN:  location -> token
-val ELSE:  location -> token
+val LET:  linenum * linenum -> token
+val IN:  linenum * linenum -> token
+val END:  linenum * linenum -> token
+val IF:  linenum * linenum -> token
+val THEN:  linenum * linenum -> token
+val ELSE:  linenum * linenum -> token
 
 (* operators *)
-val ORELSE: location -> token
-val ANDALSO: location -> token
-val NOT: location -> token
+val ORELSE: linenum * linenum -> token
+val ANDALSO: linenum * linenum -> token
+val NOT: linenum * linenum -> token
 
 (* misc *)
-val NIL:  location -> token
-val WITH: location -> token
-val OF: location -> token
-val OP: location -> token
+val NIL:  linenum * linenum -> token
+val WITH: linenum * linenum -> token
+val OF: linenum * linenum -> token
+val OP: linenum * linenum -> token
 
 (******* OPERATORS *******)
 (* bitwise *)
-val BIT_NOT: location -> token
-val BIT_OR:  location -> token
-val BIT_AND: location -> token
-val BIT_XOR: location -> token
-val BIT_SLL: location -> token
-val BIT_SRL: location -> token
-val BIT_SRA: location -> token
+val BIT_NOT: linenum * linenum -> token
+val BIT_OR:  linenum * linenum -> token
+val BIT_AND: linenum * linenum -> token
+val BIT_XOR: linenum * linenum -> token
+val BIT_SLL: linenum * linenum -> token
+val BIT_SRL: linenum * linenum -> token
+val BIT_SRA: linenum * linenum -> token
 
 (* comparison *)
-val GE:  location -> token
-val GT:  location -> token
-val LE:  location -> token
-val LT:  location -> token
-val NEQ:  location -> token
-val EQ:  location -> token
+val GE:  linenum * linenum -> token
+val GT:  linenum * linenum -> token
+val LE:  linenum * linenum -> token
+val LT:  linenum * linenum -> token
+val NEQ:  linenum * linenum -> token
+val EQ:  linenum * linenum -> token
 
 (* arithmetic *)
-val INT_DIVIDE:  location -> token
-val INT_TIMES:  location -> token
-val INT_MINUS:  location -> token
-val INT_PLUS:  location -> token
-val INT_MOD: location -> token
-val REAL_DIVIDE: location -> token
-val REAL_TIMES: location -> token
-val REAL_MINUS: location -> token
-val REAL_PLUS: location -> token
+val INT_DIVIDE:  linenum * linenum -> token
+val INT_TIMES:  linenum * linenum -> token
+val INT_MINUS:  linenum * linenum -> token
+val INT_PLUS:  linenum * linenum -> token
+val INT_MOD: linenum * linenum -> token
+val REAL_DIVIDE: linenum * linenum -> token
+val REAL_TIMES: linenum * linenum -> token
+val REAL_MINUS: linenum * linenum -> token
+val REAL_PLUS: linenum * linenum -> token
 
 (******* GROUPING *******)
-val RBRACE:  location -> token
-val LBRACE:  location -> token
-val RBRACK:  location -> token
-val LBRACK:  location -> token
-val RPAREN:  location -> token
-val LPAREN:  location -> token
+val RBRACE:  linenum * linenum -> token
+val LBRACE:  linenum * linenum -> token
+val RBRACK:  linenum * linenum -> token
+val LBRACK:  linenum * linenum -> token
+val RPAREN:  linenum * linenum -> token
+val LPAREN:  linenum * linenum -> token
 
 (******* MISCELLANEOUS *******)
-val DOT:  location -> token
-val SEMICOLON:  location -> token
-val COLON:  location -> token
-val COMMA:  location -> token
-val POUND: location -> token
-val AT: location -> token
-val TICK: location -> token
-val ASSIGN: location -> token
+val DOT:  linenum * linenum -> token
+val SEMICOLON:  linenum * linenum -> token
+val COLON:  linenum * linenum -> token
+val COMMA:  linenum * linenum -> token
+val POUND: linenum * linenum -> token
+val AT: linenum * linenum -> token
+val TICK: linenum * linenum -> token
+val ASSIGN: linenum * linenum -> token
 
 (******* LITERALS *******)
-val INT: (int *  location) -> token
-val REAL: (real * location) -> token
-val BIT: (Bit.bit * location) -> token
-val STRING: (string * location) -> token
-val ID: (string) *  location -> token
-val EOF:  location -> token
+val INT: (int) * linenum * linenum -> token
+val REAL: (real) * linenum * linenum -> token
+val BIT: (Bit.bit) * linenum * linenum -> token
+val STRING: (string) * linenum * linenum -> token
+val ID: (string) * linenum * linenum -> token
+val EOF:  linenum * linenum -> token
 
 end

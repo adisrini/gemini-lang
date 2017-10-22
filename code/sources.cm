@@ -3,8 +3,6 @@ Group is
 bit.sml
 driver.sml
 errormsg.sml
-tokens.sig
-tokens.sml
 gemini.lex
 gemini.grm
 $/ml-yacc-lib.cm

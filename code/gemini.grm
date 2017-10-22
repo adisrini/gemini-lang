@@ -1,7 +1,7 @@
 %%
 %term
     EOF
-  | DATATYPE | TYPE | VAL | REF | FUN | MODULE | STRUCTURE | STRUCT | SIGNATURE | SIG
+  | DATATYPE | TYPE | VAL | REF | FUN | MODULE | STRUCTURE | STRUCT | SIGNATURE | SIG | LIST
   | LET | IN | END | IF | THEN | ELSE
   | ORELSE | ANDALSO | NOT
   | NIL | WITH | OF | OP
@@ -35,6 +35,8 @@
                             | fun_param
                     | ty_dec
                         | ty
+                            | ty_fields
+                            | ty_field_tail
                     | dataty_dec
                     | module_dec
                     | non_fun_dec
@@ -43,9 +45,6 @@
                     | non_module_dec
             | exp_seq
                 | semicolon_exp1
-        | ty
-        | ty_fields
-        | ty_field_tail
         | funcall
         | callParams
         | expCtail
@@ -146,14 +145,14 @@ operation     : int_op                                                      ()
               | bit_op                                                      ()
               | compare_op                                                  ()
 
-int_op        : MINUS exp %prec UMINUS                                      ()
+int_op        : INT_MINUS exp %prec UMINUS                                      ()
               | exp INT_PLUS exp                                            ()
               | exp INT_MINUS exp                                           ()
               | exp INT_TIMES exp                                           ()
               | exp INT_DIVIDE exp                                          ()
               | exp INT_MOD exp                                             ()
 
-real_op       : MINUS exp %prec UMINUS                                      ()
+real_op       : INT_MINUS exp %prec UMINUS                                      ()
               | exp REAL_PLUS exp                                           ()
               | exp REAL_MINUS exp                                          ()
               | exp REAL_TIMES exp                                          ()
@@ -279,7 +278,7 @@ arraydec      : ID LBRACK exp RBRACK OF exp                                 ()
 
 ifthenelse    : IF exp THEN exp ELSE exp                                    ()
               | IF exp THEN exp                                             ()
-              | exp AND exp                                                 ()
-              | exp OR exp                                                  ()
+              | exp ANDALSO exp                                            ()
+              | exp ORELSE exp                                             ()
 
 epsilon       :                                                             ()

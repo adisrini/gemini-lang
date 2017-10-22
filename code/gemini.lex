@@ -1,5 +1,7 @@
+type svalue = Tokens.svalue
 type pos = int
-type lexresult = Tokens.token
+type ('a, 'b) token = ('a, 'b) Tokens.token
+type lexresult = (svalue, pos) Tokens.token
 
 val lineNum = ErrorMsg.lineNum
 val linePos = ErrorMsg.linePos
@@ -37,7 +39,7 @@ fun eof() = let val pos = hd(!linePos) in
   Tokens.EOF(pos,pos) end
 
 %%
-%header (functor GeminiLexFun(structure Tokens: GEMINI_TOKENS));
+%header (functor GeminiLexFun(structure Tokens: Gemini_TOKENS));
 %s STRING COMMENT;
 %%
 
@@ -113,10 +115,10 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"@"                                   => (Tokens.AT(yypos, yypos + 1));
 <INITIAL>"`"                                   => (Tokens.TICK(yypos, yypos + 1));
 
-<INITIAL>[a-zA-Z_][a-zA-Z0-9_]*                => (Tokens.ID(yytext, (yypos, yypos + size(yytext))));
-<INITIAL>[-+]?[0-9]+                           => (Tokens.INT(valOf(Int.fromString(yytext)), (yypos, yypos + size(yytext))));
-<INITIAL>[-+]?[0-9]*\.[0-9]*                   => (Tokens.REAL(valOf(Real.fromString(yytext)), (yypos, yypos + size(yytext))));
-<INITIAL>'b(0 | 1)                             => (Tokens.BIT(Bit.fromString(yytext), (yypos, yypos + size(yytext))));
+<INITIAL>[a-zA-Z_][a-zA-Z0-9_]*                => (Tokens.ID(yytext, yypos, yypos + size(yytext)));
+<INITIAL>[-+]?[0-9]+                           => (Tokens.INT(valOf(Int.fromString(yytext)), yypos, yypos + size(yytext)));
+<INITIAL>[-+]?[0-9]*\.[0-9]*                   => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
+<INITIAL>'b(0 | 1)                             => (Tokens.BIT(Bit.fromString(yytext), yypos, yypos + size(yytext)));
 <INITIAL>"\""                                  => (YYBEGIN STRING; stringLiteralClosed := false; buffer:= ""; stringStartPosition := yypos; continue());
 <STRING>[ -!#-\[\]-~]*                         => (buffer := !buffer ^ yytext; continue());
 <STRING>\\n                                    => (buffer := !buffer ^ (escape yytext); continue());
@@ -126,7 +128,7 @@ fun eof() = let val pos = hd(!linePos) in
 <STRING>\\[ \b\r\t\n]+\\                       => (lineNum:= !lineNum + (count (fn c => c = #"\n") (String.explode yytext)); linePos := yypos :: !linePos; continue());
 <STRING>\\\^[@-_]                              => (buffer := !buffer ^ escape (convertControlCharacter(String.substring (yytext, 2, 1))); continue());
 <STRING>\\(0[0-9][0-9]|1[0-1][0-9]|12[0-7])    => (buffer := !buffer ^ escape (asciiCode(String.substring (yytext, 1, 3))); continue());
-<STRING>"\""                                   => (YYBEGIN INITIAL; stringLiteralClosed := true; Tokens.STRING(!buffer, (!stringStartPosition, yypos)));
+<STRING>"\""                                   => (YYBEGIN INITIAL; stringLiteralClosed := true; Tokens.STRING(!buffer, !stringStartPosition, yypos));
 <STRING>\n                                     => (YYBEGIN INITIAL; stringLiteralClosed := true; ErrorMsg.error yypos ("StringParseError: New-line within string."); lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <STRING>.                                      => (ErrorMsg.error yypos ("StringParseError: Illegal character within string: " ^ yytext); continue());
 
