@@ -9,6 +9,7 @@ structure
 struct
 signature
 sig
+list
 
 let
 in
@@ -67,6 +68,7 @@ op
 #
 @
 `
+|
 
 myId
 MYID
