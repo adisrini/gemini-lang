@@ -15,20 +15,22 @@
 
 %nonterm  program
         | exp
-            | structure
-                | struct_body
-            | signature
-                | sig_body
-                | sigs
-                    | val_sig
-                    | fun_sig
-                    | ty_sig
-                    | dataty_sig
-                    | module_sig
-                    | non_fun_sigs
-                    | non_ty_sigs
-                    | non_dataty_sigs
-                    | non_module_sigs
+            | structures
+                | structure
+                    | struct_body
+            | signatures
+                | signature
+                    | sig_body
+                    | sigs
+                        | val_sig
+                        | fun_sig
+                        | ty_sig
+                        | dataty_sig
+                        | module_sig
+                        | non_fun_sigs
+                        | non_ty_sigs
+                        | non_dataty_sigs
+                        | non_module_sigs
             | lvalue
                 | subscript
                 | field
@@ -145,8 +147,8 @@ exp           : INT                                                         ()
               | REAL                                                        ()
               | BIT                                                         ()
               | NIL                                                         ()
-              | structure                                                   ()
-              | signature                                                   ()
+              | structures                                                  ()
+              | signatures                                                  ()
               | lvalue                                                      ()
               | operation                                                   ()
               | let_block                                                   ()
@@ -157,11 +159,17 @@ exp           : INT                                                         ()
               | insts                                                       ()
               | LPAREN RPAREN                                               ()
 
+structures    : structure structures                                        ()
+              | structure                                                   ()
+
 structure     : STRUCTURE ID EQ struct_body                                 ()
               | STRUCTURE ID COLON ID EQ struct_body                        ()
               | STRUCTURE ID COLON sig_body EQ struct_body                  ()
 
 struct_body   : STRUCT decs END                                             ()
+
+signatures    : signature signatures                                        ()
+              | signature                                                   ()
 
 signature     : SIGNATURE ID EQ sig_body                                    ()
 
