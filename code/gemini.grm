@@ -15,6 +15,20 @@
 
 %nonterm  program
         | exp
+            | structure
+                | struct_body
+            | signature
+                | sig_body
+                | sigs
+                    | val_sig
+                    | fun_sig
+                    | ty_sig
+                    | dataty_sig
+                    | module_sig
+                    | non_fun_sigs
+                    | non_ty_sigs
+                    | non_dataty_sigs
+                    | non_module_sigs
             | lvalue
                 | subscript
                 | field
@@ -38,7 +52,10 @@
                             | ty_fields
                             | ty_field_tail
                     | dataty_dec
+                        | dataty_tail
                     | module_dec
+                        | module_dec_no_type
+                        | module_dec_with_type
                     | non_fun_dec
                     | non_ty_dec
                     | non_dataty_dec
@@ -61,6 +78,7 @@
                 | index_fn_tail
             | list_inst
                 | list_elements
+            | tuple_inst
         | epsilon
 
 %pos int
@@ -127,6 +145,8 @@ exp           : INT                                                         ()
               | REAL                                                        ()
               | BIT                                                         ()
               | NIL                                                         ()
+              | structure                                                   ()
+              | signature                                                   ()
               | lvalue                                                      ()
               | operation                                                   ()
               | let_block                                                   ()
@@ -136,6 +156,63 @@ exp           : INT                                                         ()
               | conditional                                                 ()
               | insts                                                       ()
               | LPAREN RPAREN                                               ()
+
+structure     : STRUCTURE ID EQ struct_body                                 ()
+              | STRUCTURE ID COLON ID EQ struct_body                        ()
+              | STRUCTURE ID COLON sig_body EQ struct_body                  ()
+
+struct_body   : STRUCT decs END                                             ()
+
+signature     : SIGNATURE ID EQ sig_body                                    ()
+
+sig_body      : SIG sigs END                                                ()
+
+sigs          : val_sig sigs                                                ()
+              | ty_sig non_ty_sigs                                          ()
+              | fun_sig non_fun_sigs                                        ()
+              | module_sig non_module_sigs                                  ()
+              | dataty_sig non_dataty_sigs                                  ()
+              | epsilon                                                     ()
+
+non_ty_sigs   : val_sig sigs                                                ()
+              | fun_sig non_fun_sigs                                        ()
+              | module_sig non_module_sigs                                  ()
+              | dataty_sig non_dataty_sigs                                  ()
+              | epsilon                                                     ()
+
+non_fun_sigs  : val_sig sigs                                                ()
+              | ty_sig non_ty_sigs                                          ()
+              | module_sig non_module_sigs                                  ()
+              | dataty_sig non_dataty_sigs                                  ()
+              | epsilon                                                     ()
+
+non_module_sigs
+              : val_sig sigs                                                ()
+              | ty_sig non_ty_sigs                                          ()
+              | fun_sig non_fun_sigs                                        ()
+              | dataty_sig non_dataty_sigs                                  ()
+              | epsilon                                                     ()
+
+non_dataty_sigs
+              : val_sig sigs                                                ()
+              | ty_sig non_ty_sigs                                          ()
+              | fun_sig non_fun_sigs                                        ()
+              | module_sig non_module_sigs                                  ()
+              | epsilon                                                     ()
+
+ty_sig        : ty_dec                                                      ()
+              | TYPE ID                                                     ()
+              | TYPE ID ty_sig                                              ()
+
+fun_sig       : VAL ID COLON ty INT_MINUS GT ty                             ()
+              | VAL ID COLON ty INT_MINUS GT ty fun_sig                     ()
+
+module_sig    : VAL ID COLON ty INT_MINUS GT ty                             ()
+              | VAL ID COLON ty INT_MINUS GT ty module_sig                  ()
+
+dataty_sig    : dataty_dec                                                  ()
+              | DATATYPE ID                                                 ()
+              | DATATYPE ID dataty_sig                                      ()
 
 lvalue        : ID                                                          ()
               | subscript                                                   ()
@@ -213,16 +290,18 @@ non_module_dec: val_dec decs                                                ()
               | epsilon                                                     ()
 
 val_dec       : VAL ID EQ exp                                               ()
-              | VAL ID COLON ID EQ exp                                      ()
+              | VAL ID COLON ty EQ exp                                      ()
 
 fun_dec       : fun_dec_no_type                                             ()
               | fun_dec_with_type                                           ()
               | fun_dec_no_type fun_dec                                     ()
               | fun_dec_with_type fun_dec                                   ()
 
-fun_dec_no_type: FUN ID fun_params EQ exp                                   ()
+fun_dec_no_type
+              : FUN ID fun_params EQ exp                                    ()
 
-fun_dec_with_type: FUN ID fun_params COLON ID EQ exp                        ()
+fun_dec_with_type
+              : FUN ID fun_params COLON ty EQ exp                           ()
 
 fun_params    : fun_param fun_params                                        ()
               | fun_param                                                   ()
@@ -248,6 +327,20 @@ ty_fields     : ty_field_tail                                               ()
 
 ty_field_tail : ID COLON ty                                                 ()
               | ty_field_tail COMMA ID COLON ty                             ()
+
+dataty_dec    : DATATYPE ID EQ ID OF ty dataty_tail                         ()
+
+dataty_tail   : PIPE ID OF ty dataty_tail                                   ()
+              | epsilon                                                     ()
+
+module_dec    : module_dec_no_type                                          ()
+              | module_dec_with_type                                        ()
+
+module_dec_no_type
+              : MODULE ID fun_param EQ exp                                  ()
+
+module_dec_with_type
+              : MODULE ID fun_param COLON ty EQ exp                         ()
 
 let_body      : exp semicolon_exp0                                          ()
 
@@ -282,6 +375,7 @@ insts         : rec_inst                                                    ()
               | ref_inst                                                    ()
               | array_inst                                                  ()
               | list_inst                                                   ()
+              | tuple_inst                                                  ()
 
 rec_inst      : LBRACE rec_inst_body RBRACE                                 ()
 
@@ -308,5 +402,7 @@ list_inst     : LBRACK list_elements RBRACK                                 ()
 
 list_elements : exp exp_comma_tail                                          ()
               | epsilon                                                     ()
+
+tuple_inst    : LPAREN exp exp_comma_tail RPAREN                            ()
 
 epsilon       :                                                             ()
