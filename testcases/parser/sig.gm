@@ -1,0 +1,17 @@
+signature S =
+sig
+  type t = int
+  type s
+
+  val a : t * s -> string
+  val b : s -> t * string
+  val c : s -> t -> string
+
+  type x = t
+
+  module d : bit -> bit
+
+  datatype foo = FOO of int | BAR of string
+
+  val d : int
+end

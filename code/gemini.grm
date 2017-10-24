@@ -9,7 +9,7 @@
   | GE | GT | LE | LT | NEQ | EQ
   | INT_DIVIDE | INT_TIMES | INT_PLUS | INT_MINUS | INT_MOD | REAL_DIVIDE | REAL_TIMES | REAL_PLUS | REAL_MINUS
   | RBRACE | LBRACE | RBRACK | LBRACK | RPAREN | LPAREN
-  | DOT | SEMICOLON | COLON | COMMA | POUND | AT | TICK | ASSIGN | PIPE
+  | DOT | SEMICOLON | COLON | COMMA | POUND | AT | TICK | ASSIGN
   | ID of string | INT of int | STRING of string | REAL of real | BIT of Bit.bit
   | UMINUS
 
@@ -208,17 +208,21 @@ non_dataty_sigs
               | module_sig non_module_sigs                                  ()
               | epsilon                                                     ()
 
-ty_sig        : ty_dec                                                      ()
+val_sig       : VAL ID COLON ty                                             ()
+
+ty_sig        : TYPE ID EQ ty                                               ()
+              | TYPE ID EQ ty ty_sig                                        ()
               | TYPE ID                                                     ()
               | TYPE ID ty_sig                                              ()
 
 fun_sig       : VAL ID COLON ty INT_MINUS GT ty                             ()
               | VAL ID COLON ty INT_MINUS GT ty fun_sig                     ()
 
-module_sig    : VAL ID COLON ty INT_MINUS GT ty                             ()
-              | VAL ID COLON ty INT_MINUS GT ty module_sig                  ()
+module_sig    : MODULE ID COLON ty INT_MINUS GT ty                          ()
+              | MODULE ID COLON ty INT_MINUS GT ty module_sig               ()
 
 dataty_sig    : dataty_dec                                                  ()
+              | dataty_dec dataty_sig                                       ()
               | DATATYPE ID                                                 ()
               | DATATYPE ID dataty_sig                                      ()
 
@@ -338,7 +342,7 @@ ty_field_tail : ID COLON ty                                                 ()
 
 dataty_dec    : DATATYPE ID EQ ID OF ty dataty_tail                         ()
 
-dataty_tail   : PIPE ID OF ty dataty_tail                                   ()
+dataty_tail   : BIT_OR ID OF ty dataty_tail                                 ()
               | epsilon                                                     ()
 
 module_dec    : module_dec_no_type                                          ()
@@ -402,8 +406,8 @@ array_inst    : POUND LBRACK exp exp_comma_tail RBRACK                      ()
 array_index_fn: ID EQ GT exp index_fn_tail                                  ()
               | INT EQ GT exp index_fn_tail                                 ()
 
-index_fn_tail : PIPE ID EQ GT exp index_fn_tail                             ()
-              | PIPE INT EQ GT exp index_fn_tail                            ()
+index_fn_tail : BIT_OR ID EQ GT exp index_fn_tail                           ()
+              | BIT_OR INT EQ GT exp index_fn_tail                          ()
               | epsilon                                                     ()
 
 list_inst     : LBRACK list_elements RBRACK                                 ()
