@@ -1,0 +1,35 @@
+structure S =
+struct
+
+  type t = int
+  type s = t * string
+
+  val x = 0
+  val y = 0
+
+  fun foo x = ""
+
+  datatype zoo = FOO of int | BAR of string
+
+  module m x = 'b0
+end
+
+structure T :
+sig
+  val x : int
+  val y : string
+end =
+struct
+
+  val x = 0
+  val y = ""
+
+end
+
+structure U : V =
+struct
+
+  val x = 0
+  val y = ""
+
+end
