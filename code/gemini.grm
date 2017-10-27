@@ -13,8 +13,9 @@
   | ID of string | INT of int | STRING of string | REAL of real | BIT of Bit.bit
   | UMINUS
 
-%nonterm  program
-        | exp
+%nonterm
+      program
+        | structs_or_sigs
             | structures
                 | structure
                     | struct_body
@@ -31,7 +32,8 @@
                         | non_ty_sigs
                         | non_dataty_sigs
                         | non_module_sigs
-            | accesses
+        | exp
+            | access
                 | array_access
                 | struct_access
                 | tuple_access
@@ -144,17 +146,16 @@
 
 %%
 
-program	      : exp                                                         ()
+program	      : structs_or_sigs                                             ()
+              | exp                                                         ()
 
 exp           : INT                                                         ()
               | STRING                                                      ()
               | REAL                                                        ()
               | BIT                                                         ()
               | NIL                                                         ()
-              | structures                                                  ()
-              | signatures                                                  ()
               | lvalue                                                      ()
-              | accesses                                                    ()
+              | access                                                    ()
               | operation                                                   ()
               | let_block                                                   ()
               | assign                                                      ()
@@ -163,6 +164,11 @@ exp           : INT                                                         ()
               | conditional                                                 ()
               | insts                                                       ()
               | LPAREN RPAREN                                               ()
+
+structs_or_sigs
+              : structures structs_or_sigs                                  ()
+              | signatures structs_or_sigs                                  ()
+              | epsilon                                                     ()
 
 structures    : structure structures                                        ()
               | structure                                                   ()
@@ -231,7 +237,7 @@ dataty_sig    : dataty_dec                                                  ()
               | DATATYPE ID                                                 ()
               | DATATYPE ID dataty_sig                                      ()
 
-accesses      : array_access                                                ()
+access        : array_access                                                ()
               | struct_access                                               ()
               | tuple_access                                                ()
               | record_access                                               ()
