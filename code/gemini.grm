@@ -33,13 +33,12 @@
                         | non_dataty_sigs
                         | non_module_sigs
         | exp
-            | access
-                | array_access
+            | array_access
+            | lvalue
                 | struct_access
                 | tuple_access
                 | record_access
                 | deref
-            | lvalue
             | operation
                 | int_op
                 | real_op
@@ -155,7 +154,7 @@ exp           : INT                                                         ()
               | BIT                                                         ()
               | NIL                                                         ()
               | lvalue                                                      ()
-              | access                                                    ()
+              | array_access                                                ()
               | operation                                                   ()
               | let_block                                                   ()
               | assign                                                      ()
@@ -236,12 +235,6 @@ dataty_sig    : dataty_dec                                                  ()
               | dataty_dec dataty_sig                                       ()
               | DATATYPE ID                                                 ()
               | DATATYPE ID dataty_sig                                      ()
-
-access        : array_access                                                ()
-              | struct_access                                               ()
-              | tuple_access                                                ()
-              | record_access                                               ()
-              | deref                                                       ()
 
 array_access  : exp LBRACK exp RBRACK                                       ()
 

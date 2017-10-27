@@ -1,0 +1,13 @@
+structure A =
+struct
+
+    val _ = let
+            in
+                x := 0;
+                B.x := 0;
+                #1(ref 0, ref "") := 100;
+                #dirty {dirty = ref 'b0} := 'b1;
+                !(ref(ref 0)) := 1
+            end
+
+end
