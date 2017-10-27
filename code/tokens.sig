@@ -82,6 +82,7 @@ val POUND: linenum * linenum -> token
 val AT: linenum * linenum -> token
 val TICK: linenum * linenum -> token
 val ASSIGN: linenum * linenum -> token
+val BANG: linenum * linenum -> token
 
 (******* LITERALS *******)
 val INT: (int) * linenum * linenum -> token

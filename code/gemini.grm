@@ -9,7 +9,7 @@
   | GE | GT | LE | LT | NEQ | EQ
   | INT_DIVIDE | INT_TIMES | INT_PLUS | INT_MINUS | INT_MOD | REAL_DIVIDE | REAL_TIMES | REAL_PLUS | REAL_MINUS
   | RBRACE | LBRACE | RBRACK | LBRACK | RPAREN | LPAREN
-  | DOT | SEMICOLON | COLON | COMMA | POUND | AT | TICK | ASSIGN
+  | DOT | SEMICOLON | COLON | COMMA | POUND | AT | TICK | ASSIGN | BANG
   | ID of string | INT of int | STRING of string | REAL of real | BIT of Bit.bit
   | UMINUS
 
@@ -31,9 +31,13 @@
                         | non_ty_sigs
                         | non_dataty_sigs
                         | non_module_sigs
+            | accesses
+                | array_access
+                | struct_access
+                | tuple_access
+                | record_access
+                | deref
             | lvalue
-                | subscript
-                | field
             | operation
                 | int_op
                 | real_op
@@ -71,16 +75,16 @@
                 | exp_comma_tail
             | conditional
             | insts
-            | rec_inst
-                | rec_inst_body
-                | rec_field_comma_tail
-            | ref_inst
-            | array_inst
-                | array_index_fn
-                | index_fn_tail
-            | list_inst
-                | list_elements
-            | tuple_inst
+                | rec_inst
+                    | rec_inst_body
+                    | rec_field_comma_tail
+                | ref_inst
+                | array_inst
+                    | array_index_fn
+                    | index_fn_tail
+                | list_inst
+                    | list_elements
+                | tuple_inst
         | epsilon
 
 %pos int
@@ -150,11 +154,12 @@ exp           : INT                                                         ()
               | structures                                                  ()
               | signatures                                                  ()
               | lvalue                                                      ()
+              | accesses                                                    ()
               | operation                                                   ()
               | let_block                                                   ()
-              | exp_seq                                                     ()
               | assign                                                      ()
               | fun_call                                                    ()
+              | exp_seq                                                     ()
               | conditional                                                 ()
               | insts                                                       ()
               | LPAREN RPAREN                                               ()
@@ -226,14 +231,27 @@ dataty_sig    : dataty_dec                                                  ()
               | DATATYPE ID                                                 ()
               | DATATYPE ID dataty_sig                                      ()
 
+accesses      : array_access                                                ()
+              | struct_access                                               ()
+              | tuple_access                                                ()
+              | record_access                                               ()
+              | deref                                                       ()
+
+array_access  : exp LBRACK exp RBRACK                                       ()
+
+struct_access : exp DOT ID                                                  ()
+
+tuple_access  : POUND INT exp                                               ()
+
+record_access : POUND ID exp                                                ()
+
+deref         : BANG exp                                                    ()
+
 lvalue        : ID                                                          ()
-              | subscript                                                   ()
-              | field                                                       ()
-
-subscript     : ID LBRACK exp RBRACK                                        ()
-              | lvalue LBRACK exp RBRACK                                    ()
-
-field         : lvalue DOT ID                                               ()
+              | struct_access                                               ()
+              | tuple_access                                                ()
+              | record_access                                               ()
+              | deref                                                       ()
 
 operation     : int_op                                                      ()
               | real_op                                                     ()

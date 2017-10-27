@@ -114,6 +114,7 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"#"                                   => (Tokens.POUND(yypos, yypos + 1));
 <INITIAL>"@"                                   => (Tokens.AT(yypos, yypos + 1));
 <INITIAL>"`"                                   => (Tokens.TICK(yypos, yypos + 1));
+<INITIAL>"!"                                   => (Tokens.BANG(yypos, yypos + 1));
 
 <INITIAL>[a-zA-Z_][a-zA-Z0-9_]*                => (Tokens.ID(yytext, yypos, yypos + size(yytext)));
 <INITIAL>[-+]?[0-9]+                           => (Tokens.INT(valOf(Int.fromString(yytext)), yypos, yypos + size(yytext)));

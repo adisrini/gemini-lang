@@ -86,6 +86,7 @@ fun POUND(a, b) = "POUND @" ^ locationToString(a, b)
 fun AT(a, b) = "AT @" ^ locationToString(a, b)
 fun TICK(a, b) = "TICK @" ^ locationToString(a, b)
 fun ASSIGN(a, b) = "ASSIGN @" ^ locationToString(a, b)
+fun BANG(a, b) = "BANG @" ^ locationToString(a, b)
 
 (******* LITERALS *******)
 fun INT(value, a, b) = "INT(" ^ Int.toString(value) ^ ") @" ^ locationToString(a, b)
