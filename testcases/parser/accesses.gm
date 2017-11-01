@@ -4,7 +4,7 @@ struct
     val _ = my_array[0]
     val _ = B.x
     val _ = #1 (0, 1, 2, 3)
-    val _ = #valid {valid = 'b0, resident = 'b1}
+    val _ = #valid {valid = 'b:0, resident = 'b:1}
     val _ = !my_ref
 
 end

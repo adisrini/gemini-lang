@@ -86,8 +86,8 @@ _
 -0
 +0
 
-'b0
-'b1
+'b:0
+'b:1
 
 "this is a normal string"
 "this has \"escape characters\" like \\ and \t (tab)"

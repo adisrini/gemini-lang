@@ -11,7 +11,7 @@ struct
 
   datatype zoo = FOO of int | BAR of string
 
-  module m x = 'b0
+  module m x = 'b:0
 end
 
 structure T :
