@@ -1,0 +1,14 @@
+structure A =
+struct
+
+    val _ = (-x;
+             x + y;
+             x * y;
+             x - y;
+             x / y;
+             x % y;
+             x + (y - z);
+             x + (y * z);
+             ((x % z) * y) - (-x)
+            )
+end
