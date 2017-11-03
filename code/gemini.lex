@@ -118,7 +118,7 @@ fun eof() = let val pos = hd(!linePos) in
 
 <INITIAL>[a-zA-Z_][a-zA-Z0-9_]*                => (Tokens.ID(yytext, yypos, yypos + size(yytext)));
 <INITIAL>[-+]?[0-9]+                           => (Tokens.INT(valOf(Int.fromString(yytext)), yypos, yypos + size(yytext)));
-<INITIAL>[-+]?[0-9]*\.[0-9]*                   => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
+<INITIAL>[-+]?[0-9]*\.[0-9]+                   => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
 <INITIAL>'b:(0 | 1)                            => (Tokens.BIT(Bit.fromString(yytext), yypos, yypos + size(yytext)));
 <INITIAL>"\""                                  => (YYBEGIN STRING; stringLiteralClosed := false; buffer:= ""; stringStartPosition := yypos; continue());
 <STRING>[ -!#-\[\]-~]*                         => (buffer := !buffer ^ yytext; continue());
