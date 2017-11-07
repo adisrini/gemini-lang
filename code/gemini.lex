@@ -3,6 +3,8 @@ type pos = int
 type ('a, 'b) token = ('a, 'b) Tokens.token
 type lexresult = (svalue, pos) Tokens.token
 
+exception NumberFormatException
+
 val lineNum = ErrorMsg.lineNum
 val linePos = ErrorMsg.linePos
 fun err(p1,p2) = ErrorMsg.error p1
@@ -19,6 +21,10 @@ fun convertControlCharacter char = let val num = (Char.ord (List.nth(String.expl
   asciiCode (Int.toString num) end
 
 fun count f x = foldr (fn (a, b) => if f a then (b+1) else b) 0 x
+
+fun parseInt yytext radix = case StringCvt.scanString(Int.scan(radix)) yytext of
+  NONE => raise NumberFormatException
+| SOME n => n
 
 fun escape "\\\"" = "\""
   | escape "\\n"  = "\n"
@@ -118,6 +124,7 @@ fun eof() = let val pos = hd(!linePos) in
 
 <INITIAL>[a-zA-Z_][a-zA-Z0-9_]*                => (Tokens.ID(yytext, yypos, yypos + size(yytext)));
 <INITIAL>[-+]?[0-9]+                           => (Tokens.INT(valOf(Int.fromString(yytext)), yypos, yypos + size(yytext)));
+<INITIAL>#'b:[0-1]+                            => (Tokens.INT(parseInt yytext StringCvt.BIN, yypos, yypos + size(yytext)));
 <INITIAL>[-+]?[0-9]*\.[0-9]+                   => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
 <INITIAL>'b:(0 | 1)                            => (Tokens.BIT(Bit.fromString(yytext), yypos, yypos + size(yytext)));
 <INITIAL>"\""                                  => (YYBEGIN STRING; stringLiteralClosed := false; buffer:= ""; stringStartPosition := yypos; continue());
