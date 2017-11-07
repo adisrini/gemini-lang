@@ -22,9 +22,7 @@ fun convertControlCharacter char = let val num = (Char.ord (List.nth(String.expl
 
 fun count f x = foldr (fn (a, b) => if f a then (b+1) else b) 0 x
 
-fun parseInt yytext radix = case StringCvt.scanString(Int.scan(radix)) yytext of
-  NONE => raise NumberFormatException
-| SOME n => n
+fun parseInt yytext radix = valOf(StringCvt.scanString(Int.scan(radix)) yytext)
 
 fun escape "\\\"" = "\""
   | escape "\\n"  = "\n"
@@ -127,7 +125,9 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>#'b:[0-1]+                            => (Tokens.INT(parseInt (String.substring(yytext, 4, size(yytext) - 4)) StringCvt.BIN, yypos, yypos + size(yytext)));
 <INITIAL>#'o:[0-7]+                            => (Tokens.INT(parseInt (String.substring(yytext, 4, size(yytext) - 4)) StringCvt.OCT, yypos, yypos + size(yytext)));
 <INITIAL>#'h:[0-9a-fA-F]+                      => (Tokens.INT(parseInt (String.substring(yytext, 4, size(yytext) - 4)) StringCvt.HEX, yypos, yypos + size(yytext)));
-<INITIAL>[-+]?[0-9]*\.[0-9]+                   => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
+<INITIAL>[-+]?[0-9]+\.[0-9]*(E[-+]?[0-9]+)?    => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
+<INITIAL>[-+]?[0-9]*\.[0-9]+(E[-+]?[0-9]+)?    => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
+<INITIAL>[-+]?[0-9]+(E[-+]?[0-9]+)?            => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
 <INITIAL>'b:(0 | 1)                            => (Tokens.BIT(Bit.fromString(yytext), yypos, yypos + size(yytext)));
 <INITIAL>"\""                                  => (YYBEGIN STRING; stringLiteralClosed := false; buffer:= ""; stringStartPosition := yypos; continue());
 <STRING>[ -!#-\[\]-~]*                         => (buffer := !buffer ^ yytext; continue());
