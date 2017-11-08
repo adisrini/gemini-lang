@@ -9,4 +9,13 @@ struct
       String.substring(temp_string, 0, size(temp_string) - 2) ^ "]"
     end
 
+  (* TODO *)
+  fun fromUnsignedInt ui = #[]
+
+  (* TODO *)
+  fun fromSignedInt si = #[]
+
+  (* TODO *)
+  fun fromReal fp = #[]
+
 end
