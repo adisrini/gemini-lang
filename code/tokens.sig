@@ -83,12 +83,14 @@ val AT: linenum * linenum -> token
 val TICK: linenum * linenum -> token
 val ASSIGN: linenum * linenum -> token
 val BANG: linenum * linenum -> token
+val SIGNED_TO_ARRAY: linenum * linenum -> token
+val UNSIGNED_TO_ARRAY: linenum * linenum -> token
+val REAL_TO_ARRAY: linenum * linenum -> token
 
 (******* LITERALS *******)
 val INT: (int) * linenum * linenum -> token
 val REAL: (real) * linenum * linenum -> token
 val BIT: (Bit.bit) * linenum * linenum -> token
-val BIT_ARRAY: (BitArray.bit_array) * linenum * linenum -> token
 val STRING: (string) * linenum * linenum -> token
 val ID: (string) * linenum * linenum -> token
 val EOF:  linenum * linenum -> token
