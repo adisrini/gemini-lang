@@ -88,6 +88,7 @@ val BANG: linenum * linenum -> token
 val INT: (int) * linenum * linenum -> token
 val REAL: (real) * linenum * linenum -> token
 val BIT: (Bit.bit) * linenum * linenum -> token
+val BIT_ARRAY: (BitArray.bit_array) * linenum * linenum -> token
 val STRING: (string) * linenum * linenum -> token
 val ID: (string) * linenum * linenum -> token
 val EOF:  linenum * linenum -> token
