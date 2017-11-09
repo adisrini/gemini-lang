@@ -87,7 +87,8 @@
                     | array_from_num
                 | list_inst
                     | list_elements
-                | tuple_inst
+                | sw_tuple_inst
+                | hw_tuple_inst
         | epsilon
 
 %pos int
@@ -406,7 +407,8 @@ insts         : rec_inst                                                    ()
               | ref_inst                                                    ()
               | array_inst                                                  ()
               | list_inst                                                   ()
-              | tuple_inst                                                  ()
+              | sw_tuple_inst                                               ()
+              | hw_tuple_inst                                               ()
 
 rec_inst      : LBRACE rec_inst_body RBRACE                                 ()
 
@@ -439,6 +441,8 @@ list_inst     : LBRACK list_elements RBRACK                                 ()
 list_elements : exp exp_comma_tail                                          ()
               | epsilon                                                     ()
 
-tuple_inst    : LPAREN exp exp_comma_tail RPAREN                            ()
+sw_tuple_inst : LPAREN exp exp_comma_tail RPAREN                            ()
+
+hw_tuple_inst : POUND LPAREN exp exp_comma_tail RPAREN                      ()
 
 epsilon       :                                                             ()
