@@ -120,9 +120,6 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"@"                                   => (Tokens.AT(yypos, yypos + 1));
 <INITIAL>"`"                                   => (Tokens.TICK(yypos, yypos + 1));
 <INITIAL>"!"                                   => (Tokens.BANG(yypos, yypos + 1));
-<INTIAL>'s:                                    => (Tokens.SIGNED_TO_ARRAY(yypos, yypos + 3));
-<INTIAL>'u:                                    => (Tokens.UNSIGNED_TO_ARRAY(yypos, yypos + 3));
-<INTIAL>'r:                                    => (Tokens.REAL_TO_ARRAY(yypos, yypos + 3));
 
 <INITIAL>[a-zA-Z_][a-zA-Z0-9_]*                => (Tokens.ID(yytext, yypos, yypos + size(yytext)));
 <INITIAL>[-+]?[0-9]+                           => (Tokens.INT(valOf(Int.fromString(yytext)), yypos, yypos + size(yytext)));
@@ -145,6 +142,10 @@ fun eof() = let val pos = hd(!linePos) in
 <STRING>"\""                                   => (YYBEGIN INITIAL; stringLiteralClosed := true; Tokens.STRING(!buffer, !stringStartPosition, yypos));
 <STRING>\n                                     => (YYBEGIN INITIAL; stringLiteralClosed := true; ErrorMsg.error yypos ("StringParseError: New-line within string."); lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <STRING>.                                      => (ErrorMsg.error yypos ("StringParseError: Illegal character within string: " ^ yytext); continue());
+
+<INITIAL>[0-9]+'s:[0-9]+                       => (Tokens.SIGNED_TO_ARRAY(yypos, yypos + size(yytext)));
+<INITIAL>[0-9]+'u:[0-9]+                       => (Tokens.UNSIGNED_TO_ARRAY(yypos, yypos + size(yytext)));
+<INITIAL>[0-9]+'r:[0-9]+                       => (Tokens.REAL_TO_ARRAY(yypos, yypos + size(yytext)));
 
 <INITIAL>"/*"                                  => (YYBEGIN COMMENT; netCommentBalance := 1; continue());
 <INITIAL>"*/"                                  => (ErrorMsg.error yypos ("SyntaxError: Cannot close unopened comment."); continue());
