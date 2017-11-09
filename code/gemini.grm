@@ -10,8 +10,7 @@
   | INT_DIVIDE | INT_TIMES | INT_PLUS | INT_MINUS | INT_MOD | REAL_DIVIDE | REAL_TIMES | REAL_PLUS | REAL_MINUS
   | RBRACE | LBRACE | RBRACK | LBRACK | RPAREN | LPAREN
   | DOT | SEMICOLON | COLON | COMMA | POUND | AT | TICK | ASSIGN | BANG | CONS
-  | SIGNED_TO_ARRAY | UNSIGNED_TO_ARRAY | REAL_TO_ARRAY
-  | ID of string | INT of int | STRING of string | REAL of real | BIT of Bit.bit
+  | ID of string | INT of int | STRING of string | REAL of real | BIT of Bit.bit | BIT_ARRAY of BitArray.bit_array
   | UMINUS
 
 %nonterm
@@ -423,7 +422,7 @@ ref_inst      : REF exp                                                     ()
 
 array_inst    : POUND LBRACK exp exp_comma_tail RBRACK                      ()
               | POUND LBRACK exp COMMA array_index_fn RBRACK                ()
-              | array_from_num                                              ()
+              | BIT_ARRAY                                                   ()
 
 array_index_fn: ID EQ GT exp index_fn_tail                                  ()
               | INT EQ GT exp index_fn_tail                                 ()
@@ -432,9 +431,6 @@ index_fn_tail : BIT_OR ID EQ GT exp index_fn_tail                           ()
               | BIT_OR INT EQ GT exp index_fn_tail                          ()
               | epsilon                                                     ()
 
-array_from_num: exp SIGNED_TO_ARRAY exp                                     ()
-              | exp UNSIGNED_TO_ARRAY exp                                   ()
-              | exp REAL_TO_ARRAY exp                                       ()
 
 list_inst     : LBRACK list_elements RBRACK                                 ()
               | exp CONS list_inst                                          ()

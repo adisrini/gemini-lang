@@ -24,6 +24,22 @@ fun count f x = foldr (fn (a, b) => if f a then (b+1) else b) 0 x
 
 fun parseInt yytext radix = valOf(StringCvt.scanString(Int.scan(radix)) yytext)
 
+fun indexof s1 s2 =
+  let
+    val chars1 = String.explode(s1)
+    val chars2 = String.explode(s2)
+    fun helper start idx1 idx2 =
+      if idx2 = List.length(chars2)
+      then start
+      else if idx1 = List.length(chars1)
+           then ~1
+           else if List.nth(chars1, idx1) = List.nth(chars2, idx2)
+                then helper start (idx1+1) (idx2+1)
+                else helper (start+1) (start+1) 0
+  in
+    helper 0 0 0
+  end
+
 fun escape "\\\"" = "\""
   | escape "\\n"  = "\n"
   | escape "\\t"  = "\t"
@@ -143,9 +159,36 @@ fun eof() = let val pos = hd(!linePos) in
 <STRING>\n                                     => (YYBEGIN INITIAL; stringLiteralClosed := true; ErrorMsg.error yypos ("StringParseError: New-line within string."); lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <STRING>.                                      => (ErrorMsg.error yypos ("StringParseError: Illegal character within string: " ^ yytext); continue());
 
-<INITIAL>[0-9]+'s:[0-9]+                       => (Tokens.SIGNED_TO_ARRAY(yypos, yypos + size(yytext)));
-<INITIAL>[0-9]+'u:[0-9]+                       => (Tokens.UNSIGNED_TO_ARRAY(yypos, yypos + size(yytext)));
-<INITIAL>[0-9]+'r:[0-9]+                       => (Tokens.REAL_TO_ARRAY(yypos, yypos + size(yytext)));
+<INITIAL>[0-9]+'s:[0-9]+                       => (let
+                                                      val substr = "'s:"
+                                                      val idx1 = indexof yytext substr
+                                                      val idx2 = idx1 + size(substr)
+                                                      val len = valOf(Int.fromString(String.substring(yytext, 0, idx1)))
+                                                      val num = valOf(Int.fromString(String.extract(yytext, idx2, NONE)))
+                                                    in
+                                                      Tokens.BIT_ARRAY(BitArray.fromSignedInt num len, yypos, yypos + size(yytext))
+                                                    end
+                                                  );
+<INITIAL>[0-9]+'u:[0-9]+                       => (let
+                                                      val substr = "'s:"
+                                                      val idx1 = indexof yytext substr
+                                                      val idx2 = idx1 + size(substr)
+                                                      val len = valOf(Int.fromString(String.substring(yytext, 0, idx1)))
+                                                      val num = valOf(Int.fromString(String.extract(yytext, idx2, NONE)))
+                                                    in
+                                                      Tokens.BIT_ARRAY(BitArray.fromUnsignedInt num len, yypos, yypos + size(yytext))
+                                                    end
+                                                  );
+<INITIAL>"("[0-9]+","[0-9]+")"'r:[0-9]+        => (let
+                                                      val substr = "'s:"
+                                                      val idx1 = indexof yytext substr
+                                                      val idx2 = idx1 + size(substr)
+                                                      val len = valOf(Int.fromString(String.substring(yytext, 0, idx1)))
+                                                      val num = valOf(Int.fromString(String.extract(yytext, idx2, NONE)))
+                                                    in
+                                                      Tokens.BIT_ARRAY(BitArray.fromReal num len, yypos, yypos + size(yytext))
+                                                    end
+                                                  );
 
 <INITIAL>"/*"                                  => (YYBEGIN COMMENT; netCommentBalance := 1; continue());
 <INITIAL>"*/"                                  => (ErrorMsg.error yypos ("SyntaxError: Cannot close unopened comment."); continue());

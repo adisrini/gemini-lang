@@ -21,4 +21,25 @@ struct
   | 1 => ONE
   | _ => raise Match
 
+  fun notb b = case b of
+    ZERO => ONE
+  | ONE => ZERO
+
+  fun andb b1 b2 =
+    if b1 = ONE andalso b2 = ONE
+    then ONE
+    else ZERO
+
+  fun orb b1 b2 =
+    if b1 = ONE orelse b2 = ONE
+    then ONE
+    else ZERO
+
+  fun xorb b1 b2 =
+    if b1 = b2
+    then ZERO
+    else ONE
+
+  fun add b1 b2 = (xorb b1 b2, andb b1 b2)
+
 end
