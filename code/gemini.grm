@@ -437,6 +437,7 @@ array_from_num: exp SIGNED_TO_ARRAY exp                                     ()
               | exp REAL_TO_ARRAY exp                                       ()
 
 list_inst     : LBRACK list_elements RBRACK                                 ()
+              | exp CONS list_inst                                          ()
 
 list_elements : exp exp_comma_tail                                          ()
               | epsilon                                                     ()
