@@ -86,6 +86,7 @@ val BANG: linenum * linenum -> token
 val SIGNED_TO_ARRAY: linenum * linenum -> token
 val UNSIGNED_TO_ARRAY: linenum * linenum -> token
 val REAL_TO_ARRAY: linenum * linenum -> token
+val CONS: linenum * linenum -> token
 
 (******* LITERALS *******)
 val INT: (int) * linenum * linenum -> token

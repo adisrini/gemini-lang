@@ -90,6 +90,7 @@ fun BANG(a, b) = "BANG @" ^ locationToString(a, b)
 fun SIGNED_TO_ARRAY(a, b) = "SIGNED_TO_ARRAY @" ^ locationToString(a, b)
 fun UNSIGNED_TO_ARRAY(a, b) = "UNSIGNED_TO_ARRAY @" ^ locationToString(a, b)
 fun REAL_TO_ARRAY(a, b) = "REAL_TO_ARRAY @" ^ locationToString(a, b)
+fun CONS(a, b) = "CONS @" ^ locationToString(a, b)
 
 (******* LITERALS *******)
 fun INT(value, a, b) = "INT(" ^ Int.toString(value) ^ ") @" ^ locationToString(a, b)
