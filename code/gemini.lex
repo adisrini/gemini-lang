@@ -40,6 +40,29 @@ fun indexof s1 s2 =
     helper 0 0 0
   end
 
+fun intToBitArray yytext yypos func substr =
+  let
+    val idx1 = indexof yytext substr
+    val idx2 = idx1 + size(substr)
+    val len = valOf(Int.fromString(String.substring(yytext, 0, idx1)))
+    val num = valOf(Int.fromString(String.extract(yytext, idx2, NONE)))
+  in
+    Tokens.BIT_ARRAY(func num len, yypos, yypos + size(yytext))
+  end
+
+fun realToBitArray yytext yypos =
+  let
+    val substr1 = ","
+    val substr2 = ")"
+    val idx1 = indexof yytext substr1
+    val idx2 = indexof yytext substr2
+    val mantissa = valOf(Int.fromString(String.substring(yytext, 1, idx1)))
+    val exponent = valOf(Int.fromString(String.substring(yytext, idx1, idx2)))
+    val num = valOf(Int.fromString(String.extract(yytext, idx2 + 4, NONE)))
+  in
+    Tokens.BIT_ARRAY(BitArray.fromReal num mantissa exponent, yypos, yypos + size(yytext))
+  end
+
 fun escape "\\\"" = "\""
   | escape "\\n"  = "\n"
   | escape "\\t"  = "\t"
@@ -159,36 +182,9 @@ fun eof() = let val pos = hd(!linePos) in
 <STRING>\n                                     => (YYBEGIN INITIAL; stringLiteralClosed := true; ErrorMsg.error yypos ("StringParseError: New-line within string."); lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <STRING>.                                      => (ErrorMsg.error yypos ("StringParseError: Illegal character within string: " ^ yytext); continue());
 
-<INITIAL>[0-9]+'s:[0-9]+                       => (let
-                                                      val substr = "'s:"
-                                                      val idx1 = indexof yytext substr
-                                                      val idx2 = idx1 + size(substr)
-                                                      val len = valOf(Int.fromString(String.substring(yytext, 0, idx1)))
-                                                      val num = valOf(Int.fromString(String.extract(yytext, idx2, NONE)))
-                                                    in
-                                                      Tokens.BIT_ARRAY(BitArray.fromSignedInt num len, yypos, yypos + size(yytext))
-                                                    end
-                                                  );
-<INITIAL>[0-9]+'u:[0-9]+                       => (let
-                                                      val substr = "'s:"
-                                                      val idx1 = indexof yytext substr
-                                                      val idx2 = idx1 + size(substr)
-                                                      val len = valOf(Int.fromString(String.substring(yytext, 0, idx1)))
-                                                      val num = valOf(Int.fromString(String.extract(yytext, idx2, NONE)))
-                                                    in
-                                                      Tokens.BIT_ARRAY(BitArray.fromUnsignedInt num len, yypos, yypos + size(yytext))
-                                                    end
-                                                  );
-<INITIAL>"("[0-9]+","[0-9]+")"'r:[0-9]+        => (let
-                                                      val substr = "'s:"
-                                                      val idx1 = indexof yytext substr
-                                                      val idx2 = idx1 + size(substr)
-                                                      val len = valOf(Int.fromString(String.substring(yytext, 0, idx1)))
-                                                      val num = valOf(Int.fromString(String.extract(yytext, idx2, NONE)))
-                                                    in
-                                                      Tokens.BIT_ARRAY(BitArray.fromReal num len, yypos, yypos + size(yytext))
-                                                    end
-                                                  );
+<INITIAL>[0-9]+'s:[0-9]+                       => (intToBitArray yytext yypos BitArray.fromSignedInt "'s:");
+<INITIAL>[0-9]+'u:[0-9]+                       => (intToBitArray yytext yypos BitArray.fromUnsignedInt "'u:");
+<INITIAL>"("[0-9]+","[0-9]+")"'r:[0-9]+        => (realToBitArray yytext yypos);
 
 <INITIAL>"/*"                                  => (YYBEGIN COMMENT; netCommentBalance := 1; continue());
 <INITIAL>"*/"                                  => (ErrorMsg.error yypos ("SyntaxError: Cannot close unopened comment."); continue());
