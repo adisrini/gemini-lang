@@ -183,7 +183,7 @@ fun eof() = let val pos = hd(!linePos) in
 <STRING>.                                      => (ErrorMsg.error yypos ("StringParseError: Illegal character within string: " ^ yytext); continue());
 
 <INITIAL>[0-9]+'s:[-+]?[0-9]+                  => (intToBitArray yytext yypos BitArray.fromSignedInt "'s:");
-<INITIAL>[0-9]+'u:[-+]?[0-9]+                  => (intToBitArray yytext yypos BitArray.fromUnsignedInt "'u:");
+<INITIAL>[0-9]+'u:[+]?[0-9]+                   => (intToBitArray yytext yypos BitArray.fromUnsignedInt "'u:");
 <INITIAL>"("[0-9]+","[0-9]+")"'r:[-+]?[0-9]+   => (realToBitArray yytext yypos);
 
 <INITIAL>"/*"                                  => (YYBEGIN COMMENT; netCommentBalance := 1; continue());
