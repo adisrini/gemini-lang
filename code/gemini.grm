@@ -1,3 +1,6 @@
+structure GA = GeminiArray
+structure BA = BitArray
+
 %%
 %term
     EOF
@@ -422,7 +425,7 @@ ref_inst      : REF exp                                                     ()
 
 array_inst    : POUND LBRACK exp exp_comma_tail RBRACK                      ()
               | POUND LBRACK exp COMMA array_index_fn RBRACK                ()
-              | BIT_ARRAY                                                   ()
+              | BIT_ARRAY                                                   (print(BA.toString(BIT_ARRAY) ^ "\n"))
 
 array_index_fn: ID EQ GT exp index_fn_tail                                  ()
               | INT EQ GT exp index_fn_tail                                 ()

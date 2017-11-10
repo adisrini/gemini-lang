@@ -3,13 +3,7 @@ struct
 
   type bit_array = Bit.bit vector
 
-  fun toString ba =
-    let
-      fun vec_to_string xs = foldl (fn(x, acc) => acc ^ Bit.toString(x) ^ ", ") "[" xs
-      val temp_string = vec_to_string ba
-    in
-      String.substring(temp_string, 0, size(temp_string) - 2) ^ "]"
-    end
+  fun toString ba = GeminiArray.toString ba Bit.toString
 
   fun toList ba = Vector.foldl (fn(x, acc) => x::acc) [] ba
 

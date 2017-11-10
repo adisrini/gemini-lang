@@ -1,13 +1,13 @@
-functor Array (A : ARRAY) =
+structure GeminiArray =
 struct
-  open A
 
-  fun toString ba =
+  fun toString arr f =
     let
-      fun arr_to_string xs = foldl (fn(x, acc) => acc ^ Bit.toString(x) ^ ", ") "[" xs
-      val temp_string = arr_to_string ba
+      val sep = ", "
+      fun arrToString xs = Vector.foldl (fn(x, acc) => acc ^ f(x) ^ sep) "#[" xs
+      val tempString = arrToString arr
     in
-      String.substring(temp_string, 0, size(temp_string) - 2) ^ "]"
+      String.substring(tempString, 0, size(tempString) - size(sep)) ^ "]"
     end
 
 end
