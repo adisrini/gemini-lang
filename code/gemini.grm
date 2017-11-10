@@ -33,62 +33,62 @@ structure BA = BitArray
                         | non_ty_sigs
                         | non_dataty_sigs
                         | non_module_sigs
-        | exp
-            | array_access
-            | lvalue
-                | struct_access
-                | tuple_access
-                | record_access
-                | deref
-            | operation
-                | int_op
-                | real_op
-                | bit_op
-                | compare_op
-                | list_op
-            | let_block
-                | let_body
-                    | semicolon_exp0
-                | decs
-                    | val_dec
-                    | fun_dec
-                        | fun_dec_no_type
-                        | fun_dec_with_type
-                        | fun_params
-                            | fun_param
-                    | ty_dec
-                        | ty
-                            | ty_fields
-                            | ty_field_tail
-                    | dataty_dec
-                        | dataty_tail
-                    | module_dec
-                        | module_dec_no_type
-                        | module_dec_with_type
-                    | non_fun_dec
-                    | non_ty_dec
-                    | non_dataty_dec
-                    | non_module_dec
-            | exp_seq
-                | semicolon_exp1
-            | assign
-            | fun_call
-                | exps
-                | exp_comma_tail
-            | conditional
-            | insts
-                | rec_inst
-                    | rec_inst_body
-                    | rec_field_comma_tail
-                | ref_inst
-                | array_inst
-                    | array_index_fn
-                    | index_fn_tail
-                    | array_from_num
-                | list_inst
-                    | list_elements
-                | sw_tuple_inst
-                | hw_tuple_inst
+        | exps
+            | exp
+                | array_access
+                | access
+                    | struct_access
+                    | tuple_access
+                    | record_access
+                    | deref
+                | operation
+                    | int_op
+                    | real_op
+                    | bit_op
+                    | compare_op
+                    | list_op
+                | let_block
+                    | let_body
+                        | semicolon_exp0
+                    | decs
+                        | val_dec
+                        | fun_dec
+                            | fun_dec_no_type
+                            | fun_dec_with_type
+                            | fun_params
+                                | fun_param
+                        | ty_dec
+                            | ty
+                                | ty_fields
+                                | ty_field_tail
+                            | with_type
+                        | dataty_dec
+                            | dataty_tail
+                        | module_dec
+                            | module_dec_no_type
+                            | module_dec_with_type
+                        | non_fun_dec
+                        | non_ty_dec
+                        | non_dataty_dec
+                        | non_module_dec
+                | exp_seq
+                | assign
+                | conditional
+                | insts
+                    | rec_inst
+                        | rec_inst_body
+                        | rec_field_comma_tail
+                    | ref_inst
+                    | array_inst
+                        | array_index_fn
+                        | index_fn_tail
+                        | array_from_num
+                    | list_inst
+                        | list_elements
+                    | sw_tuple_inst
+                    | hw_tuple_inst
+                    | exp_comma_tail
+                | with_value
         | epsilon
 
 %pos int
@@ -138,16 +138,24 @@ structure BA = BitArray
 %nonassoc THEN
 %nonassoc ELSE
 %nonassoc LBRACK RBRACK
+%right ASSIGN
+%right WITH
+%left LBRACE RBRACE LPAREN RPAREN
+%left CONS
 %left ORELSE
 %left ANDALSO
+%left BIT_SLL BIT_SRA BIT_SRL
 %nonassoc EQ NEQ GT LT GE LE
 %left REAL_MINUS REAL_PLUS INT_MINUS INT_PLUS BIT_XOR BIT_OR
-%left REAL_DIVIDE REAL_TIMES INT_DIVIDE INT_TIMES BIT_AND
+%left REAL_DIVIDE REAL_TIMES INT_DIVIDE INT_TIMES BIT_AND INT_MOD
 %left UMINUS BIT_NOT
 
 %%
 
 program	      : structs_or_sigs                                             ()
+              | exps                                                        ()
+
+exps          : exps exp                                                    ()
               | exp                                                         ()
 
 exp           : INT                                                         ()
@@ -155,15 +163,15 @@ exp           : INT                                                         ()
               | REAL                                                        ()
               | BIT                                                         ()
               | NIL                                                         ()
-              | lvalue                                                      ()
-              | array_access                                                ()
+              | ID                                                          ()
+              | access                                                      ()
               | operation                                                   ()
               | let_block                                                   ()
               | assign                                                      ()
-              | fun_call                                                    ()
               | exp_seq                                                     ()
               | conditional                                                 ()
               | insts                                                       ()
+              | with_value                                                  ()
               | LPAREN RPAREN                                               ()
 
 structs_or_sigs
@@ -235,7 +243,7 @@ record_access : POUND ID exp                                                ()
 
 deref         : BANG exp                                                    ()
 
-lvalue        : ID                                                          ()
+access        : array_access                                                ()
               | struct_access                                               ()
               | tuple_access                                                ()
               | record_access                                               ()
@@ -330,8 +338,8 @@ fun_param     : LPAREN ID RPAREN                                            ()
               | ID                                                          ()
               | LPAREN ty_fields RPAREN                                     ()
 
-ty_dec        : TYPE ID EQ ty                                               ()
-              | TYPE ID EQ ty ty_dec                                        ()
+ty_dec        : TYPE ID EQ ty with_type                                     ()
+              | TYPE ID EQ ty with_type ty_dec                              ()
 
 ty            : ty INT_TIMES ty                                             ()
               | LBRACE ty_fields RBRACE                                     ()
@@ -345,6 +353,13 @@ ty_fields     : ty_field_tail                                               ()
 
 ty_field_tail : ID COLON ty                                                 ()
               | ty_field_tail COMMA ID COLON ty                             ()
+
+with_type     : WITH OP EQ LPAREN ID COMMA ID RPAREN EQ exp                 ()
+              | WITH OP NEQ LPAREN ID COMMA ID RPAREN EQ exp                ()
+              | WITH OP GT LPAREN ID COMMA ID RPAREN EQ exp                 ()
+              | WITH OP LT LPAREN ID COMMA ID RPAREN EQ exp                 ()
+              | WITH OP GE LPAREN ID COMMA ID RPAREN EQ exp                 ()
+              | WITH OP LE LPAREN ID COMMA ID RPAREN EQ exp                 ()
 
 dataty_dec    : DATATYPE ID EQ ID OF ty dataty_tail                         ()
 
@@ -366,18 +381,9 @@ semicolon_exp0: SEMICOLON exp semicolon_exp0                                ()
               | epsilon                                                     ()
 
 exp_seq       : LPAREN exp RPAREN                                           ()
-              | LPAREN exp semicolon_exp1 RPAREN                            ()
+              | LPAREN exp SEMICOLON exp semicolon_exp0 RPAREN              ()
 
-semicolon_exp1: SEMICOLON exp semicolon_exp1                                ()
-              | SEMICOLON exp                                               ()
-
-assign        : lvalue ASSIGN exp                                           ()
-
-fun_call      : ID exps                                                     ()
-              | ID LT exp exp_comma_tail GT exps                            ()
-
-exps          : exps exp                                                    ()
-              | exp                                                         ()
+assign        : exp ASSIGN exp                                              ()
 
 exp_comma_tail: COMMA exp exp_comma_tail                                    ()
               | epsilon                                                     ()
@@ -424,5 +430,7 @@ list_elements : exp exp_comma_tail                                          ()
 sw_tuple_inst : LPAREN exp exp_comma_tail RPAREN                            ()
 
 hw_tuple_inst : POUND LPAREN exp exp_comma_tail RPAREN                      ()
+
+with_value    : exp WITH rec_inst                                           ()
 
 epsilon       :                                                             ()
