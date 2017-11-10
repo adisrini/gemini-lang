@@ -27,11 +27,9 @@ structure BA = BitArray
                     | sig_body
                     | sigs
                         | val_sig
-                        | fun_sig
                         | ty_sig
                         | dataty_sig
                         | module_sig
-                        | non_fun_sigs
                         | non_ty_sigs
                         | non_dataty_sigs
                         | non_module_sigs
@@ -47,6 +45,7 @@ structure BA = BitArray
                 | real_op
                 | bit_op
                 | compare_op
+                | list_op
             | let_block
                 | let_body
                     | semicolon_exp0
@@ -74,8 +73,7 @@ structure BA = BitArray
                 | semicolon_exp1
             | assign
             | fun_call
-                | call_params
-                | call_param
+                | exps
                 | exp_comma_tail
             | conditional
             | insts
@@ -137,7 +135,6 @@ structure BA = BitArray
 
 %nonassoc ID
 %nonassoc OF
-%nonassoc ASSIGN
 %nonassoc THEN
 %nonassoc ELSE
 %nonassoc LBRACK RBRACK
@@ -192,19 +189,11 @@ sig_body      : SIG sigs END                                                ()
 
 sigs          : val_sig sigs                                                ()
               | ty_sig non_ty_sigs                                          ()
-              | fun_sig non_fun_sigs                                        ()
               | module_sig non_module_sigs                                  ()
               | dataty_sig non_dataty_sigs                                  ()
               | epsilon                                                     ()
 
 non_ty_sigs   : val_sig sigs                                                ()
-              | fun_sig non_fun_sigs                                        ()
-              | module_sig non_module_sigs                                  ()
-              | dataty_sig non_dataty_sigs                                  ()
-              | epsilon                                                     ()
-
-non_fun_sigs  : val_sig sigs                                                ()
-              | ty_sig non_ty_sigs                                          ()
               | module_sig non_module_sigs                                  ()
               | dataty_sig non_dataty_sigs                                  ()
               | epsilon                                                     ()
@@ -212,14 +201,12 @@ non_fun_sigs  : val_sig sigs                                                ()
 non_module_sigs
               : val_sig sigs                                                ()
               | ty_sig non_ty_sigs                                          ()
-              | fun_sig non_fun_sigs                                        ()
               | dataty_sig non_dataty_sigs                                  ()
               | epsilon                                                     ()
 
 non_dataty_sigs
               : val_sig sigs                                                ()
               | ty_sig non_ty_sigs                                          ()
-              | fun_sig non_fun_sigs                                        ()
               | module_sig non_module_sigs                                  ()
               | epsilon                                                     ()
 
@@ -229,9 +216,6 @@ ty_sig        : TYPE ID EQ ty                                               ()
               | TYPE ID EQ ty ty_sig                                        ()
               | TYPE ID                                                     ()
               | TYPE ID ty_sig                                              ()
-
-fun_sig       : VAL ID COLON ty INT_MINUS GT ty                             ()
-              | VAL ID COLON ty INT_MINUS GT ty fun_sig                     ()
 
 module_sig    : MODULE ID COLON ty INT_MINUS GT ty                          ()
               | MODULE ID COLON ty INT_MINUS GT ty module_sig               ()
@@ -261,6 +245,7 @@ operation     : int_op                                                      ()
               | real_op                                                     ()
               | bit_op                                                      ()
               | compare_op                                                  ()
+              | list_op                                                     ()
 
 int_op        : INT_MINUS exp %prec UMINUS                                  ()
               | exp INT_PLUS exp                                            ()
@@ -269,8 +254,7 @@ int_op        : INT_MINUS exp %prec UMINUS                                  ()
               | exp INT_DIVIDE exp                                          ()
               | exp INT_MOD exp                                             ()
 
-real_op       : INT_MINUS exp %prec UMINUS                                  ()
-              | exp REAL_PLUS exp                                           ()
+real_op       : exp REAL_PLUS exp                                           ()
               | exp REAL_MINUS exp                                          ()
               | exp REAL_TIMES exp                                          ()
               | exp REAL_DIVIDE exp                                         ()
@@ -289,6 +273,8 @@ compare_op    : exp EQ exp                                                  ()
               | exp LT exp                                                  ()
               | exp GE exp                                                  ()
               | exp LE exp                                                  ()
+
+list_op       : exp CONS exp                                                ()
 
 let_block     : LET decs IN let_body END                                    ()
 
@@ -347,13 +333,11 @@ fun_param     : LPAREN ID RPAREN                                            ()
 ty_dec        : TYPE ID EQ ty                                               ()
               | TYPE ID EQ ty ty_dec                                        ()
 
-ty            : ID                                                          ()
-              | ty INT_TIMES ty                                             ()
+ty            : ty INT_TIMES ty                                             ()
               | LBRACE ty_fields RBRACE                                     ()
               | ty AT INT                                                   ()
               | ty LBRACK INT RBRACK                                        ()
               | ty LBRACK RBRACK                                            ()
-              | ty INT_MINUS GT ty                                          ()
               | ty LIST                                                     ()
 
 ty_fields     : ty_field_tail                                               ()
@@ -389,12 +373,10 @@ semicolon_exp1: SEMICOLON exp semicolon_exp1                                ()
 
 assign        : lvalue ASSIGN exp                                           ()
 
-fun_call      : ID call_params                                              ()
+fun_call      : ID exps                                                     ()
+              | ID LT exp exp_comma_tail GT exps                            ()
 
-call_params   : call_param call_params                                      ()
-              | epsilon                                                     ()
-
-call_param    : LPAREN exp exp_comma_tail RPAREN                            ()
+exps          : exps exp                                                    ()
               | exp                                                         ()
 
 exp_comma_tail: COMMA exp exp_comma_tail                                    ()
@@ -434,9 +416,7 @@ index_fn_tail : BIT_OR ID EQ GT exp index_fn_tail                           ()
               | BIT_OR INT EQ GT exp index_fn_tail                          ()
               | epsilon                                                     ()
 
-
 list_inst     : LBRACK list_elements RBRACK                                 ()
-              | exp CONS list_inst                                          ()
 
 list_elements : exp exp_comma_tail                                          ()
               | epsilon                                                     ()
