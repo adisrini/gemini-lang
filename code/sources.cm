@@ -2,6 +2,7 @@ Group is
 
 bit.sml
 bit_array.sml
+vector.sml
 driver.sml
 errormsg.sml
 gemini.lex
