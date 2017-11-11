@@ -16,6 +16,7 @@ val STRUCT: linenum * linenum -> token
 val SIGNATURE: linenum * linenum -> token
 val SIG: linenum * linenum -> token
 val LIST: linenum * linenum -> token
+val SW: linenum * linenum -> token
 
 (* constructs *)
 val LET:  linenum * linenum -> token
@@ -90,6 +91,7 @@ val ASSIGN: linenum * linenum -> token
 val BANG: linenum * linenum -> token
 val BIT_ARRAY: (Bit.bit vector) * linenum * linenum -> token
 val CONS: linenum * linenum -> token
+val POUND_TIMES: linenum * linenum -> token
 
 (******* LITERALS *******)
 val INT: (int) * linenum * linenum -> token
