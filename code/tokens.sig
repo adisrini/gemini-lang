@@ -35,6 +35,7 @@ val NIL:  linenum * linenum -> token
 val WITH: linenum * linenum -> token
 val OF: linenum * linenum -> token
 val OP: linenum * linenum -> token
+val CASE: linenum * linenum -> token
 
 (******* OPERATORS *******)
 (* bitwise *)

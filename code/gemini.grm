@@ -7,14 +7,14 @@ structure BA = BitArray
   | DATATYPE | TYPE | VAL | REF | FUN | MODULE | STRUCTURE | STRUCT | SIGNATURE | SIG | LIST
   | LET | IN | END | IF | THEN | ELSE
   | ORELSE | ANDALSO | NOT
-  | NIL | WITH | OF | OP
+  | NIL | WITH | OF | OP | CASE
   | BIT_NOT | BIT_OR | BIT_AND | BIT_XOR | BIT_SLL | BIT_SRL | BIT_SRA
   | GE | GT | LE | LT | NEQ | EQ
   | INT_DIVIDE | INT_TIMES | INT_PLUS | INT_MINUS | INT_MOD | REAL_DIVIDE | REAL_TIMES | REAL_PLUS | REAL_MINUS
   | RBRACE | LBRACE | RBRACK | LBRACK | RPAREN | LPAREN
   | DOT | SEMICOLON | COLON | COMMA | POUND | AT | TICK | ASSIGN | BANG | CONS
   | ID of string | INT of int | STRING of string | REAL of real | BIT of Bit.bit | BIT_ARRAY of BitArray.bit_array
-  | UMINUS
+  | UMINUS | APPLY
 
 %nonterm
       program
@@ -89,6 +89,7 @@ structure BA = BitArray
                     | hw_tuple_inst
                     | exp_comma_tail
                 | with_value
+                | pattern_match
         | epsilon
 
 %pos int
@@ -133,14 +134,14 @@ structure BA = BitArray
       | SEMICOLON END -> END
       | SEMICOLON IN -> IN
 
-%nonassoc ID
+%nonassoc INT STRING REAL BIT ID
 %nonassoc OF
 %nonassoc THEN
 %nonassoc ELSE
 %nonassoc LBRACK RBRACK
 %right ASSIGN
 %right WITH
-%left LBRACE RBRACE LPAREN RPAREN
+%left LBRACE RBRACE
 %left CONS
 %left ORELSE
 %left ANDALSO
@@ -149,16 +150,15 @@ structure BA = BitArray
 %left REAL_MINUS REAL_PLUS INT_MINUS INT_PLUS BIT_XOR BIT_OR
 %left REAL_DIVIDE REAL_TIMES INT_DIVIDE INT_TIMES BIT_AND INT_MOD
 %left UMINUS BIT_NOT
+%left LPAREN RPAREN APPLY
 
 %%
 
 program	      : structs_or_sigs                                             ()
-              | exps                                                        ()
-
-exps          : exps exp                                                    ()
               | exp                                                         ()
 
-exp           : INT                                                         ()
+exp           : exp exp %prec APPLY                                         ()
+              | INT                                                         ()
               | STRING                                                      ()
               | REAL                                                        ()
               | BIT                                                         ()
@@ -171,6 +171,7 @@ exp           : INT                                                         ()
               | conditional                                                 ()
               | insts                                                       ()
               | with_value                                                  ()
+              | pattern_match                                               ()
               | LPAREN RPAREN                                               ()
 
 structs_or_sigs
@@ -432,5 +433,7 @@ sw_tuple_inst : LPAREN exp exp_comma_tail RPAREN                            ()
 hw_tuple_inst : POUND LPAREN exp exp_comma_tail RPAREN                      ()
 
 with_value    : exp WITH rec_inst                                           ()
+
+pattern_match : CASE                                                        ()
 
 epsilon       :                                                             ()
