@@ -34,6 +34,10 @@ fun ORELSE(a, b) = "ORELSE @" ^ locationToString(a, b)
 fun ANDALSO(a, b) = "ANDALSO @" ^ locationToString(a, b)
 fun NOT(a, b) = "NOT @" ^ locationToString(a, b)
 
+fun PIPE_EQUALS(a, b) = "PIPE_EQUALS @" ^ locationToString(a, b)
+fun FAT_ARROW(a, b) = "FAT_ARROW @" ^ locationToString(a, b)
+fun THIN_ARROW(a, b) = "THIN_ARROW @" ^ locationToString(a, b)
+
 (* misc *)
 fun NIL(a, b) = "NIL @" ^ locationToString(a, b)
 fun WITH(a, b) = "WITH @" ^ locationToString(a, b)

@@ -117,6 +117,10 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"of"  	                               => (Tokens.OF(yypos, yypos + 2));
 <INITIAL>"op"  	                               => (Tokens.OP(yypos, yypos + 2));
 
+<INITIAL>"|="                                  => (Tokens.PIPE_EQUALS(yypos, yypos + 2));
+<INITIAL>"=>"                                  => (Tokens.FAT_ARROW(yypos, yypos + 2));
+<INITIAL>"->"                                  => (Tokens.THIN_ARROW(yypos, yypos + 2));
+
 <INITIAL>"~"	                                 => (Tokens.BIT_NOT(yypos, yypos + 1));
 <INITIAL>"|"	                                 => (Tokens.BIT_OR(yypos, yypos + 1));
 <INITIAL>"&"	                                 => (Tokens.BIT_AND(yypos, yypos + 1));

@@ -37,6 +37,10 @@ val OF: linenum * linenum -> token
 val OP: linenum * linenum -> token
 val CASE: linenum * linenum -> token
 
+val PIPE_EQUALS: linenum * linenum -> token
+val FAT_ARROW: linenum * linenum -> token
+val THIN_ARROW: linenum * linenum -> token
+
 (******* OPERATORS *******)
 (* bitwise *)
 val BIT_NOT: linenum * linenum -> token

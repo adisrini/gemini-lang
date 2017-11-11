@@ -8,6 +8,7 @@ structure BA = BitArray
   | LET | IN | END | IF | THEN | ELSE
   | ORELSE | ANDALSO | NOT
   | NIL | WITH | OF | OP | CASE
+  | PIPE_EQUALS | FAT_ARROW | THIN_ARROW
   | BIT_NOT | BIT_OR | BIT_AND | BIT_XOR | BIT_SLL | BIT_SRL | BIT_SRA
   | GE | GT | LE | LT | NEQ | EQ
   | INT_DIVIDE | INT_TIMES | INT_PLUS | INT_MINUS | INT_MOD | REAL_DIVIDE | REAL_TIMES | REAL_PLUS | REAL_MINUS
@@ -59,6 +60,7 @@ structure BA = BitArray
                                 | fun_param
                         | ty_dec
                             | ty
+                                | no_ty_fields
                                 | ty_fields
                                 | ty_field_tail
                             | with_type
@@ -80,9 +82,6 @@ structure BA = BitArray
                         | rec_field_comma_tail
                     | ref_inst
                     | array_inst
-                        | array_index_fn
-                        | index_fn_tail
-                        | array_from_num
                     | list_inst
                         | list_elements
                     | sw_tuple_inst
@@ -90,6 +89,8 @@ structure BA = BitArray
                     | exp_comma_tail
                 | with_value
                 | pattern_match
+                    | matches
+                    | matches_tail
         | epsilon
 
 %pos int
@@ -225,8 +226,8 @@ ty_sig        : TYPE ID EQ ty                                               ()
               | TYPE ID                                                     ()
               | TYPE ID ty_sig                                              ()
 
-module_sig    : MODULE ID COLON ty INT_MINUS GT ty                          ()
-              | MODULE ID COLON ty INT_MINUS GT ty module_sig               ()
+module_sig    : MODULE ID COLON ty THIN_ARROW  ty                           ()
+              | MODULE ID COLON ty THIN_ARROW ty module_sig                 ()
 
 dataty_sig    : dataty_dec                                                  ()
               | dataty_dec dataty_sig                                       ()
@@ -331,11 +332,11 @@ fun_dec_no_type
 fun_dec_with_type
               : FUN ID fun_params COLON ty EQ exp                           ()
 
-fun_params    : fun_param fun_params                                        ()
+fun_params    : fun_params fun_param                                        ()
               | fun_param                                                   ()
 
-fun_param     : LPAREN ID RPAREN                                            ()
-              | ID                                                          ()
+fun_param     : ID                                                          ()
+              | LPAREN no_ty_fields RPAREN                                  ()
               | LPAREN ty_fields RPAREN                                     ()
 
 ty_dec        : TYPE ID EQ ty with_type                                     ()
@@ -345,8 +346,11 @@ ty            : ty INT_TIMES ty                                             ()
               | LBRACE ty_fields RBRACE                                     ()
               | ty AT INT                                                   ()
               | ty LBRACK INT RBRACK                                        ()
-              | ty LBRACK RBRACK                                            ()
               | ty LIST                                                     ()
+              | ty REF                                                      ()
+
+no_ty_fields  : ID                                                          ()
+              | no_ty_fields COMMA ID                                       ()
 
 ty_fields     : ty_field_tail                                               ()
               | epsilon                                                     ()
@@ -412,15 +416,8 @@ rec_field_comma_tail
 ref_inst      : REF exp                                                     ()
 
 array_inst    : POUND LBRACK exp exp_comma_tail RBRACK                      ()
-              | POUND LBRACK exp COMMA array_index_fn RBRACK                ()
+              | POUND LBRACK exp COMMA matches RBRACK                       ()
               | BIT_ARRAY                                                   ()
-
-array_index_fn: ID EQ GT exp index_fn_tail                                  ()
-              | INT EQ GT exp index_fn_tail                                 ()
-
-index_fn_tail : BIT_OR ID EQ GT exp index_fn_tail                           ()
-              | BIT_OR INT EQ GT exp index_fn_tail                          ()
-              | epsilon                                                     ()
 
 list_inst     : LBRACK list_elements RBRACK                                 ()
               | NIL                                                         ()
@@ -434,6 +431,11 @@ hw_tuple_inst : POUND LPAREN exp exp_comma_tail RPAREN                      ()
 
 with_value    : exp WITH rec_inst                                           ()
 
-pattern_match : CASE                                                        ()
+pattern_match : CASE exp OF matches                                         ()
+
+matches       : exp FAT_ARROW exp matches_tail                              ()
+
+matches_tail  : matches_tail PIPE_EQUALS exp FAT_ARROW exp                  ()
+              | epsilon                                                     ()
 
 epsilon       :                                                             ()
