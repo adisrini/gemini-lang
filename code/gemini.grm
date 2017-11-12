@@ -1,31 +1,6 @@
 structure S = GeminiString(String)
 structure BA = GeminiBitArray(Vector)
 
-fun intToBitArray yytext yypos func substr =
-  let
-    val idx1 = S.indexof yytext substr
-    val idx2 = idx1 + size(substr)
-    val len = valOf(Int.fromString(String.substring(yytext, 0, idx1)))
-    val num = valOf(Int.fromString(String.extract(yytext, idx2, NONE)))
-  in
-    (* Tokens.BIT_ARRAY(func num len, yypos, yypos + size(yytext)) *)
-    0
-  end
-
-fun realToBitArray yytext yypos =
-  let
-    val substr1 = ","
-    val substr2 = ")"
-    val idx1 = S.indexof yytext substr1
-    val idx2 = S.indexof yytext substr2
-    val mantissa = valOf(Int.fromString(String.substring(yytext, 1, idx1)))
-    val exponent = valOf(Int.fromString(String.substring(yytext, idx1, idx2)))
-    val num = valOf(Int.fromString(String.extract(yytext, idx2 + 4, NONE)))
-  in
-    (* Tokens.BIT_ARRAY(BA.fromReal num mantissa exponent, yypos, yypos + size(yytext)) *)
-    0
-  end
-
 %%
 %term
     EOF
