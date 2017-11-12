@@ -87,19 +87,18 @@ val COLON:  linenum * linenum -> token
 val COMMA:  linenum * linenum -> token
 val POUND: linenum * linenum -> token
 val AT: linenum * linenum -> token
-val TICK: linenum * linenum -> token
 val ASSIGN: linenum * linenum -> token
 val BANG: linenum * linenum -> token
-val BIT_ARRAY: (Bit.bit vector) * linenum * linenum -> token
 val CONS: linenum * linenum -> token
 val POUND_TIMES: linenum * linenum -> token
 
 (******* LITERALS *******)
 val INT: (int) * linenum * linenum -> token
 val REAL: (real) * linenum * linenum -> token
-val BIT: (Bit.bit) * linenum * linenum -> token
+val BIT: (GeminiBit.bit) * linenum * linenum -> token
 val STRING: (string) * linenum * linenum -> token
 val ID: (string) * linenum * linenum -> token
+val TID: (string) * linenum * linenum -> token
 val EOF:  linenum * linenum -> token
 
 end

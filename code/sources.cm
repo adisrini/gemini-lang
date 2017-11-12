@@ -1,12 +1,18 @@
 Group is
 
+(* library *)
 array.sml
 bit.sml
 bit_array.sml
+string.sml
+
+(* compiler *)
 driver.sml
 errormsg.sml
 gemini.lex
 gemini.grm
+
+(* base *)
 $/ml-yacc-lib.cm
 $/smlnj-lib.cm
 $/basis.cm

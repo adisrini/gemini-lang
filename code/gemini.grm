@@ -1,5 +1,30 @@
-structure GA = GeminiArray
-structure BA = BitArray
+structure S = GeminiString(String)
+structure BA = GeminiBitArray(Vector)
+
+fun intToBitArray yytext yypos func substr =
+  let
+    val idx1 = S.indexof yytext substr
+    val idx2 = idx1 + size(substr)
+    val len = valOf(Int.fromString(String.substring(yytext, 0, idx1)))
+    val num = valOf(Int.fromString(String.extract(yytext, idx2, NONE)))
+  in
+    (* Tokens.BIT_ARRAY(func num len, yypos, yypos + size(yytext)) *)
+    0
+  end
+
+fun realToBitArray yytext yypos =
+  let
+    val substr1 = ","
+    val substr2 = ")"
+    val idx1 = S.indexof yytext substr1
+    val idx2 = S.indexof yytext substr2
+    val mantissa = valOf(Int.fromString(String.substring(yytext, 1, idx1)))
+    val exponent = valOf(Int.fromString(String.substring(yytext, idx1, idx2)))
+    val num = valOf(Int.fromString(String.extract(yytext, idx2 + 4, NONE)))
+  in
+    (* Tokens.BIT_ARRAY(BA.fromReal num mantissa exponent, yypos, yypos + size(yytext)) *)
+    0
+  end
 
 %%
 %term
@@ -13,8 +38,8 @@ structure BA = BitArray
   | GE | GT | LE | LT | NEQ | EQ
   | UMINUS | INT_DIVIDE | INT_TIMES | INT_PLUS | INT_MINUS | INT_MOD | REAL_DIVIDE | REAL_TIMES | REAL_PLUS | REAL_MINUS
   | RBRACE | LBRACE | RBRACK | LBRACK | RPAREN | LPAREN
-  | DOT | SEMICOLON | COLON | COMMA | POUND | AT | TICK | ASSIGN | BANG | CONS | POUND_TIMES
-  | ID of string | INT of int | STRING of string | REAL of real | BIT of Bit.bit | BIT_ARRAY of BitArray.bit_array
+  | DOT | SEMICOLON | COLON | COMMA | POUND | AT | ASSIGN | BANG | CONS | POUND_TIMES
+  | ID of string | TID of string | INT of int | STRING of string | REAL of real | BIT of GeminiBit.bit
   | APPLY
 
 %nonterm
@@ -82,6 +107,7 @@ structure BA = BitArray
                         | rec_field_comma_tail
                     | ref_inst
                     | array_inst
+                        | bit_array_inst
                     | list_inst
                         | list_elements
                     | sw_tuple_inst
@@ -111,7 +137,7 @@ structure BA = BitArray
 %value ID ("foo")
 %value INT (1)
 %value STRING ("")
-%value BIT (Bit.fromInt(0))
+%value BIT (GeminiBit.fromInt(0))
 %value REAL (1.0)
 
 %change -> IN ID END
@@ -135,7 +161,7 @@ structure BA = BitArray
       | SEMICOLON END -> END
       | SEMICOLON IN -> IN
 
-%nonassoc INT STRING REAL BIT ID
+%nonassoc INT STRING REAL BIT ID TID
 %nonassoc OF
 %nonassoc THEN
 %nonassoc ELSE
@@ -343,7 +369,8 @@ fun_param     : ID                                                          ()
 ty_dec        : TYPE ID EQ ty with_type                                     ()
               | TYPE ID EQ ty with_type ty_dec                              ()
 
-ty            : ID                                                          ()
+ty            : TID                                                         ()
+              | ID                                                          ()
               | ty INT_TIMES ty                                             ()
               | ty POUND_TIMES ty                                           ()
               | LBRACE ty_fields RBRACE                                     ()
@@ -421,7 +448,7 @@ ref_inst      : REF exp                                                     ()
 
 array_inst    : POUND LBRACK exp exp_comma_tail RBRACK                      ()
               | POUND LBRACK exp COMMA matches RBRACK                       ()
-              | BIT_ARRAY                                                   ()
+              | bit_array_inst                                              ()
 
 list_inst     : LBRACK list_elements RBRACK                                 ()
               | NIL                                                         ()
@@ -432,6 +459,8 @@ list_elements : exp exp_comma_tail                                          ()
 sw_tuple_inst : LPAREN exp exp_comma_tail RPAREN                            ()
 
 hw_tuple_inst : POUND LPAREN exp exp_comma_tail RPAREN                      ()
+
+bit_array_inst: exp TID COLON exp                                           ()
 
 with_value    : exp WITH rec_inst                                           ()
 

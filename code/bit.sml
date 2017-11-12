@@ -1,4 +1,4 @@
-structure Bit =
+structure GeminiBit =
 struct
 
   datatype bit = ZERO | ONE

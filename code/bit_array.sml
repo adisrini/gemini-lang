@@ -1,9 +1,10 @@
-structure BitArray =
+functor GeminiBitArray(V: VECTOR) =
 struct
+  open V
 
-  type bit_array = Bit.bit vector
+  type bit_array = GeminiBit.bit vector
 
-  fun toString ba = GeminiArray.toString ba Bit.toString
+  fun toString ba = GeminiArray.toString ba GeminiBit.toString
 
   fun toList ba = Vector.foldl (fn(x, acc) => x::acc) [] ba
 
@@ -11,7 +12,7 @@ struct
   fun zeroExtend ba len =
     let
       fun helper 0 acc = acc
-        | helper n acc = helper (n - 1) (Bit.ZERO::acc)
+        | helper n acc = helper (n - 1) (GeminiBit.ZERO::acc)
     in
       Vector.fromList(helper (len - Vector.length(ba)) (toList(ba)))
     end
@@ -22,26 +23,26 @@ struct
       fun helper 0 acc = acc
         | helper num acc = helper (num div 2) (num mod 2 :: acc)
     in
-      zeroExtend (Vector.fromList(map Bit.fromInt (helper num []))) len
+      zeroExtend (Vector.fromList(List.map GeminiBit.fromInt (helper num []))) len
     end
 
   (* TODO: exception handling *)
-  fun fromSignedInt num len =
+  (*fun fromSignedInt num len =
     if num < 0
     then
       let
         val unsigned = fromUnsignedInt (~num) len
-        val flip = Vector.map Bit.notb unsigned
+        val flip = Vector.map GeminiBit.notb unsigned
         fun add1 vec 0   ci acc = acc
           | add1 vec idx ci acc = let
-                                    val (sum, co) = Bit.add ci (Vector.sub(vec, idx))
+                                    val (sum, co) = GeminiBit.add ci (Vector.sub(vec, idx))
                                   in
                                     add1 vec (idx - 1) co (sum::acc)
                                   end
       in
-        Vector.fromList(add1 flip (Vector.length(flip) - 1) Bit.ONE [])
+        Vector.fromList(add1 flip (Vector.length(flip) - 1) GeminiBit.ONE [])
       end
-    else fromUnsignedInt num len
+    else fromUnsignedInt num len*)
 
   (* TODO *)
   fun fromReal num mantissa exponent = #[]

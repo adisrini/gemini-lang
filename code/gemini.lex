@@ -24,45 +24,6 @@ fun count f x = foldr (fn (a, b) => if f a then (b+1) else b) 0 x
 
 fun parseInt yytext radix = valOf(StringCvt.scanString(Int.scan(radix)) yytext)
 
-fun indexof s1 s2 =
-  let
-    val chars1 = String.explode(s1)
-    val chars2 = String.explode(s2)
-    fun helper start idx1 idx2 =
-      if idx2 = List.length(chars2)
-      then start
-      else if idx1 = List.length(chars1)
-           then ~1
-           else if List.nth(chars1, idx1) = List.nth(chars2, idx2)
-                then helper start (idx1+1) (idx2+1)
-                else helper (start+1) (start+1) 0
-  in
-    helper 0 0 0
-  end
-
-fun intToBitArray yytext yypos func substr =
-  let
-    val idx1 = indexof yytext substr
-    val idx2 = idx1 + size(substr)
-    val len = valOf(Int.fromString(String.substring(yytext, 0, idx1)))
-    val num = valOf(Int.fromString(String.extract(yytext, idx2, NONE)))
-  in
-    Tokens.BIT_ARRAY(func num len, yypos, yypos + size(yytext))
-  end
-
-fun realToBitArray yytext yypos =
-  let
-    val substr1 = ","
-    val substr2 = ")"
-    val idx1 = indexof yytext substr1
-    val idx2 = indexof yytext substr2
-    val mantissa = valOf(Int.fromString(String.substring(yytext, 1, idx1)))
-    val exponent = valOf(Int.fromString(String.substring(yytext, idx1, idx2)))
-    val num = valOf(Int.fromString(String.extract(yytext, idx2 + 4, NONE)))
-  in
-    Tokens.BIT_ARRAY(BitArray.fromReal num mantissa exponent, yypos, yypos + size(yytext))
-  end
-
 fun escape "\\\"" = "\""
   | escape "\\n"  = "\n"
   | escape "\\t"  = "\t"
@@ -162,9 +123,9 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>";"                                   => (Tokens.SEMICOLON(yypos, yypos + 1));
 <INITIAL>"#"                                   => (Tokens.POUND(yypos, yypos + 1));
 <INITIAL>"@"                                   => (Tokens.AT(yypos, yypos + 1));
-<INITIAL>"`"                                   => (Tokens.TICK(yypos, yypos + 1));
 <INITIAL>"!"                                   => (Tokens.BANG(yypos, yypos + 1));
 
+<INITIAL>"\'"[a-zA-Z][a-zA-Z0-9_]*             => (Tokens.TID(yytext, yypos, yypos + size(yytext)));
 <INITIAL>[a-zA-Z_][a-zA-Z0-9_]*                => (Tokens.ID(yytext, yypos, yypos + size(yytext)));
 <INITIAL>[-+]?[0-9]+                           => (Tokens.INT(valOf(Int.fromString(yytext)), yypos, yypos + size(yytext)));
 <INITIAL>#'b:[0-1]+                            => (Tokens.INT(parseInt (String.substring(yytext, 4, size(yytext) - 4)) StringCvt.BIN, yypos, yypos + size(yytext)));
@@ -173,7 +134,7 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>[-+]?[0-9]+\.[0-9]*([eE][-+]?[0-9]+)? => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
 <INITIAL>[-+]?[0-9]*\.[0-9]+([eE][-+]?[0-9]+)? => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
 <INITIAL>[-+]?[0-9]+([eE][-+]?[0-9]+)?         => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
-<INITIAL>'b:(0 | 1)                            => (Tokens.BIT(Bit.fromString(yytext), yypos, yypos + size(yytext)));
+<INITIAL>'b:(0 | 1)                            => (Tokens.BIT(GeminiBit.fromString(yytext), yypos, yypos + size(yytext)));
 <INITIAL>"\""                                  => (YYBEGIN STRING; stringLiteralClosed := false; buffer:= ""; stringStartPosition := yypos; continue());
 <STRING>[ -!#-\[\]-~]*                         => (buffer := !buffer ^ yytext; continue());
 <STRING>\\n                                    => (buffer := !buffer ^ (escape yytext); continue());
@@ -186,10 +147,6 @@ fun eof() = let val pos = hd(!linePos) in
 <STRING>"\""                                   => (YYBEGIN INITIAL; stringLiteralClosed := true; Tokens.STRING(!buffer, !stringStartPosition, yypos));
 <STRING>\n                                     => (YYBEGIN INITIAL; stringLiteralClosed := true; ErrorMsg.error yypos ("StringParseError: New-line within string."); lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <STRING>.                                      => (ErrorMsg.error yypos ("StringParseError: Illegal character within string: " ^ yytext); continue());
-
-<INITIAL>[0-9]+'s:[-+]?[0-9]+                  => (intToBitArray yytext yypos BitArray.fromSignedInt "'s:");
-<INITIAL>[0-9]+'u:[+]?[0-9]+                   => (intToBitArray yytext yypos BitArray.fromUnsignedInt "'u:");
-<INITIAL>"("[0-9]+","[0-9]+")"'r:[-+]?[0-9]+   => (realToBitArray yytext yypos);
 
 <INITIAL>"/*"                                  => (YYBEGIN COMMENT; netCommentBalance := 1; continue());
 <INITIAL>"*/"                                  => (ErrorMsg.error yypos ("SyntaxError: Cannot close unopened comment."); continue());
