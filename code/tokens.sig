@@ -61,6 +61,7 @@ val NEQ:  linenum * linenum -> token
 val EQ:  linenum * linenum -> token
 
 (* arithmetic *)
+val UMINUS: linenum * linenum -> token
 val INT_DIVIDE:  linenum * linenum -> token
 val INT_TIMES:  linenum * linenum -> token
 val INT_MINUS:  linenum * linenum -> token

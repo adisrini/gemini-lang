@@ -65,6 +65,7 @@ fun NEQ(a, b) = "NEQ @" ^ locationToString(a, b)
 fun EQ(a, b) = "EQ @" ^ locationToString(a, b)
 
 (* arithmetic *)
+fun UMINUS(a, b) = "UMINUS @" ^ locationToString(a, b)
 fun INT_DIVIDE(a, b) = "INT_DIVIDE @" ^ locationToString(a, b)
 fun INT_TIMES(a, b) = "INT_TIMES @" ^ locationToString(a, b)
 fun INT_MINUS(a, b) = "INT_MINUS @" ^ locationToString(a, b)

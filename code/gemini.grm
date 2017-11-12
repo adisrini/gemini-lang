@@ -11,11 +11,11 @@ structure BA = BitArray
   | PIPE_EQUALS | FAT_ARROW | THIN_ARROW
   | BIT_NOT | BIT_OR | BIT_AND | BIT_XOR | BIT_SLL | BIT_SRL | BIT_SRA
   | GE | GT | LE | LT | NEQ | EQ
-  | INT_DIVIDE | INT_TIMES | INT_PLUS | INT_MINUS | INT_MOD | REAL_DIVIDE | REAL_TIMES | REAL_PLUS | REAL_MINUS
+  | UMINUS | INT_DIVIDE | INT_TIMES | INT_PLUS | INT_MINUS | INT_MOD | REAL_DIVIDE | REAL_TIMES | REAL_PLUS | REAL_MINUS
   | RBRACE | LBRACE | RBRACK | LBRACK | RPAREN | LPAREN
   | DOT | SEMICOLON | COLON | COMMA | POUND | AT | TICK | ASSIGN | BANG | CONS | POUND_TIMES
   | ID of string | INT of int | STRING of string | REAL of real | BIT of Bit.bit | BIT_ARRAY of BitArray.bit_array
-  | UMINUS | APPLY
+  | APPLY
 
 %nonterm
       program
@@ -257,7 +257,7 @@ operation     : int_op                                                      ()
               | compare_op                                                  ()
               | list_op                                                     ()
 
-int_op        : INT_MINUS exp %prec UMINUS                                  ()
+int_op        : UMINUS exp                                                  ()
               | exp INT_PLUS exp                                            ()
               | exp INT_MINUS exp                                           ()
               | exp INT_TIMES exp                                           ()
@@ -269,7 +269,7 @@ real_op       : exp REAL_PLUS exp                                           ()
               | exp REAL_TIMES exp                                          ()
               | exp REAL_DIVIDE exp                                         ()
 
-bit_op        : BIT_NOT exp                                                 ()
+bit_op        : exp BIT_NOT                                                 ()
               | exp BIT_OR exp                                              ()
               | exp BIT_AND exp                                             ()
               | exp BIT_XOR exp                                             ()

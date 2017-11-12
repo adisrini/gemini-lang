@@ -121,7 +121,7 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"=>"                                  => (Tokens.FAT_ARROW(yypos, yypos + 2));
 <INITIAL>"->"                                  => (Tokens.THIN_ARROW(yypos, yypos + 2));
 
-<INITIAL>"~"	                                 => (Tokens.BIT_NOT(yypos, yypos + 1));
+<INITIAL>"\'"	                                 => (Tokens.BIT_NOT(yypos, yypos + 1));
 <INITIAL>"|"	                                 => (Tokens.BIT_OR(yypos, yypos + 1));
 <INITIAL>"&"	                                 => (Tokens.BIT_AND(yypos, yypos + 1));
 <INITIAL>"^"	                                 => (Tokens.BIT_XOR(yypos, yypos + 1));
@@ -136,11 +136,12 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>">"                                   => (Tokens.GT(yypos, yypos + 1));
 <INITIAL>"<"                                   => (Tokens.LT(yypos, yypos + 1));
 
+<INITIAL>"~"                                   => (Tokens.UMINUS(yypos, yypos + 1));
 <INITIAL>"+"                                   => (Tokens.INT_PLUS(yypos, yypos + 1));
 <INITIAL>"-"                                   => (Tokens.INT_MINUS(yypos, yypos + 1));
 <INITIAL>"*"                                   => (Tokens.INT_TIMES(yypos, yypos + 1));
 <INITIAL>"/"                                   => (Tokens.INT_DIVIDE(yypos, yypos + 1));
-<INITIAL>"%"                                  => (Tokens.INT_MOD(yypos, yypos + 1));
+<INITIAL>"%"                                   => (Tokens.INT_MOD(yypos, yypos + 1));
 <INITIAL>"+."                                  => (Tokens.REAL_PLUS(yypos, yypos + 2));
 <INITIAL>"-."                                  => (Tokens.REAL_MINUS(yypos, yypos + 2));
 <INITIAL>"*."                                  => (Tokens.REAL_TIMES(yypos, yypos + 2));
