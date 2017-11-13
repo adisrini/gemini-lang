@@ -8,7 +8,9 @@ struct
                | FieldVar of var * symbol * pos
 
   (* TODO *)
-  and exp = VarExp of var * pos
+  and exp = StructExp of {name: symbol, sigg: (sigg * pos) option, decs: dec list, pos: pos}
+          | SigExp of sigg * pos
+          | VarExp of var * pos
           | IntExp of int * pos
           | StringExp of string * pos
           | RealExp of real * pos
@@ -19,6 +21,8 @@ struct
           | AssignExp of {lhs: exp, rhs: exp, pos: pos}
           | SeqExp of (exp * pos) list
           | IfExp of {test: exp, then': exp, else': exp option, pos: pos}
+
+  and sigg = {name: symbol, defs: def list}
 
   and oper = IntPlusOp | IntMinusOp | IntTimesOp | IntDivideOp | IntModOp
            | RealPlusOp | RealMinusOp | RealTimesOp | RealDivideOp
@@ -34,6 +38,11 @@ struct
                       ty: (ty * pos) option,
                       init: exp,
                       pos: pos}
+
+  and def = ValDef of {name: symbol, ty: ty * pos, pos: pos}
+          | TypeDef of {name: symbol, pos: pos}
+          | DatatypeDef of datatydec
+          | ModuleDef of {name: symbol, ty: ty * pos, pos: pos}
 
   and ty = NameTy of symbol * pos
          | GenericTy of symbol * pos
