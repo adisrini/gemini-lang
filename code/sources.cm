@@ -12,6 +12,9 @@ driver.sml
 errormsg.sml
 gemini.lex
 gemini.grm
+symbol.sml
+table.sig
+table.sml
 
 (* base *)
 $/ml-yacc-lib.cm

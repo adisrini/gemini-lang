@@ -17,4 +17,19 @@ struct
                        init: exp,
                        pos: pos}
 
+  (* TODO *)
+  and exp = Exp of unit
+
+  (* TODO *)
+  and fundec = Fundec of unit
+
+  (* TODO *)
+  and tydec = Tydec of unit
+
+  (* TODO *)
+  and moddec = Moddec of unit
+
+  (* TODO *)
+  and datatydec = Datatydec of unit
+
 end
