@@ -59,6 +59,6 @@ struct
   and moddec = Moddec of unit
 
   (* TODO *)
-  and datatydec = Datatydec of unit
+  and datatydec = {datacon: symbol, ty: ty, pos: pos} list
 
 end
