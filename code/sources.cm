@@ -7,6 +7,7 @@ bit_array.sml
 string.sml
 
 (* compiler *)
+absyn.sml
 driver.sml
 errormsg.sml
 gemini.lex
