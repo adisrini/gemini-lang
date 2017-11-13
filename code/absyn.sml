@@ -22,8 +22,6 @@ struct
           | SeqExp of (exp * pos) list
           | IfExp of {test: exp, then': exp, else': exp option, pos: pos}
 
-  and sigg = {name: symbol, defs: def list}
-
   and oper = IntPlusOp | IntMinusOp | IntTimesOp | IntDivideOp | IntModOp
            | RealPlusOp | RealMinusOp | RealTimesOp | RealDivideOp
            | BitNotOp | BitAndOp | BitOrOp | BitXorOp | BitSLLOp | BitSRLOp | BitSRAOp
@@ -55,10 +53,15 @@ struct
          | RefTy of ty
          | SWTy of ty
 
-  and fundec = {name: symbol, params: param list, result: (ty * pos) option, body: exp, pos: pos}
-
   and param = SingleParam of {name: symbol, ty: ty option, escape: bool ref, pos: pos}
             | MultiParams of {name: symbol, ty: ty option, escape: bool ref, pos: pos} list
+
+
+  withtype field = {name: symbol, escape: bool ref, ty: ty, pos: pos}
+
+  and sigg = {name: symbol, defs: def list}
+
+  and fundec = {name: symbol, params: param list, result: (ty * pos) option, body: exp, pos: pos}
 
   and tydec = {name: symbol, ty: ty, pos: pos}
 
