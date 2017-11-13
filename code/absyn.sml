@@ -31,7 +31,7 @@ struct
          | DatatypeDec of datatydec list
          | ValDec of {name: symbol,
                       escape: bool ref,
-                      ty: (symbol * pos) option,
+                      ty: (ty * pos) option,
                       init: exp,
                       pos: pos}
 
@@ -47,7 +47,10 @@ struct
          | SWTy of ty
 
   (* TODO *)
-  and fundec = Fundec of unit
+  and fundec = {name: symbol, params: param list, result: (ty * pos) option, body: exp, pos: pos}
+
+  and param = SingleParam of {name: symbol, ty: ty option, escape: bool ref, pos: pos}
+            | MultiParams of {name: symbol, ty: ty option, escape: bool ref, pos: pos} list
 
   (* TODO *)
   and tydec = Tydec of unit
