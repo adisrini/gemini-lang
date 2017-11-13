@@ -46,19 +46,15 @@ struct
          | RefTy of ty
          | SWTy of ty
 
-  (* TODO *)
   and fundec = {name: symbol, params: param list, result: (ty * pos) option, body: exp, pos: pos}
 
   and param = SingleParam of {name: symbol, ty: ty option, escape: bool ref, pos: pos}
             | MultiParams of {name: symbol, ty: ty option, escape: bool ref, pos: pos} list
 
-  (* TODO *)
   and tydec = {name: symbol, ty: ty, pos: pos}
 
-  (* TODO *)
-  and moddec = Moddec of unit
+  and moddec = {name: symbol, arg: param, result: (ty * pos) option, body: exp, pos: pos}
 
-  (* TODO *)
   and datatydec = {datacon: symbol, ty: ty, pos: pos} list
 
 end
