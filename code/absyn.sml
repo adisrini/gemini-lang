@@ -5,7 +5,8 @@ struct
   and symbol = Symbol.symbol
 
   datatype var = SimpleVar of symbol * pos
-               | FieldVar of var * symbol * pos
+               | MemberVar of exp * symbol * pos
+               | FieldVar of exp * symbol * pos
 
   (* TODO *)
   and exp = StructExp of {name: symbol, sigg: (sigg * pos) option, decs: dec list, pos: pos}
@@ -55,7 +56,6 @@ struct
 
   and param = SingleParam of {name: symbol, ty: ty option, escape: bool ref, pos: pos}
             | MultiParams of {name: symbol, ty: ty option, escape: bool ref, pos: pos} list
-
 
   withtype field = {name: symbol, escape: bool ref, ty: ty, pos: pos}
 
