@@ -53,7 +53,7 @@ struct
             | MultiParams of {name: symbol, ty: ty option, escape: bool ref, pos: pos} list
 
   (* TODO *)
-  and tydec = Tydec of unit
+  and tydec = {name: symbol, ty: ty, pos: pos}
 
   (* TODO *)
   and moddec = Moddec of unit
