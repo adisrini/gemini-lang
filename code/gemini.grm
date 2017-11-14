@@ -82,8 +82,8 @@ fun extractStructSigList (A.StructsSigsExp(structsigs)) = SOME(structsigs)
                     | dataty_dec of A.dec
                         | dataty_tail
                     | module_dec of A.dec
-                        | module_dec_no_type of A.dec
-                        | module_dec_with_type of A.dec
+                        | module_dec_no_type of A.moddec
+                        | module_dec_with_type of A.moddec
                     | non_fun_dec of A.dec list
                     | non_ty_dec of A.dec list
                     | non_dataty_dec of A.dec list
@@ -365,18 +365,21 @@ with_type_tail: AND with_type                                               (wit
               | epsilon                                                     ([])
 
 dataty_dec    : DATATYPE ID EQ ID OF ty dataty_tail                         ()
+              | DATATYPE ID EQ ID OF ty dataty_tail dataty_dec              ()
 
 dataty_tail   : PIPE_EQUALS ID OF ty dataty_tail                            ()
               | epsilon                                                     ()
 
-module_dec    : module_dec_no_type                                          ()
-              | module_dec_with_type                                        ()
+module_dec    : module_dec_no_type                                          (A.ModuleDec([module_dec_no_type]))
+              | module_dec_with_type                                        (A.ModuleDec([module_dec_with_type]))
+              | module_dec_no_type module_dec                               (A.ModuleDec(module_dec_no_type::valOf(extractList(module_dec)))
+              | module_dec_with_type module_dec                             (A.ModuleDec(module_dec_with_type::valOf(extractList(module_dec))))
 
 module_dec_no_type
-              : MODULE ID fun_param EQ exp                                  ()
+              : MODULE ID fun_param EQ exp                                  ({name = Symbol.symbol(ID), arg = fun_param, result = NONE, body = exp, pos = MODULEleft})
 
 module_dec_with_type
-              : MODULE ID fun_param COLON ty EQ exp                         ()
+              : MODULE ID fun_param COLON ty EQ exp                         ({name = Symbol.symbol(ID), arg = fun_param, result = SOME(ty, tyleft), body = exp, pos = MODULEleft})
 
 semicolon_exp0: SEMICOLON exp semicolon_exp0                                ([(exp1, exp1left)] @ semicolon_exp0)
               | epsilon                                                     ([])
