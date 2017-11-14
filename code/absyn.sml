@@ -28,7 +28,7 @@ struct
           | StructAccExp of {name: symbol, field: symbol, pos: pos}
           | RecordAccExp of {exp: exp, field: symbol, pos: pos}
           | ArrayAccExp of {exp: exp, index: exp, pos: pos}
-          | PatternMatchExp of {exp: exp, cases: case' list, pos: pos}
+          | PatternMatchExp of {exp: exp, cases: match list, pos: pos}
           | ZeroExp
 
   and structsig = StructExp of {name: symbol, signat: (structsig * pos) option, decs: dec list, pos: pos}
@@ -82,6 +82,6 @@ struct
 
   and datatydec = {datacon: symbol, ty: ty, pos: pos} list
 
-  and case' = {match: exp, result: exp, pos: pos}
+  and match = {match: exp, result: exp, pos: pos}
 
 end

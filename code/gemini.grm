@@ -106,8 +106,8 @@ fun extractFields (A.RecordExp{fields, pos}) = SOME(fields)
                 | exp_comma_tail of (A.exp * int) list
             | with_value of A.exp
             | pattern_match of A.exp
-                | matches of A.case' list
-                | matches_tail of A.case' list
+                | matches of A.match list
+                | matches_tail of A.match list
         | epsilon
 
 %pos int
