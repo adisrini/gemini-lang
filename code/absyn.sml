@@ -80,7 +80,7 @@ struct
 
   and moddec = {name: symbol, arg: param, result: (ty * pos) option, body: exp, pos: pos}
 
-  and datatydec = {datacon: symbol, ty: ty, pos: pos} list
+  and datatydec = {name: symbol, datatypes: ({datacon: symbol, ty: ty, pos: pos} list)}
 
   and match = {match: exp, result: exp, pos: pos}
 
