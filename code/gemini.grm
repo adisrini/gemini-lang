@@ -424,7 +424,7 @@ rec_field_comma_tail
 ref_inst      : REF exp                                                     (A.RefExp(exp, REFleft))
 
 array_inst    : POUND LBRACK list_elements RBRACK                           (A.ArrayExp(Vector.fromList(list_elements)))
-              | POUND LBRACK exp COMMA pattern_match RBRACK                 (A.BitArrayExp{size = exp, result = pattern_match, spec = NONE})
+              | POUND LBRACK exp COMMA exp RBRACK                           (A.BitArrayExp{size = exp1, result = exp2, spec = NONE})
               | bit_array_inst                                              (bit_array_inst)
 
 list_inst     : LBRACK list_elements RBRACK                                 (A.ListExp(list_elements))

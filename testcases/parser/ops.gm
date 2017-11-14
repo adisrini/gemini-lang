@@ -1,7 +1,8 @@
 structure A =
 struct
 
-    val _ = (-x;
+    (* int ops *)
+    val _ = (~x;
              x + y;
              x * y;
              x - y;
@@ -9,6 +10,6 @@ struct
              x % y;
              x + (y - z);
              x + (y * z);
-             ((x % z) * y) - (-x)
+             ((x % z) * y) - (~x)
             )
 end

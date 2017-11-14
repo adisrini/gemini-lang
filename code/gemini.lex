@@ -149,10 +149,10 @@ fun eof() = let val pos = hd(!linePos) in
 <STRING>\n                                     => (YYBEGIN INITIAL; stringLiteralClosed := true; ErrorMsg.error yypos ("StringParseError: New-line within string."); lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <STRING>.                                      => (ErrorMsg.error yypos ("StringParseError: Illegal character within string: " ^ yytext); continue());
 
-<INITIAL>"/*"                                  => (YYBEGIN COMMENT; netCommentBalance := 1; continue());
-<INITIAL>"*/"                                  => (ErrorMsg.error yypos ("SyntaxError: Cannot close unopened comment."); continue());
-<COMMENT>"/*"                                  => (netCommentBalance := (!netCommentBalance) + 1; continue());
-<COMMENT>"*/"                                  => (netCommentBalance := (!netCommentBalance) - 1; if !netCommentBalance = 0 then YYBEGIN INITIAL else (); continue());
+<INITIAL>"(*"                                  => (YYBEGIN COMMENT; netCommentBalance := 1; continue());
+<INITIAL>"*)"                                  => (ErrorMsg.error yypos ("SyntaxError: Cannot close unopened comment."); continue());
+<COMMENT>"(*"                                  => (netCommentBalance := (!netCommentBalance) + 1; continue());
+<COMMENT>"*)"                                  => (netCommentBalance := (!netCommentBalance) - 1; if !netCommentBalance = 0 then YYBEGIN INITIAL else (); continue());
 <COMMENT>.                                     => (continue());
 
 .                                              => (ErrorMsg.error yypos ("SyntaxError: Illegal character: " ^ yytext); continue());

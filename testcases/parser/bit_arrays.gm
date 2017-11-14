@@ -1,6 +1,11 @@
 let
   val a = 10'u:5
-  val b = 8's:-5
+  val b = 8's:~5
+  val c = (40, 7)'r:104.55
+  fun f i = if i % 2 = 0
+            then 'b:0
+            else 'b:1
+  val d = #[32, f]
 in
   0
 end
