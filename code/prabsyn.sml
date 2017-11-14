@@ -6,35 +6,72 @@ struct
 
 fun print (outstream, e0) =
  let fun say s =  TextIO.output(outstream,s)
-  fun sayln s= (say s; say "\n")
+
+  fun sayln s = (say s; say "\n")
 
   fun indent 0 = ()
-    | indent i = (say " "; indent(i-1))
+    | indent i = (say " "; indent(i - 1))
 
-  fun opname A.PlusOp = "PlusOp"
-    | opname A.MinusOp = "MinusOp"
-    | opname A.TimesOp = "TimesOp"
-    | opname A.DivideOp = "DivideOp"
+  fun opname A.IntPlusOp = "IntPlusOp"
+    | opname A.IntMinusOp = "IntMinusOp"
+    | opname A.TimesOp = "IntTimesOp"
+    | opname A.IntDivideOp = "IntDivideOp"
+    | opname A.IntModOp = "IntModOp"
+    | opname A.RealPlusOp = "RealPlusOp"
+    | opname A.RealMinusOp = "RealMinusOp"
+    | opname A.RealTimesOp = "RealTimesOp"
+    | opname A.RealDivideOp = "RealDivideOp"
+    | opname A.BitNotOp = "BitNotOp"
+    | opname A.BitAndOp = "BitAndOp"
+    | opname A.BitOrOp = "BitOrOp"
+    | opname A.BitXorOp = "BitXorOp"
+    | opname A.BitSLLOp = "BitSLLOp"
+    | opname A.BitSRLOp = "BitSRLOp"
+    | opname A.BitSRAOp = "BitSRAOp"
     | opname A.EqOp = "EqOp"
     | opname A.NeqOp = "NeqOp"
     | opname A.LtOp = "LtOp"
     | opname A.LeOp = "LeOp"
     | opname A.GtOp = "GtOp"
     | opname A.GeOp = "GeOp"
+    | opname A.ConsOp = "ConsOp"
 
-  fun dolist d f [a] = (sayln ""; f(a,d+1))
-    | dolist d f (a::r) = (sayln ""; f(a,d+1); say ","; dolist d f r)
+  fun dolist d f [a] = (sayln ""; f(a, d + 1))
+    | dolist d f (a::r) = (sayln ""; f(a, d + 1); say ","; dolist d f r)
     | dolist d f nil = ()
 
+  (*
 
-  fun var(A.SimpleVar(s,p),d) = (indent d; say "SimpleVar(";
-			         say(Symbol.name s); say ")")
-    | var(A.FieldVar(v,s,p),d) = (indent d; sayln "FieldVar(";
-				  var(v,d+1); sayln ",";
-				  indent(d+1); say(Symbol.name s); say ")")
-    | var(A.SubscriptVar(v,e,p),d) = (indent d; sayln "SubscriptVar(";
-				      var(v,d+1); sayln ",";
-				      exp(e,d+1); say ")")
+  datatype exp = StructsSigsExp of structsig list
+          | VarExp of symbol * pos
+          | IntExp of int * pos
+          | StringExp of string * pos
+          | RealExp of real * pos
+          | BitExp of GeminiBit.bit * pos
+          | ApplyExp of (exp * exp * pos)
+          | NilExp of pos
+          | OpExp of {left: exp, oper: oper, right: exp, pos: pos}
+          | NegExp of {exp: exp, pos: pos}
+          | LetExp of {decs: dec list, body: exp, pos: pos}
+          | AssignExp of {lhs: exp, rhs: exp, pos: pos}
+          | SeqExp of (exp * pos) list
+          | IfExp of {test: exp, then': exp, else': exp option, pos: pos}
+          | ListExp of (exp * pos) list
+          | ArrayExp of (exp * pos) vector
+          | RefExp of exp * pos
+          | RecordExp of {fields: (symbol * exp * pos) list, pos: pos}
+          | HWTupleExp of (exp * pos) list
+          | WithExp of {exp: exp, fields: (symbol * exp * pos) list, pos: pos}
+          | DerefExp of {exp: exp, pos: pos}
+          | StructAccExp of {name: symbol, field: symbol, pos: pos}
+          | RecordAccExp of {exp: exp, field: symbol, pos: pos}
+          | ArrayAccExp of {exp: exp, index: exp, pos: pos}
+          | PatternMatchExp of {exp: exp, cases: match list, pos: pos}
+          | BitArrayExp of {size: exp, result: exp, spec: string option}
+          | ZeroExp
+
+  *)
+
   and exp(A.VarExp v, d) = (indent d; sayln "VarExp("; var(v,d+1); say ")")
     | exp(A.NilExp, d) = (indent d; say "NilExp")
     | exp(A.IntExp i, d) = (indent d; say "IntExp("; say(Int.toString i);
