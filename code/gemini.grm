@@ -95,7 +95,7 @@ fun extractFields (A.RecordExp{fields, pos}) = SOME(fields)
                     | rec_field_comma_tail of (Symbol.symbol * A.exp * int) list
                 | ref_inst of A.exp
                 | array_inst of A.exp
-                    | bit_array_inst
+                    | bit_array_inst of A.exp
                 | list_inst of A.exp
                     | list_elements of (A.exp * int) list
                 | sw_tuple_inst of A.exp
@@ -414,7 +414,7 @@ rec_field_comma_tail
 ref_inst      : REF exp                                                     (A.RefExp(exp, REFleft))
 
 array_inst    : POUND LBRACK list_elements RBRACK                           (A.ArrayExp(Vector.fromList(list_elements)))
-              | POUND LBRACK exp COMMA matches RBRACK                       ()
+              | POUND LBRACK exp COMMA pattern_match RBRACK                 (A.BitArrayExp{size = exp, result = pattern_match, spec = NONE})
               | bit_array_inst                                              (bit_array_inst)
 
 list_inst     : LBRACK list_elements RBRACK                                 (A.ListExp(list_elements))
@@ -427,7 +427,7 @@ sw_tuple_inst : LPAREN list_elements RPAREN                                 (A.R
 
 hw_tuple_inst : POUND LPAREN list_elements RPAREN                           (A.HWTupleExp(list_elements))
 
-bit_array_inst: exp TID COLON exp                                           ()
+bit_array_inst: exp TID COLON exp                                           (A.BitArrayExp{size = exp1, result = exp2, spec = SOME(TID)})
 
 with_value    : exp WITH rec_inst                                           (A.WithExp{exp = exp, fields = valOf(extractFields(rec_inst)), pos = expleft})
 
