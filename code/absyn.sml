@@ -4,12 +4,8 @@ struct
   type pos = int
   and symbol = Symbol.symbol
 
-  datatype var = SimpleVar of symbol * pos
-               | MemberVar of exp * symbol * pos
-               | FieldVar of exp * symbol * pos
-
   and exp = StructsSigsExp of structsig list
-          | VarExp of var * pos
+          | VarExp of symbol * pos
           | IntExp of int * pos
           | StringExp of string * pos
           | RealExp of real * pos
@@ -22,6 +18,16 @@ struct
           | AssignExp of {lhs: exp, rhs: exp, pos: pos}
           | SeqExp of (exp * pos) list
           | IfExp of {test: exp, then': exp, else': exp option, pos: pos}
+          | ListExp of (exp * pos) list
+          | ArrayExp of (exp * pos) vector
+          | RefExp of exp * pos
+          | RecordExp of {fields: (symbol * exp * pos) list, pos: pos}
+          | HWTupleExp of (exp * pos) list
+          | WithExp of {exp: exp, fields: (symbol * exp * pos) list, pos: pos}
+          | DerefExp of {exp: exp, pos: pos}
+          | StructAccExp of {name: symbol, field: symbol, pos: pos}
+          | RecordAccExp of {exp: exp, field: symbol, pos: pos}
+          | ArrayAccExp of {exp: exp, index: exp, pos: pos}
           | ZeroExp
 
   and structsig = StructExp of {name: symbol, signat: (structsig * pos) option, decs: dec list, pos: pos}
@@ -67,7 +73,9 @@ struct
 
   and fundec = {name: symbol, params: param list, result: (ty * pos) option, body: exp, pos: pos}
 
-  and tydec = {name: symbol, ty: ty, pos: pos}
+  and opdef = {oper: oper, param_a: symbol, param_b: symbol, body: exp, pos: pos}
+
+  and tydec = {name: symbol, ty: ty, opdef: (opdef list) option, pos: pos}
 
   and moddec = {name: symbol, arg: param, result: (ty * pos) option, body: exp, pos: pos}
 

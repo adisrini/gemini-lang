@@ -45,6 +45,7 @@ fun WITH(a, b) = "WITH @" ^ locationToString(a, b)
 fun OF(a, b) = "OF @" ^ locationToString(a, b)
 fun OP(a, b) = "OP @" ^ locationToString(a, b)
 fun CASE(a, b) = "CASE @" ^ locationToString(a, b)
+fun AND(a, b) = "AND @" ^ locationToString(a, b)
 
 (******* OPERATORS *******)
 (* bitwise *)

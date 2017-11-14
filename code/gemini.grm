@@ -2,16 +2,20 @@ structure A = Absyn
 structure S = GeminiString(String)
 structure BA = GeminiBitArray(Vector)
 
-fun appendTypeDec (A.TypeDec list) = SOME(list)
-  | appendTypeDec _ = NONE
+fun extractTypeDec (A.TypeDec list) = SOME(list)
+  | extractTypeDec _ = NONE
 
-fun appendFunDec (A.FunctionDec list) = SOME(list)
-  | appendFunDec _ = NONE
+fun extractFunDec (A.FunctionDec list) = SOME(list)
+  | extractFunDec _ = NONE
 
-fun param fields = case fields of
-  [] => A.NoParam
-  [f] => A.SingleParam(f)
-  _ => A.MultiParams(fields)
+fun param [] = A.NoParam
+  | param [f] = A.SingleParam(f)
+  | param fields = A.MultiParams(fields)
+
+fun numberedFields lst = foldl (fn((expr, posn), (idx, acc)) => (idx + 1, (Symbol.symbol(Int.toString(idx)), expr, posn))::acc) (1, []) lst
+
+fun extractFields (A.RecordExp{fields, pos}) = SOME(fields)
+  | _ = NONE
 
 %%
 %term
@@ -25,7 +29,7 @@ fun param fields = case fields of
   | GE | GT | LE | LT | NEQ | EQ
   | UMINUS | INT_DIVIDE | INT_TIMES | INT_PLUS | INT_MINUS | INT_MOD | REAL_DIVIDE | REAL_TIMES | REAL_PLUS | REAL_MINUS
   | RBRACE | LBRACE | RBRACK | LBRACK | RPAREN | LPAREN
-  | DOT | SEMICOLON | COLON | COMMA | POUND | AT | ASSIGN | BANG | CONS | POUND_TIMES
+  | DOT | SEMICOLON | COLON | COMMA | POUND | AT | ASSIGN | BANG | CONS | POUND_TIMES | AND
   | ID of string | TID of string | INT of int | STRING of string | REAL of real | BIT of GeminiBit.bit
   | APPLY
 
@@ -33,10 +37,10 @@ fun param fields = case fields of
       program of A.exp
         | structs_or_sigs of A.exp
             | structures of A.structsig list
-                | structure of A.structsig
+                | structure_nt of A.structsig
                     | struct_body of A.dec list
             | signatures of A.structsig list
-                | signature of A.structsig
+                | signature_nt of A.structsig
                     | sig_body of A.def list
                     | sigs of A.def list
                         | val_sig of A.def
@@ -47,8 +51,8 @@ fun param fields = case fields of
                         | non_dataty_sigs of A.def list
                         | non_module_sigs of A.def list
         | exp of A.exp
-            | array_access of A.exp
             | access of A.exp
+                | array_access of A.exp
                 | struct_access of A.exp
                 | tuple_access of A.exp
                 | record_access of A.exp
@@ -74,7 +78,8 @@ fun param fields = case fields of
                             | no_ty_fields of A.field list
                             | ty_fields of A.field list
                             | ty_field_tail of A.field list
-                        | with_type
+                        | with_type of A.opdef list
+                            | with_type_tail of A.opdef list
                     | dataty_dec of A.dec
                         | dataty_tail
                     | module_dec of A.dec
@@ -89,18 +94,18 @@ fun param fields = case fields of
             | conditional of A.exp
             | insts of A.exp
                 | rec_inst of A.exp
-                    | rec_inst_body
-                    | rec_field_comma_tail
+                    | rec_inst_body of (Symbol.symbol * A.exp * int) list
+                    | rec_field_comma_tail of (Symbol.symbol * A.exp * int) list
                 | ref_inst of A.exp
                 | array_inst of A.exp
                     | bit_array_inst
                 | list_inst of A.exp
-                    | list_elements
+                    | list_elements of (A.exp * int) list
                 | sw_tuple_inst of A.exp
                 | hw_tuple_inst of A.exp
-                | exp_comma_tail
+                | exp_comma_tail of (A.exp * int) list
             | with_value of A.exp
-            | pattern_match of A.exp
+            | pattern_match
                 | matches
                 | matches_tail
         | epsilon
@@ -176,7 +181,7 @@ exp           : exp exp %prec APPLY                                         ()
               | STRING                                                      (A.StringExp(STRING, STRINGleft))
               | REAL                                                        (A.RealExp(REAL, REALleft))
               | BIT                                                         (A.BitExp(BIT, BITleft))
-              | ID                                                          (A.VarExp(A.SimpleVar(Symbol.symbol(ID), IDleft), IDleft))
+              | ID                                                          (A.VarExp(Symbol.symbol(ID), IDleft))
               | access                                                      (access)
               | operation                                                   (operation)
               | let_block                                                   (let_block)
@@ -193,19 +198,19 @@ structs_or_sigs
               | signatures structs_or_sigs                                  ()
               | epsilon                                                     ()
 
-structures    : structure structures                                        ()
-              | structure                                                   ()
+structures    : structure_nt structures                                     ()
+              | structure_nt                                                ()
 
-structure     : STRUCTURE ID EQ struct_body                                 ()
+structure_nt  : STRUCTURE ID EQ struct_body                                 ()
               | STRUCTURE ID COLON ID EQ struct_body                        ()
               | STRUCTURE ID COLON sig_body EQ struct_body                  ()
 
 struct_body   : STRUCT decs END                                             ()
 
-signatures    : signature signatures                                        ()
-              | signature                                                   ()
+signatures    : signature_nt signatures                                     ()
+              | signature_nt                                                ()
 
-signature     : SIGNATURE ID EQ sig_body                                    ()
+signature_nt  : SIGNATURE ID EQ sig_body                                    ()
 
 sig_body      : SIG sigs END                                                ()
 
@@ -247,21 +252,21 @@ dataty_sig    : dataty_dec                                                  ()
               | DATATYPE ID                                                 ()
               | DATATYPE ID dataty_sig                                      ()
 
-array_access  : exp LBRACK exp RBRACK                                       ()
+array_access  : exp LBRACK exp RBRACK                                       (A.ArrayAccExp{exp = exp1, index = exp2, pos = exp1left})
 
-struct_access : exp DOT ID                                                  ()
+struct_access : ID DOT ID                                                   (A.StructAccExp{name = Symbol.symbol(ID1), field = Symbol.symbol(ID2), pos = ID1left}
 
-tuple_access  : POUND INT exp                                               ()
+tuple_access  : POUND INT exp                                               (A.RecordAccExp{exp = exp, field = Symbol.symbol(Int.toString(INT)), POUNDleft})
 
-record_access : POUND ID exp                                                ()
+record_access : POUND ID exp                                                (A.RecordAccExp{exp = exp, field = Symbol.symbol(ID), POUNDleft})
 
-deref         : BANG exp                                                    ()
+deref         : BANG exp                                                    (A.DerefExp{exp = exp, pos = BANGleft})
 
-access        : array_access                                                ()
-              | struct_access                                               ()
-              | tuple_access                                                ()
-              | record_access                                               ()
-              | deref                                                       ()
+access        : array_access                                                (array_access)
+              | struct_access                                               (struct_access)
+              | tuple_access                                                (tuple_access)
+              | record_access                                               (record_access)
+              | deref                                                       (deref)
 
 operation     : int_op                                                      (int_op)
               | real_op                                                     (real_op)
@@ -269,7 +274,7 @@ operation     : int_op                                                      (int
               | compare_op                                                  (compare_op)
               | list_op                                                     (list_op)
 
-int_op        : UMINUS exp                                                  (A.NegExp{exp: exp1, pos = UMINUSleft})
+int_op        : UMINUS exp                                                  (A.NegExp{exp = exp1, pos = UMINUSleft})
               | exp INT_PLUS exp                                            (A.OpExp{left = exp1, oper = A.IntPlusOp, right = exp2, pos = exp1left})
               | exp INT_MINUS exp                                           (A.OpExp{left = exp1, oper = A.IntMinusOp, right = exp2, pos = exp1left})
               | exp INT_TIMES exp                                           (A.OpExp{left = exp1, oper = A.IntTimesOp, right = exp2, pos = exp1left})
@@ -281,7 +286,7 @@ real_op       : exp REAL_PLUS exp                                           (A.O
               | exp REAL_TIMES exp                                          (A.OpExp{left = exp1, oper = A.RealTimesOp, right = exp2, pos = exp1left})
               | exp REAL_DIVIDE exp                                         (A.OpExp{left = exp1, oper = A.RealDivideOp, right = exp2, pos = exp1left})
 
-bit_op        : exp BIT_NOT                                                 (A.NegExp{exp: exp1, pos = exp1left})
+bit_op        : exp BIT_NOT                                                 (A.NegExp{exp = exp1, pos = exp1left})
               | exp BIT_OR exp                                              (A.OpExp{left = exp1, oper = A.BitOrOp, right = exp2, pos = exp1left})
               | exp BIT_AND exp                                             (A.OpExp{left = exp1, oper = A.BitAndOp, right = exp2, pos = exp1left})
               | exp BIT_XOR exp                                             (A.OpExp{left = exp1, oper = A.BitXorOp, right = exp2, pos = exp1left})
@@ -298,7 +303,7 @@ compare_op    : exp EQ exp                                                  (A.O
 
 list_op       : exp CONS exp                                                (A.OpExp{left = exp1, oper = A.ConsOp, right = exp2, pos = exp1left})
 
-let_block     : LET decs IN let_body END                                    (A.LetExp{decs = decs, body = let_body, pos = LETleft})
+let_block     : LET decs IN exp END                                         (A.LetExp{decs = decs, body = exp1, pos = LETleft})
 
 decs          : val_dec decs                                                ()
               | fun_dec non_fun_dec                                         ()
@@ -331,29 +336,31 @@ non_module_dec: val_dec decs                                                ()
               | dataty_dec non_dataty_dec                                   ()
               | epsilon                                                     ()
 
-val_dec       : VAL ID EQ exp                                               ()
-              | VAL ID COLON ty EQ exp                                      ()
+val_dec       : VAL ID EQ exp                                               (A.ValDec{name = Symbol.symbol(ID), escape = ref true, ty = NONE, init = exp1, pos = VALleft})
+              | VAL ID COLON ty EQ exp                                      (A.ValDec{name = Symbol.symbol(ID), escape = ref true, ty = SOME(ty, tyleft), init = exp1, pos = VALleft})
 
-fun_dec       : fun_dec_no_type                                             ()
-              | fun_dec_with_type                                           ()
-              | fun_dec_no_type fun_dec                                     ()
-              | fun_dec_with_type fun_dec                                   ()
+fun_dec       : fun_dec_no_type                                             (fun_dec_no_type)
+              | fun_dec_with_type                                           (fun_dec_with_type)
+              | fun_dec_no_type fun_dec                                     (A.FunctionDec(valOf(extractFunDec(fun_dec_no_type)) @ valOf(extractFunDec(fun_dec))))
+              | fun_dec_with_type fun_dec                                   (A.FunctionDec(valOf(extractFunDec(fun_dec_with_type)) @ valOf(extractFunDec(fun_dec))))
 
 fun_dec_no_type
-              : FUN ID fun_params EQ exp                                    (A.FunctionDec{name = Symbol.symbol(ID), params = fun_params1, result = NONE, body = exp1, pos = FUNleft})
+              : FUN ID fun_params EQ exp                                    (A.FunctionDec[{name = Symbol.symbol(ID), params = fun_params1, result = NONE, body = exp1, pos = FUNleft}])
 
 fun_dec_with_type
-              : FUN ID fun_params COLON ty EQ exp                           (A.FunctionDec{name = Symbol.symbol(ID), params = fun_params1, result = SOME(ty1), body = exp1, pos = FUNleft})
+              : FUN ID fun_params COLON ty EQ exp                           (A.FunctionDec[{name = Symbol.symbol(ID), params = fun_params1, result = SOME(ty1), body = exp1, pos = FUNleft}])
 
 fun_params    : fun_params fun_param                                        (fun_params1 @ [fun_param1])
               | fun_param                                                   ([fun_param1])
 
 fun_param     : ID                                                          (A.SingleParam{name = Symbol.symbol(ID), ty = NONE, escape = ref true, pos = IDleft})
               | LPAREN no_ty_fields RPAREN                                  (param(no_ty_fields))
-              | LPAREN ty_fields RPAREN                                     (param(ty_fields)))
+              | LPAREN ty_fields RPAREN                                     (param(ty_fields))
 
-ty_dec        : TYPE ID EQ ty with_type                                     ()
-              | TYPE ID EQ ty with_type ty_dec                              ()
+ty_dec        : TYPE ID EQ ty                                               (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, opdef = NONE, pos = TYPEleft}])
+              | TYPE ID EQ ty ty_dec                                        (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, opdef = NONE, pos = TYPEleft}] @ valOf(extractTypeDec(ty_dec))))
+              | TYPE ID EQ ty with_type                                     (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, opdef = SOME(with_type), pos = TYPEleft}])
+              | TYPE ID EQ ty with_type ty_dec                              (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, opdef = SOME(with_type), pos = TYPEleft}] @ valOf(extractTypeDec(ty_dec))))
 
 ty            : TID                                                         (A.GenericTy(Symbol.symbol(TID), TIDleft))
               | ID                                                          (A.NameTy(Symbol.symbol(ID), IDleft))
@@ -375,12 +382,15 @@ ty_fields     : ty_field_tail                                               (ty_
 ty_field_tail : ID COLON ty                                                 ([{name = Symbol.symbol(ID), ty = SOME(ty1), escape = ref true, pos = IDleft}])
               | ty_field_tail COMMA ID COLON ty                             (ty_field_tail1 @ [{name = Symbol.symbol(ID), ty = SOME(ty1), escape = ref true, pos = ty_field_tail1left}])
 
-with_type     : WITH OP EQ LPAREN ID COMMA ID RPAREN EQ exp                 ()
-              | WITH OP NEQ LPAREN ID COMMA ID RPAREN EQ exp                ()
-              | WITH OP GT LPAREN ID COMMA ID RPAREN EQ exp                 ()
-              | WITH OP LT LPAREN ID COMMA ID RPAREN EQ exp                 ()
-              | WITH OP GE LPAREN ID COMMA ID RPAREN EQ exp                 ()
-              | WITH OP LE LPAREN ID COMMA ID RPAREN EQ exp                 ()
+with_type     : WITH OP EQ LPAREN ID COMMA ID RPAREN EQ exp with_type_tail  ([{oper = A.EqOp, param_a = Symbol.symbol(ID1), param_b = Symbol.symbol(ID2), body = exp1, pos = WITHleft}] @ with_type_tail1)
+              | WITH OP NEQ LPAREN ID COMMA ID RPAREN EQ exp with_type_tail ([{oper = A.NeqOp, param_a = Symbol.symbol(ID1), param_b = Symbol.symbol(ID2), body = exp1, pos = WITHleft}] @ with_type_tail1)
+              | WITH OP GT LPAREN ID COMMA ID RPAREN EQ exp with_type_tail  ([{oper = A.GtOp, param_a = Symbol.symbol(ID1), param_b = Symbol.symbol(ID2), body = exp1, pos = WITHleft}] @ with_type_tail1)
+              | WITH OP LT LPAREN ID COMMA ID RPAREN EQ exp with_type_tail  ([{oper = A.LtOp, param_a = Symbol.symbol(ID1), param_b = Symbol.symbol(ID2), body = exp1, pos = WITHleft}] @ with_type_tail1)
+              | WITH OP GE LPAREN ID COMMA ID RPAREN EQ exp with_type_tail  ([{oper = A.GeOp, param_a = Symbol.symbol(ID1), param_b = Symbol.symbol(ID2), body = exp1, pos = WITHleft}] @ with_type_tail1)
+              | WITH OP LE LPAREN ID COMMA ID RPAREN EQ exp with_type_tail  ([{oper = A.LeOp, param_a = Symbol.symbol(ID1), param_b = Symbol.symbol(ID2), body = exp1, pos = WITHleft}] @ with_type_tail1)
+
+with_type_tail: AND with_type                                               (with_type)
+              | epsilon                                                     ([])
 
 dataty_dec    : DATATYPE ID EQ ID OF ty dataty_tail                         ()
 
@@ -396,8 +406,6 @@ module_dec_no_type
 module_dec_with_type
               : MODULE ID fun_param COLON ty EQ exp                         ()
 
-let_body      : exp semicolon_exp0                                          ()
-
 semicolon_exp0: SEMICOLON exp semicolon_exp0                                ([(exp1, exp1left)] @ semicolon_exp0)
               | epsilon                                                     ([])
 
@@ -406,49 +414,49 @@ exp_seq       : LPAREN exp RPAREN                                           (A.S
 
 assign        : exp ASSIGN exp                                              (A.AssignExp{lhs = exp1, rhs = exp2, pos = exp1left})
 
-exp_comma_tail: COMMA exp exp_comma_tail                                    ()
-              | epsilon                                                     ()
+exp_comma_tail: COMMA exp exp_comma_tail                                    ([(exp1, exp1left)] @ exp_comma_tail)
+              | epsilon                                                     ([])
 
 conditional   : IF exp THEN exp ELSE exp                                    (A.IfExp{test = exp1, then' = exp2, else' = SOME(exp3), pos = IFleft})
               | IF exp THEN exp                                             (A.IfExp{test = exp1, then' = exp2, else' = NONE, pos = IFleft})
               | exp ANDALSO exp                                             (A.IfExp{test = exp1, then' = exp2, else' = SOME(A.IntExp(0)), pos = exp1left})
               | exp ORELSE exp                                              (A.IfExp{test = exp1, then' = A.IntExp(1), else' = SOME(exp2), pos = exp1left})
 
-insts         : rec_inst                                                    ()
-              | ref_inst                                                    ()
-              | array_inst                                                  ()
-              | list_inst                                                   ()
-              | sw_tuple_inst                                               ()
-              | hw_tuple_inst                                               ()
+insts         : rec_inst                                                    (rec_inst)
+              | ref_inst                                                    (ref_inst)
+              | array_inst                                                  (array_inst)
+              | list_inst                                                   (list_inst)
+              | sw_tuple_inst                                               (sw_tuple_inst)
+              | hw_tuple_inst                                               (hw_tuple_inst)
 
-rec_inst      : LBRACE rec_inst_body RBRACE                                 ()
+rec_inst      : LBRACE rec_inst_body RBRACE                                 (A.RecordExp{fields = rec_inst_body, pos = LBRACEleft})
 
-rec_inst_body : ID EQ exp rec_field_comma_tail                              ()
-              | epsilon                                                     ()
+rec_inst_body : ID EQ exp rec_field_comma_tail                              ([(Symbol.symbol(ID), exp, IDleft)] @ rec_field_comma_tail)
+              | epsilon                                                     ([])
 
 rec_field_comma_tail
-              : COMMA ID EQ exp rec_field_comma_tail                        ()
-              | epsilon                                                     ()
+              : COMMA ID EQ exp rec_field_comma_tail                        ([(Symbol.symbol(ID), exp, IDleft)] @ rec_field_comma_tail)
+              | epsilon                                                     ([])
 
-ref_inst      : REF exp                                                     ()
+ref_inst      : REF exp                                                     (A.RefExp(exp, REFleft))
 
-array_inst    : POUND LBRACK exp exp_comma_tail RBRACK                      ()
+array_inst    : POUND LBRACK list_elements RBRACK                           (A.ArrayExp(Vector.fromList(list_elements)))
               | POUND LBRACK exp COMMA matches RBRACK                       ()
-              | bit_array_inst                                              ()
+              | bit_array_inst                                              (bit_array_inst)
 
-list_inst     : LBRACK list_elements RBRACK                                 ()
-              | NIL                                                         ()
+list_inst     : LBRACK list_elements RBRACK                                 (A.ListExp(list_elements))
+              | NIL                                                         (A.ListExp([]))
 
-list_elements : exp exp_comma_tail                                          ()
-              | epsilon                                                     ()
+list_elements : exp exp_comma_tail                                          ([(exp1, exp1left)] @ exp_comma_tail)
+              | epsilon                                                     ([])
 
-sw_tuple_inst : LPAREN exp exp_comma_tail RPAREN                            ()
+sw_tuple_inst : LPAREN list_elements RPAREN                                 (A.RecordExp{fields = numberedFields(list_elements), pos = LPARENleft})
 
-hw_tuple_inst : POUND LPAREN exp exp_comma_tail RPAREN                      ()
+hw_tuple_inst : POUND LPAREN list_elements RPAREN                           (A.HWTupleExp(list_elements))
 
 bit_array_inst: exp TID COLON exp                                           ()
 
-with_value    : exp WITH rec_inst                                           ()
+with_value    : exp WITH rec_inst                                           (A.WithExp{exp = exp, fields = valOf(extractFields(rec_inst)), pos = expleft})
 
 pattern_match : CASE exp OF matches                                         ()
 
