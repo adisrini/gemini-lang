@@ -4,7 +4,7 @@ struct
   type pos = int
   and symbol = Symbol.symbol
 
-  and exp = StructsSigsExp of structsig list
+  datatype exp = StructsSigsExp of structsig list
           | VarExp of symbol * pos
           | IntExp of int * pos
           | StringExp of string * pos

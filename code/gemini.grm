@@ -224,11 +224,11 @@ module_sig    : MODULE ID COLON ty THIN_ARROW ty                            (A.M
 
 array_access  : exp LBRACK exp RBRACK                                       (A.ArrayAccExp{exp = exp1, index = exp2, pos = exp1left})
 
-struct_access : ID DOT ID                                                   (A.StructAccExp{name = Symbol.symbol(ID1), field = Symbol.symbol(ID2), pos = ID1left}
+struct_access : ID DOT ID                                                   (A.StructAccExp{name = Symbol.symbol(ID1), field = Symbol.symbol(ID2), pos = ID1left})
 
-tuple_access  : POUND INT exp                                               (A.RecordAccExp{exp = exp, field = Symbol.symbol(Int.toString(INT)), POUNDleft})
+tuple_access  : POUND INT exp                                               (A.RecordAccExp{exp = exp, field = Symbol.symbol(Int.toString(INT)), pos = POUNDleft})
 
-record_access : POUND ID exp                                                (A.RecordAccExp{exp = exp, field = Symbol.symbol(ID), POUNDleft})
+record_access : POUND ID exp                                                (A.RecordAccExp{exp = exp, field = Symbol.symbol(ID), pos = POUNDleft})
 
 deref         : BANG exp                                                    (A.DerefExp{exp = exp, pos = BANGleft})
 
@@ -370,7 +370,7 @@ dataty_tail   : PIPE_EQUALS ID OF ty dataty_tail                            ({da
 
 module_dec    : module_dec_no_type                                          (A.ModuleDec([module_dec_no_type]))
               | module_dec_with_type                                        (A.ModuleDec([module_dec_with_type]))
-              | module_dec_no_type module_dec                               (A.ModuleDec(module_dec_no_type::valOf(extractList(module_dec)))
+              | module_dec_no_type module_dec                               (A.ModuleDec(module_dec_no_type::valOf(extractList(module_dec))))
               | module_dec_with_type module_dec                             (A.ModuleDec(module_dec_with_type::valOf(extractList(module_dec))))
 
 module_dec_no_type
