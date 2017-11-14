@@ -1,5 +1,12 @@
+structure A = Absyn
 structure S = GeminiString(String)
 structure BA = GeminiBitArray(Vector)
+
+fun appendTypeDec (A.TypeDec list) = SOME(list)
+  | appendTypeDec _ = NONE
+
+fun appendFunDec (A.FunctionDec list) = SOME(list)
+  | appendFunDec _ = NONE
 
 %%
 %term
@@ -18,80 +25,79 @@ structure BA = GeminiBitArray(Vector)
   | APPLY
 
 %nonterm
-      program
-        | structs_or_sigs
-            | structures
-                | structure
-                    | struct_body
-            | signatures
-                | signature
-                    | sig_body
-                    | sigs
-                        | val_sig
-                        | ty_sig
-                        | dataty_sig
-                        | module_sig
-                        | non_ty_sigs
-                        | non_dataty_sigs
-                        | non_module_sigs
-        | exps
-            | exp
-                | array_access
-                | access
-                    | struct_access
-                    | tuple_access
-                    | record_access
-                    | deref
-                | operation
-                    | int_op
-                    | real_op
-                    | bit_op
-                    | compare_op
-                    | list_op
-                | let_block
-                    | let_body
-                        | semicolon_exp0
-                    | decs
-                        | val_dec
-                        | fun_dec
-                            | fun_dec_no_type
-                            | fun_dec_with_type
-                            | fun_params
-                                | fun_param
-                        | ty_dec
-                            | ty
-                                | no_ty_fields
-                                | ty_fields
-                                | ty_field_tail
-                            | with_type
-                        | dataty_dec
-                            | dataty_tail
-                        | module_dec
-                            | module_dec_no_type
-                            | module_dec_with_type
-                        | non_fun_dec
-                        | non_ty_dec
-                        | non_dataty_dec
-                        | non_module_dec
-                | exp_seq
-                | assign
-                | conditional
-                | insts
-                    | rec_inst
-                        | rec_inst_body
-                        | rec_field_comma_tail
-                    | ref_inst
-                    | array_inst
-                        | bit_array_inst
-                    | list_inst
-                        | list_elements
-                    | sw_tuple_inst
-                    | hw_tuple_inst
-                    | exp_comma_tail
-                | with_value
-                | pattern_match
-                    | matches
-                    | matches_tail
+      program of A.exp
+        | structs_or_sigs of A.exp
+            | structures of A.structsig list
+                | structure of A.structsig
+                    | struct_body of A.dec list
+            | signatures of A.structsig list
+                | signature of A.structsig
+                    | sig_body of A.def list
+                    | sigs of A.def list
+                        | val_sig of A.def
+                        | ty_sig of A.def
+                        | dataty_sig of A.def
+                        | module_sig of A.def
+                        | non_ty_sigs of A.def list
+                        | non_dataty_sigs of A.def list
+                        | non_module_sigs of A.def list
+        | exp of A.exp
+            | array_access of A.exp
+            | access of A.exp
+                | struct_access of A.exp
+                | tuple_access of A.exp
+                | record_access of A.exp
+                | deref of A.exp
+            | operation of A.exp
+                | int_op of A.exp
+                | real_op of A.exp
+                | bit_op of A.exp
+                | compare_op of A.exp
+                | list_op of A.exp
+            | let_block of A.exp
+                | let_body of A.exp
+                    | semicolon_exp0 of (A.exp * int) list
+                | decs of A.dec list
+                    | val_dec of A.dec
+                    | fun_dec of A.dec
+                        | fun_dec_no_type of A.dec
+                        | fun_dec_with_type of A.dec
+                        | fun_params of A.param list
+                            | fun_param of A.param
+                    | ty_dec of A.dec
+                        | ty of A.ty
+                            | no_ty_fields of A.param list
+                            | ty_fields of A.param list
+                            | ty_field_tail
+                        | with_type
+                    | dataty_dec of A.dec
+                        | dataty_tail
+                    | module_dec of A.dec
+                        | module_dec_no_type of A.dec
+                        | module_dec_with_type of A.dec
+                    | non_fun_dec of A.dec list
+                    | non_ty_dec of A.dec list
+                    | non_dataty_dec of A.dec list
+                    | non_module_dec of A.dec list
+            | exp_seq of A.exp
+            | assign of A.exp
+            | conditional of A.exp
+            | insts of A.exp
+                | rec_inst of A.exp
+                    | rec_inst_body
+                    | rec_field_comma_tail
+                | ref_inst of A.exp
+                | array_inst of A.exp
+                    | bit_array_inst
+                | list_inst of A.exp
+                    | list_elements
+                | sw_tuple_inst of A.exp
+                | hw_tuple_inst of A.exp
+                | exp_comma_tail
+            | with_value of A.exp
+            | pattern_match of A.exp
+                | matches
+                | matches_tail
         | epsilon
 
 %pos int
@@ -157,25 +163,25 @@ structure BA = GeminiBitArray(Vector)
 
 %%
 
-program	      : structs_or_sigs                                             ()
-              | exp                                                         ()
+program	      : structs_or_sigs                                             (structs_or_sigs)
+              | exp                                                         (exp)
 
 exp           : exp exp %prec APPLY                                         ()
-              | INT                                                         ()
-              | STRING                                                      ()
-              | REAL                                                        ()
-              | BIT                                                         ()
-              | ID                                                          ()
-              | access                                                      ()
-              | operation                                                   ()
-              | let_block                                                   ()
-              | assign                                                      ()
-              | exp_seq                                                     ()
-              | conditional                                                 ()
-              | insts                                                       ()
-              | with_value                                                  ()
-              | pattern_match                                               ()
-              | LPAREN RPAREN                                               ()
+              | INT                                                         (A.IntExp(INT, INTleft))
+              | STRING                                                      (A.StringExp(STRING, STRINGleft))
+              | REAL                                                        (A.RealExp(REAL, REALleft))
+              | BIT                                                         (A.BitExp(BIT, BITleft))
+              | ID                                                          (A.VarExp(A.SimpleVar(Symbol.symbol(ID), IDleft), IDleft))
+              | access                                                      (access)
+              | operation                                                   (operation)
+              | let_block                                                   (let_block)
+              | assign                                                      (assign)
+              | exp_seq                                                     (exp_seq)
+              | conditional                                                 (conditional)
+              | insts                                                       (insts)
+              | with_value                                                  (with_value)
+              | pattern_match                                               (pattern_match)
+              | LPAREN RPAREN                                               (A.SeqExp[])
 
 structs_or_sigs
               : structures structs_or_sigs                                  ()
@@ -252,40 +258,40 @@ access        : array_access                                                ()
               | record_access                                               ()
               | deref                                                       ()
 
-operation     : int_op                                                      ()
-              | real_op                                                     ()
-              | bit_op                                                      ()
-              | compare_op                                                  ()
-              | list_op                                                     ()
+operation     : int_op                                                      (int_op)
+              | real_op                                                     (real_op)
+              | bit_op                                                      (bit_op)
+              | compare_op                                                  (compare_op)
+              | list_op                                                     (list_op)
 
-int_op        : UMINUS exp                                                  ()
-              | exp INT_PLUS exp                                            ()
-              | exp INT_MINUS exp                                           ()
-              | exp INT_TIMES exp                                           ()
-              | exp INT_DIVIDE exp                                          ()
-              | exp INT_MOD exp                                             ()
+int_op        : UMINUS exp                                                  (A.NegExp{exp: exp1, pos = UMINUSleft})
+              | exp INT_PLUS exp                                            (A.OpExp{left = exp1, oper = A.IntPlusOp, right = exp2, pos = exp1left})
+              | exp INT_MINUS exp                                           (A.OpExp{left = exp1, oper = A.IntMinusOp, right = exp2, pos = exp1left})
+              | exp INT_TIMES exp                                           (A.OpExp{left = exp1, oper = A.IntTimesOp, right = exp2, pos = exp1left})
+              | exp INT_DIVIDE exp                                          (A.OpExp{left = exp1, oper = A.IntDivideOp, right = exp2, pos = exp1left})
+              | exp INT_MOD exp                                             (A.OpExp{left = exp1, oper = A.IntModOp, right = exp2, pos = exp1left})
 
-real_op       : exp REAL_PLUS exp                                           ()
-              | exp REAL_MINUS exp                                          ()
-              | exp REAL_TIMES exp                                          ()
-              | exp REAL_DIVIDE exp                                         ()
+real_op       : exp REAL_PLUS exp                                           (A.OpExp{left = exp1, oper = A.RealPlusOp, right = exp2, pos = exp1left})
+              | exp REAL_MINUS exp                                          (A.OpExp{left = exp1, oper = A.RealMinusOp, right = exp2, pos = exp1left})
+              | exp REAL_TIMES exp                                          (A.OpExp{left = exp1, oper = A.RealTimesOp, right = exp2, pos = exp1left})
+              | exp REAL_DIVIDE exp                                         (A.OpExp{left = exp1, oper = A.RealDivideOp, right = exp2, pos = exp1left})
 
-bit_op        : exp BIT_NOT                                                 ()
-              | exp BIT_OR exp                                              ()
-              | exp BIT_AND exp                                             ()
-              | exp BIT_XOR exp                                             ()
-              | exp BIT_SLL exp                                             ()
-              | exp BIT_SRL exp                                             ()
-              | exp BIT_SRA exp                                             ()
+bit_op        : exp BIT_NOT                                                 (A.NegExp{exp: exp1, pos = exp1left})
+              | exp BIT_OR exp                                              (A.OpExp{left = exp1, oper = A.BitOrOp, right = exp2, pos = exp1left})
+              | exp BIT_AND exp                                             (A.OpExp{left = exp1, oper = A.BitAndOp, right = exp2, pos = exp1left})
+              | exp BIT_XOR exp                                             (A.OpExp{left = exp1, oper = A.BitXorOp, right = exp2, pos = exp1left})
+              | exp BIT_SLL exp                                             (A.OpExp{left = exp1, oper = A.BitSLLOp, right = exp2, pos = exp1left})
+              | exp BIT_SRL exp                                             (A.OpExp{left = exp1, oper = A.BitSRLOp, right = exp2, pos = exp1left})
+              | exp BIT_SRA exp                                             (A.OpExp{left = exp1, oper = A.BitSRAOp, right = exp2, pos = exp1left})
 
-compare_op    : exp EQ exp                                                  ()
-              | exp NEQ exp                                                 ()
-              | exp GT exp                                                  ()
-              | exp LT exp                                                  ()
-              | exp GE exp                                                  ()
-              | exp LE exp                                                  ()
+compare_op    : exp EQ exp                                                  (A.OpExp{left = exp1, oper = A.EqOp, right = exp2, pos = exp1left})
+              | exp NEQ exp                                                 (A.OpExp{left = exp1, oper = A.NeqOp, right = exp2, pos = exp1left})
+              | exp GT exp                                                  (A.OpExp{left = exp1, oper = A.GtOp, right = exp2, pos = exp1left})
+              | exp LT exp                                                  (A.OpExp{left = exp1, oper = A.LtOp, right = exp2, pos = exp1left})
+              | exp GE exp                                                  (A.OpExp{left = exp1, oper = A.GeOp, right = exp2, pos = exp1left})
+              | exp LE exp                                                  (A.OpExp{left = exp1, oper = A.LeOp, right = exp2, pos = exp1left})
 
-list_op       : exp CONS exp                                                ()
+list_op       : exp CONS exp                                                (A.OpExp{left = exp1, oper = A.ConsOp, right = exp2, pos = exp1left})
 
 let_block     : LET decs IN let_body END                                    ()
 
