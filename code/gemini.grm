@@ -393,11 +393,11 @@ module_dec_with_type
 
 let_body      : exp semicolon_exp0                                          ()
 
-semicolon_exp0: SEMICOLON exp semicolon_exp0                                ()
-              | epsilon                                                     ()
+semicolon_exp0: SEMICOLON exp semicolon_exp0                                ([(exp1, exp1left)] @ semicolon_exp0)
+              | epsilon                                                     ([])
 
-exp_seq       : LPAREN exp RPAREN                                           ()
-              | LPAREN exp SEMICOLON exp semicolon_exp0 RPAREN              ()
+exp_seq       : LPAREN exp RPAREN                                           (A.SeqExp([(exp1, exp1left)]))
+              | LPAREN exp SEMICOLON exp semicolon_exp0 RPAREN              (A.SeqExp([(exp1, exp1left)] @ [(exp2, exp2left)] @ semicolon_exp0))
 
 assign        : exp ASSIGN exp                                              ()
 
