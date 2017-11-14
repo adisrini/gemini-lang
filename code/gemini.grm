@@ -105,9 +105,9 @@ fun extractFields (A.RecordExp{fields, pos}) = SOME(fields)
                 | hw_tuple_inst of A.exp
                 | exp_comma_tail of (A.exp * int) list
             | with_value of A.exp
-            | pattern_match
-                | matches
-                | matches_tail
+            | pattern_match of A.exp
+                | matches of A.case' list
+                | matches_tail of A.case' list
         | epsilon
 
 %pos int
@@ -458,11 +458,11 @@ bit_array_inst: exp TID COLON exp                                           ()
 
 with_value    : exp WITH rec_inst                                           (A.WithExp{exp = exp, fields = valOf(extractFields(rec_inst)), pos = expleft})
 
-pattern_match : CASE exp OF matches                                         ()
+pattern_match : CASE exp OF matches                                         (A.PatternMatchExp{exp = exp, cases = matches, pos = CASEleft})
 
-matches       : exp FAT_ARROW exp matches_tail                              ()
+matches       : exp FAT_ARROW exp matches_tail                              ([{match = exp1, result = exp2, pos = exp1left}] @ matches_tail)
 
-matches_tail  : matches_tail PIPE_EQUALS exp FAT_ARROW exp                  ()
-              | epsilon                                                     ()
+matches_tail  : matches_tail PIPE_EQUALS exp FAT_ARROW exp                  (matches_tail @ [{match = exp1, result = exp2, pos = exp1left}])
+              | epsilon                                                     ([])
 
 epsilon       :                                                             ()
