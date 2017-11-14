@@ -1,3 +1,4 @@
+structure P = PrintAbsyn
 structure A = Absyn
 structure S = GeminiString(String)
 structure BA = GeminiBitArray(Vector)
@@ -179,8 +180,8 @@ fun numberedFields lst = #2 (foldl (fn((expr, posn), (idx, acc)) => (idx + 1, (S
 
 %%
 
-program	      : structs_or_sigs                                             (structs_or_sigs)
-              | exp                                                         (exp)
+program	      : structs_or_sigs                                             (P.print(TextIO.stdOut, structs_or_sigs); structs_or_sigs)
+              | exp                                                         (P.print(TextIO.stdOut, exp); exp)
 
 exp           : exp exp %prec APPLY                                         (A.ApplyExp(exp1, exp2, exp1left))
               | INT                                                         (A.IntExp(INT, INTleft))
@@ -392,7 +393,7 @@ module_dec_with_type
 semicolon_exp0: SEMICOLON exp semicolon_exp0                                ([(exp1, exp1left)] @ semicolon_exp0)
               | epsilon                                                     ([])
 
-exp_seq       : LPAREN exp RPAREN                                           (A.SeqExp([(exp1, exp1left)]))
+exp_seq       : LPAREN exp RPAREN                                           (exp)
               | LPAREN exp SEMICOLON exp semicolon_exp0 RPAREN              (A.SeqExp([(exp1, exp1left)] @ [(exp2, exp2left)] @ semicolon_exp0))
 
 assign        : exp ASSIGN exp                                              (A.AssignExp{lhs = exp1, rhs = exp2, pos = exp1left})

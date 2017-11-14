@@ -121,7 +121,7 @@ fun print (outstream, e0) =
     | ty(A.ArrayTy(s,p),d) = (indent d; say "ArrayTy("; say(Symbol.name s);
 			      say ")")
 
- in  exp(e0,0); sayln ""; TextIO.flushOut outstream
+ in  exp(e0, 0); sayln ""; TextIO.flushOut outstream
 end
 
 end

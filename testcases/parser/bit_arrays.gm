@@ -5,7 +5,7 @@ let
   fun f i = if i % 2 = 0
             then 'b:0
             else 'b:1
-  val d = #[32, f]
+  val d = #[32; f]
 in
   0
 end
