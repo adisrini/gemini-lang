@@ -51,21 +51,19 @@ struct
 
   and ty = NameTy of symbol * pos
          | GenericTy of symbol * pos
-         | RecordTy of field list
-         | ArrayTy of ty * int
-         | ListTy of ty
-         | SWTupleTy of ty * ty
-         | HWTupleTy of ty * ty
-         | TemporalTy of ty * int
-         | RefTy of ty
-         | SWTy of ty
+         | RecordTy of param list * pos
+         | ArrayTy of ty * exp * pos
+         | ListTy of ty * pos
+         | SWTupleTy of ty * ty * pos
+         | HWTupleTy of ty * ty * pos
+         | TemporalTy of ty * exp * pos
+         | RefTy of ty * pos
+         | SWTy of ty * pos
 
   and param = SingleParam of {name: symbol, ty: ty option, escape: bool ref, pos: pos}
             | MultiParams of {name: symbol, ty: ty option, escape: bool ref, pos: pos} list
 
-  withtype field = {name: symbol, escape: bool ref, ty: ty, pos: pos}
-
-  and fundec = {name: symbol, params: param list, result: (ty * pos) option, body: exp, pos: pos}
+  withtype fundec = {name: symbol, params: param list, result: (ty * pos) option, body: exp, pos: pos}
 
   and tydec = {name: symbol, ty: ty, pos: pos}
 
