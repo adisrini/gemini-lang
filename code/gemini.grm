@@ -399,15 +399,15 @@ semicolon_exp0: SEMICOLON exp semicolon_exp0                                ([(e
 exp_seq       : LPAREN exp RPAREN                                           (A.SeqExp([(exp1, exp1left)]))
               | LPAREN exp SEMICOLON exp semicolon_exp0 RPAREN              (A.SeqExp([(exp1, exp1left)] @ [(exp2, exp2left)] @ semicolon_exp0))
 
-assign        : exp ASSIGN exp                                              ()
+assign        : exp ASSIGN exp                                              (A.AssignExp{lhs = exp1, rhs = exp2, pos = exp1left})
 
 exp_comma_tail: COMMA exp exp_comma_tail                                    ()
               | epsilon                                                     ()
 
-conditional   : IF exp THEN exp ELSE exp                                    ()
-              | IF exp THEN exp                                             ()
-              | exp ANDALSO exp                                             ()
-              | exp ORELSE exp                                              ()
+conditional   : IF exp THEN exp ELSE exp                                    (A.IfExp{test = exp1, then' = exp2, else' = SOME(exp3), pos = IFleft})
+              | IF exp THEN exp                                             (A.IfExp{test = exp1, then' = exp2, else' = NONE, pos = IFleft})
+              | exp ANDALSO exp                                             (A.IfExp{test = exp1, then' = exp2, else' = SOME(A.IntExp(0)), pos = exp1left})
+              | exp ORELSE exp                                              (A.IfExp{test = exp1, then' = A.IntExp(1), else' = SOME(exp2), pos = exp1left})
 
 insts         : rec_inst                                                    ()
               | ref_inst                                                    ()
