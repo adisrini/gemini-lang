@@ -33,6 +33,7 @@ struct
 
   and structsig = StructExp of {name: symbol, signat: (structsig * pos) option, decs: dec list, pos: pos}
                 | SigExp of {name: symbol, defs: def list}
+                | AnonSigExp of def list
 
   and oper = IntPlusOp | IntMinusOp | IntTimesOp | IntDivideOp | IntModOp
            | RealPlusOp | RealMinusOp | RealTimesOp | RealDivideOp

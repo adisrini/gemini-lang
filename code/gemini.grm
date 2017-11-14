@@ -17,6 +17,9 @@ fun numberedFields lst = foldl (fn((expr, posn), (idx, acc)) => (idx + 1, (Symbo
 fun extractFields (A.RecordExp{fields, pos}) = SOME(fields)
   | _ = NONE
 
+fun extractStructSigList (A.StructsSigsExp(structsigs)) = SOME(structsigs)
+  | _ = NONE
+
 %%
 %term
     EOF
@@ -194,25 +197,25 @@ exp           : exp exp %prec APPLY                                         ()
               | LPAREN RPAREN                                               (A.SeqExp[])
 
 structs_or_sigs
-              : structures structs_or_sigs                                  ()
-              | signatures structs_or_sigs                                  ()
-              | epsilon                                                     ()
+              : structures structs_or_sigs                                  (A.StructSigsExp(structures @ valOf(extractStructSigList(structs_or_sigs))))
+              | signatures structs_or_sigs                                  (A.StructSigsExp(signatures @ valOf(extractStructSigList(structs_or_sigs))))
+              | epsilon                                                     (A.StructsSigsExp([]))
 
-structures    : structure_nt structures                                     ()
-              | structure_nt                                                ()
+structures    : structure_nt structures                                     ([structure_nt] @ structures)
+              | structure_nt                                                ([structure_nt])
 
-structure_nt  : STRUCTURE ID EQ struct_body                                 ()
-              | STRUCTURE ID COLON ID EQ struct_body                        ()
-              | STRUCTURE ID COLON sig_body EQ struct_body                  ()
+structure_nt  : STRUCTURE ID EQ struct_body                                 (A.StructExp{name = Symbol.symbol(ID), signat = NONE, decs = struct_body, pos = STRUCTUREleft})
+              | STRUCTURE ID COLON ID EQ struct_body                        (A.StructExp{name = Symbol.symbol(ID1), signat = SOME(A.SigExp{name = ID2, pos = ID2left}, ID2left), decs = struct_body, pos = STRUCTUREleft})
+              | STRUCTURE ID COLON sig_body EQ struct_body                  (A.StructExp{name = Symbol.symbol(ID), signat = SOME(A.AnonSigExp(sig_body), sig_bodyleft), decs = struct_body, pos = STRUCTUREleft})
 
-struct_body   : STRUCT decs END                                             ()
+struct_body   : STRUCT decs END                                             (decs)
 
-signatures    : signature_nt signatures                                     ()
-              | signature_nt                                                ()
+signatures    : signature_nt signatures                                     ([signature_nt] @ signatures)
+              | signature_nt                                                ([signature_nt])
 
-signature_nt  : SIGNATURE ID EQ sig_body                                    ()
+signature_nt  : SIGNATURE ID EQ sig_body                                    (A.SigExp{name = Symbol.symbol(ID), defs = sig_body})
 
-sig_body      : SIG sigs END                                                ()
+sig_body      : SIG sigs END                                                (sigs)
 
 sigs          : val_sig sigs                                                ()
               | ty_sig non_ty_sigs                                          ()
