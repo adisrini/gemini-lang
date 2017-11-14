@@ -2,21 +2,30 @@ structure A = Absyn
 structure S = GeminiString(String)
 structure BA = GeminiBitArray(Vector)
 
-fun extractList (A.ModuleDec list) = SOME(list)
-  | extractList (A.TypeDec list) = SOME(list)
-  | extractList (A.FunctionDec list) = SOME(list)
-  | extractList (A.StructsSigsExp list) = SOME(list)
-  | extractList (A.DatatypeDec list) = SOME(list)
-  | _ = NONE
+fun extractModDecList (A.ModuleDec list) = SOME(list)
+  | extractModDecList _ = NONE
+
+fun extractTypeDecList (A.TypeDec list) = SOME(list)
+  | extractTypeDecList _ = NONE
+
+fun extractFunDecList (A.FunctionDec list) = SOME(list)
+  | extractFunDecList _ = NONE
+
+fun extractStructSigList (A.StructsSigsExp list) = SOME(list)
+  | extractStructSigList _ = NONE
+
+fun extractDatatypeDecList (A.DatatypeDec list) = SOME(list)
+  | extractDatatypeDecList _ = NONE
+
+fun extractFields (A.RecordExp{fields, pos}) = SOME(fields)
+  | extractFields _ = NONE
 
 fun param [] = A.NoParam
   | param [f] = A.SingleParam(f)
   | param fields = A.MultiParams(fields)
 
-fun numberedFields lst = foldl (fn((expr, posn), (idx, acc)) => (idx + 1, (Symbol.symbol(Int.toString(idx)), expr, posn))::acc) (1, []) lst
+fun numberedFields lst = foldl (fn((expr, posn), (idx, acc)) => (idx + 1, (Symbol.symbol(Int.toString(idx)), expr, posn)::acc)) (1, []) lst
 
-fun extractFields (A.RecordExp{fields, pos}) = SOME(fields)
-  | _ = NONE
 
 %%
 %term
@@ -191,8 +200,8 @@ exp           : exp exp %prec APPLY                                         ()
               | LPAREN RPAREN                                               (A.SeqExp[])
 
 structs_or_sigs
-              : structures structs_or_sigs                                  (A.StructSigsExp(structures @ valOf(extractStructSigList(structs_or_sigs))))
-              | signatures structs_or_sigs                                  (A.StructSigsExp(signatures @ valOf(extractStructSigList(structs_or_sigs))))
+              : structures structs_or_sigs                                  (A.StructsSigsExp(structures @ valOf(extractStructSigList(structs_or_sigs))))
+              | signatures structs_or_sigs                                  (A.StructsSigsExp(signatures @ valOf(extractStructSigList(structs_or_sigs))))
               | epsilon                                                     (A.StructsSigsExp([]))
 
 structures    : structure_nt structures                                     ([structure_nt] @ structures)
@@ -278,7 +287,7 @@ let_block     : LET decs IN exp END                                         (A.L
 decs          : val_dec decs                                                (val_dec::decs)
               | fun_dec non_fun_dec                                         (fun_dec::non_fun_dec)
               | ty_dec non_ty_dec                                           (ty_dec::non_ty_dec)
-              | dataty_dec non_dataty_dec                                   (data_ty_dec::non_dataty_dec)
+              | dataty_dec non_dataty_dec                                   (dataty_dec::non_dataty_dec)
               | module_dec non_module_dec                                   (module_dec::non_module_dec)
               | epsilon                                                     ([])
 
@@ -311,8 +320,8 @@ val_dec       : VAL ID EQ exp                                               (A.V
 
 fun_dec       : fun_dec_no_type                                             (fun_dec_no_type)
               | fun_dec_with_type                                           (fun_dec_with_type)
-              | fun_dec_no_type fun_dec                                     (A.FunctionDec(valOf(extractList(fun_dec_no_type)) @ valOf(extractList(fun_dec))))
-              | fun_dec_with_type fun_dec                                   (A.FunctionDec(valOf(extractList(fun_dec_with_type)) @ valOf(extractList(fun_dec))))
+              | fun_dec_no_type fun_dec                                     (A.FunctionDec(valOf(extractFunDecList(fun_dec_no_type)) @ valOf(extractFunDecList(fun_dec))))
+              | fun_dec_with_type fun_dec                                   (A.FunctionDec(valOf(extractFunDecList(fun_dec_with_type)) @ valOf(extractFunDecList(fun_dec))))
 
 fun_dec_no_type
               : FUN ID fun_params EQ exp                                    (A.FunctionDec[{name = Symbol.symbol(ID), params = fun_params1, result = NONE, body = exp1, pos = FUNleft}])
@@ -328,9 +337,9 @@ fun_param     : ID                                                          (A.S
               | LPAREN ty_fields RPAREN                                     (param(ty_fields))
 
 ty_dec        : TYPE ID EQ ty                                               (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, opdef = NONE, pos = TYPEleft}])
-              | TYPE ID EQ ty ty_dec                                        (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, opdef = NONE, pos = TYPEleft}] @ valOf(extractList(ty_dec))))
+              | TYPE ID EQ ty ty_dec                                        (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, opdef = NONE, pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
               | TYPE ID EQ ty with_type                                     (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, opdef = SOME(with_type), pos = TYPEleft}])
-              | TYPE ID EQ ty with_type ty_dec                              (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, opdef = SOME(with_type), pos = TYPEleft}] @ valOf(extractList(ty_dec))))
+              | TYPE ID EQ ty with_type ty_dec                              (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, opdef = SOME(with_type), pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
 
 ty            : TID                                                         (A.GenericTy(Symbol.symbol(TID), TIDleft))
               | ID                                                          (A.NameTy(Symbol.symbol(ID), IDleft))
@@ -363,15 +372,15 @@ with_type_tail: AND with_type                                               (wit
               | epsilon                                                     ([])
 
 dataty_dec    : DATATYPE ID EQ ID OF ty dataty_tail                         (A.DatatypeDec([{name = Symbol.symbol(ID1), datatypes = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
-              | DATATYPE ID EQ ID OF ty dataty_tail dataty_dec              (A.DatatypeDec({name = Symbol.symbol(ID1), datatypes = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractList(dataty_dec))))
+              | DATATYPE ID EQ ID OF ty dataty_tail dataty_dec              (A.DatatypeDec({name = Symbol.symbol(ID1), datatypes = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(dataty_dec))))
 
 dataty_tail   : PIPE_EQUALS ID OF ty dataty_tail                            ({datacon = Symbol.symbol(ID), ty = ty, pos = IDleft}::dataty_tail)
               | epsilon                                                     ([])
 
 module_dec    : module_dec_no_type                                          (A.ModuleDec([module_dec_no_type]))
               | module_dec_with_type                                        (A.ModuleDec([module_dec_with_type]))
-              | module_dec_no_type module_dec                               (A.ModuleDec(module_dec_no_type::valOf(extractList(module_dec))))
-              | module_dec_with_type module_dec                             (A.ModuleDec(module_dec_with_type::valOf(extractList(module_dec))))
+              | module_dec_no_type module_dec                               (A.ModuleDec(module_dec_no_type::valOf(extractModDecList(module_dec))))
+              | module_dec_with_type module_dec                             (A.ModuleDec(module_dec_with_type::valOf(extractModDecList(module_dec))))
 
 module_dec_no_type
               : MODULE ID fun_param EQ exp                                  ({name = Symbol.symbol(ID), arg = fun_param, result = NONE, body = exp, pos = MODULEleft})
