@@ -293,7 +293,7 @@ compare_op    : exp EQ exp                                                  (A.O
 
 list_op       : exp CONS exp                                                (A.OpExp{left = exp1, oper = A.ConsOp, right = exp2, pos = exp1left})
 
-let_block     : LET decs IN let_body END                                    ()
+let_block     : LET decs IN let_body END                                    (A.LetExp{decs = decs, body = let_body, pos = LETleft})
 
 decs          : val_dec decs                                                ()
               | fun_dec non_fun_dec                                         ()
