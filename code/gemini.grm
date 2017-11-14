@@ -24,7 +24,7 @@ fun param [] = A.NoParam
   | param [f] = A.SingleParam(f)
   | param fields = A.MultiParams(fields)
 
-fun numberedFields lst = foldl (fn((expr, posn), (idx, acc)) => (idx + 1, (Symbol.symbol(Int.toString(idx)), expr, posn)::acc)) (1, []) lst
+fun numberedFields lst = #2 (foldl (fn((expr, posn), (idx, acc)) => (idx + 1, (Symbol.symbol(Int.toString(idx)), expr, posn)::acc)) (1, []) lst)
 
 
 %%
@@ -87,7 +87,7 @@ fun numberedFields lst = foldl (fn((expr, posn), (idx, acc)) => (idx + 1, (Symbo
                         | with_type of A.opdef list
                             | with_type_tail of A.opdef list
                     | dataty_dec of A.dec
-                        | dataty_tail of A.datatydec list
+                        | dataty_tail of A.datacon list
                     | module_dec of A.dec
                         | module_dec_no_type of A.moddec
                         | module_dec_with_type of A.moddec
@@ -182,7 +182,7 @@ fun numberedFields lst = foldl (fn((expr, posn), (idx, acc)) => (idx + 1, (Symbo
 program	      : structs_or_sigs                                             (structs_or_sigs)
               | exp                                                         (exp)
 
-exp           : exp exp %prec APPLY                                         ()
+exp           : exp exp %prec APPLY                                         (A.ZeroExp)
               | INT                                                         (A.IntExp(INT, INTleft))
               | STRING                                                      (A.StringExp(STRING, STRINGleft))
               | REAL                                                        (A.RealExp(REAL, REALleft))
@@ -208,7 +208,7 @@ structures    : structure_nt structures                                     ([st
               | structure_nt                                                ([structure_nt])
 
 structure_nt  : STRUCTURE ID EQ struct_body                                 (A.StructExp{name = Symbol.symbol(ID), signat = NONE, decs = struct_body, pos = STRUCTUREleft})
-              | STRUCTURE ID COLON ID EQ struct_body                        (A.StructExp{name = Symbol.symbol(ID1), signat = SOME(A.SigExp{name = ID2, pos = ID2left}, ID2left), decs = struct_body, pos = STRUCTUREleft})
+              | STRUCTURE ID COLON ID EQ struct_body                        (A.StructExp{name = Symbol.symbol(ID1), signat = SOME(A.NamedSigExp(Symbol.symbol(ID2)), ID2left), decs = struct_body, pos = STRUCTUREleft})
               | STRUCTURE ID COLON sig_body EQ struct_body                  (A.StructExp{name = Symbol.symbol(ID), signat = SOME(A.AnonSigExp(sig_body), sig_bodyleft), decs = struct_body, pos = STRUCTUREleft})
 
 struct_body   : STRUCT decs END                                             (decs)
@@ -327,7 +327,7 @@ fun_dec_no_type
               : FUN ID fun_params EQ exp                                    (A.FunctionDec[{name = Symbol.symbol(ID), params = fun_params1, result = NONE, body = exp1, pos = FUNleft}])
 
 fun_dec_with_type
-              : FUN ID fun_params COLON ty EQ exp                           (A.FunctionDec[{name = Symbol.symbol(ID), params = fun_params1, result = SOME(ty1), body = exp1, pos = FUNleft}])
+              : FUN ID fun_params COLON ty EQ exp                           (A.FunctionDec[{name = Symbol.symbol(ID), params = fun_params1, result = SOME(ty1, ty1left), body = exp1, pos = FUNleft}])
 
 fun_params    : fun_params fun_param                                        (fun_params1 @ [fun_param1])
               | fun_param                                                   ([fun_param1])
@@ -371,8 +371,8 @@ with_type     : WITH OP EQ LPAREN ID COMMA ID RPAREN EQ exp with_type_tail  ([{o
 with_type_tail: AND with_type                                               (with_type)
               | epsilon                                                     ([])
 
-dataty_dec    : DATATYPE ID EQ ID OF ty dataty_tail                         (A.DatatypeDec([{name = Symbol.symbol(ID1), datatypes = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
-              | DATATYPE ID EQ ID OF ty dataty_tail dataty_dec              (A.DatatypeDec({name = Symbol.symbol(ID1), datatypes = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(dataty_dec))))
+dataty_dec    : DATATYPE ID EQ ID OF ty dataty_tail                         (A.DatatypeDec([{name = Symbol.symbol(ID1), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
+              | DATATYPE ID EQ ID OF ty dataty_tail dataty_dec              (A.DatatypeDec({name = Symbol.symbol(ID1), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(dataty_dec))))
 
 dataty_tail   : PIPE_EQUALS ID OF ty dataty_tail                            ({datacon = Symbol.symbol(ID), ty = ty, pos = IDleft}::dataty_tail)
               | epsilon                                                     ([])
@@ -401,8 +401,8 @@ exp_comma_tail: COMMA exp exp_comma_tail                                    ([(e
 
 conditional   : IF exp THEN exp ELSE exp                                    (A.IfExp{test = exp1, then' = exp2, else' = SOME(exp3), pos = IFleft})
               | IF exp THEN exp                                             (A.IfExp{test = exp1, then' = exp2, else' = NONE, pos = IFleft})
-              | exp ANDALSO exp                                             (A.IfExp{test = exp1, then' = exp2, else' = SOME(A.IntExp(0)), pos = exp1left})
-              | exp ORELSE exp                                              (A.IfExp{test = exp1, then' = A.IntExp(1), else' = SOME(exp2), pos = exp1left})
+              | exp ANDALSO exp                                             (A.IfExp{test = exp1, then' = exp2, else' = SOME(A.IntExp(0, 0)), pos = exp1left})
+              | exp ORELSE exp                                              (A.IfExp{test = exp1, then' = A.IntExp(1, 0), else' = SOME(exp2), pos = exp1left})
 
 insts         : rec_inst                                                    (rec_inst)
               | ref_inst                                                    (ref_inst)

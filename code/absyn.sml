@@ -34,6 +34,7 @@ struct
 
   and structsig = StructExp of {name: symbol, signat: (structsig * pos) option, decs: dec list, pos: pos}
                 | SigExp of {name: symbol, defs: def list}
+                | NamedSigExp of symbol
                 | AnonSigExp of def list
 
   and oper = IntPlusOp | IntMinusOp | IntTimesOp | IntDivideOp | IntModOp
@@ -80,8 +81,10 @@ struct
   and tydec = {name: symbol, ty: ty, opdef: (opdef list) option, pos: pos}
 
   and moddec = {name: symbol, arg: param, result: (ty * pos) option, body: exp, pos: pos}
+  
+  and datacon = {datacon: symbol, ty: ty, pos: pos}
 
-  and datatydec = {name: symbol, datatypes: ({datacon: symbol, ty: ty, pos: pos} list)}
+  and datatydec = {name: symbol, datacons: datacon list}
 
   and match = {match: exp, result: exp, pos: pos}
 
