@@ -8,6 +8,11 @@ fun appendTypeDec (A.TypeDec list) = SOME(list)
 fun appendFunDec (A.FunctionDec list) = SOME(list)
   | appendFunDec _ = NONE
 
+fun param fields = case fields of
+  [] => A.NoParam
+  [f] => A.SingleParam(f)
+  _ => A.MultiParams(fields)
+
 %%
 %term
     EOF
@@ -66,9 +71,9 @@ fun appendFunDec (A.FunctionDec list) = SOME(list)
                             | fun_param of A.param
                     | ty_dec of A.dec
                         | ty of A.ty
-                            | no_ty_fields of A.param list
-                            | ty_fields of A.param list
-                            | ty_field_tail
+                            | no_ty_fields of A.field list
+                            | ty_fields of A.field list
+                            | ty_field_tail of A.field list
                         | with_type
                     | dataty_dec of A.dec
                         | dataty_tail
@@ -335,17 +340,17 @@ fun_dec       : fun_dec_no_type                                             ()
               | fun_dec_with_type fun_dec                                   ()
 
 fun_dec_no_type
-              : FUN ID fun_params EQ exp                                    ()
+              : FUN ID fun_params EQ exp                                    (A.FunctionDec{name = Symbol.symbol(ID), params = fun_params1, result = NONE, body = exp1, pos = FUNleft})
 
 fun_dec_with_type
-              : FUN ID fun_params COLON ty EQ exp                           ()
+              : FUN ID fun_params COLON ty EQ exp                           (A.FunctionDec{name = Symbol.symbol(ID), params = fun_params1, result = SOME(ty1), body = exp1, pos = FUNleft})
 
-fun_params    : fun_params fun_param                                        ()
-              | fun_param                                                   ()
+fun_params    : fun_params fun_param                                        (fun_params1 @ [fun_param1])
+              | fun_param                                                   ([fun_param1])
 
-fun_param     : ID                                                          ()
-              | LPAREN no_ty_fields RPAREN                                  ()
-              | LPAREN ty_fields RPAREN                                     ()
+fun_param     : ID                                                          (A.SingleParam{name = Symbol.symbol(ID), ty = NONE, escape = ref true, pos = IDleft})
+              | LPAREN no_ty_fields RPAREN                                  (param(no_ty_fields))
+              | LPAREN ty_fields RPAREN                                     (param(ty_fields)))
 
 ty_dec        : TYPE ID EQ ty with_type                                     ()
               | TYPE ID EQ ty with_type ty_dec                              ()
@@ -361,14 +366,14 @@ ty            : TID                                                         (A.G
               | ty REF                                                      (A.RefTy(ty1, ty1left))
               | ty SW                                                       (A.SWTy(ty1, ty1left))
 
-no_ty_fields  : ID                                                          ()
-              | no_ty_fields COMMA ID                                       ()
+no_ty_fields  : ID                                                          ([{name = Symbol.symbol(ID), ty = NONE, escape = ref true, pos = IDleft}])
+              | no_ty_fields COMMA ID                                       (no_ty_fields1 @ [{name = Symbol.symbol(ID), ty = NONE, escape = ref true, pos = no_ty_fields1left}])
 
-ty_fields     : ty_field_tail                                               ()
-              | epsilon                                                     ()
+ty_fields     : ty_field_tail                                               (ty_field_tail)
+              | epsilon                                                     ([])
 
-ty_field_tail : ID COLON ty                                                 ()
-              | ty_field_tail COMMA ID COLON ty                             ()
+ty_field_tail : ID COLON ty                                                 ([{name = Symbol.symbol(ID), ty = SOME(ty1), escape = ref true, pos = IDleft}])
+              | ty_field_tail COMMA ID COLON ty                             (ty_field_tail1 @ [{name = Symbol.symbol(ID), ty = SOME(ty1), escape = ref true, pos = ty_field_tail1left}])
 
 with_type     : WITH OP EQ LPAREN ID COMMA ID RPAREN EQ exp                 ()
               | WITH OP NEQ LPAREN ID COMMA ID RPAREN EQ exp                ()

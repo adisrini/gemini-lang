@@ -8,7 +8,6 @@ struct
                | MemberVar of exp * symbol * pos
                | FieldVar of exp * symbol * pos
 
-  (* TODO *)
   and exp = StructsSigsExp of structsig list
           | VarExp of var * pos
           | IntExp of int * pos
@@ -51,7 +50,7 @@ struct
 
   and ty = NameTy of symbol * pos
          | GenericTy of symbol * pos
-         | RecordTy of param list * pos
+         | RecordTy of field list * pos
          | ArrayTy of ty * exp * pos
          | ListTy of ty * pos
          | SWTupleTy of ty * ty * pos
@@ -60,10 +59,13 @@ struct
          | RefTy of ty * pos
          | SWTy of ty * pos
 
-  and param = SingleParam of {name: symbol, ty: ty option, escape: bool ref, pos: pos}
-            | MultiParams of {name: symbol, ty: ty option, escape: bool ref, pos: pos} list
+  and param = NoParam
+            | SingleParam of field
+            | MultiParams of field list
 
-  withtype fundec = {name: symbol, params: param list, result: (ty * pos) option, body: exp, pos: pos}
+  withtype field = {name: symbol, ty: ty option, escape: bool ref, pos: pos}
+
+  and fundec = {name: symbol, params: param list, result: (ty * pos) option, body: exp, pos: pos}
 
   and tydec = {name: symbol, ty: ty, pos: pos}
 
