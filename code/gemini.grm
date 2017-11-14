@@ -182,7 +182,7 @@ fun numberedFields lst = #2 (foldl (fn((expr, posn), (idx, acc)) => (idx + 1, (S
 program	      : structs_or_sigs                                             (structs_or_sigs)
               | exp                                                         (exp)
 
-exp           : exp exp %prec APPLY                                         (A.ZeroExp)
+exp           : exp exp %prec APPLY                                         (A.ApplyExp(exp1, exp2, exp1left))
               | INT                                                         (A.IntExp(INT, INTleft))
               | STRING                                                      (A.StringExp(STRING, STRINGleft))
               | REAL                                                        (A.RealExp(REAL, REALleft))
