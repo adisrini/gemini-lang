@@ -351,6 +351,7 @@ ty            : TID                                                         (A.G
               | ty LIST                                                     (A.ListTy(ty1, ty1left))
               | ty REF                                                      (A.RefTy(ty1, ty1left))
               | ty SW                                                       (A.SWTy(ty1, ty1left))
+              | ty THIN_ARROW ty                                            (A.FunTy(ty1, ty2, ty1left))
 
 no_ty_fields  : ID                                                          ([{name = Symbol.symbol(ID), ty = NONE, escape = ref true, pos = IDleft}])
               | no_ty_fields COMMA ID                                       (no_ty_fields1 @ [{name = Symbol.symbol(ID), ty = NONE, escape = ref true, pos = no_ty_fields1left}])

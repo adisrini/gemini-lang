@@ -9,7 +9,8 @@ struct
 
   fun foo x = ""
 
-  datatype zoo = FOO of int | BAR of string
+  datatype zoo = FOO of int
+              |: BAR of string
 
   module m x = 'b:0
 end

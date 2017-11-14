@@ -67,6 +67,7 @@ struct
          | TemporalTy of ty * exp * pos
          | RefTy of ty * pos
          | SWTy of ty * pos
+         | FunTy of ty * ty * pos
 
   and param = NoParam
             | SingleParam of field

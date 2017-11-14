@@ -79,7 +79,7 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"op"  	                               => (Tokens.OP(yypos, yypos + 2));
 <INITIAL>"and"                                 => (Tokens.AND(yypos, yypos + 3));
 
-<INITIAL>"|="                                  => (Tokens.PIPE_EQUALS(yypos, yypos + 2));
+<INITIAL>"|:"                                  => (Tokens.PIPE_EQUALS(yypos, yypos + 2));
 <INITIAL>"=>"                                  => (Tokens.FAT_ARROW(yypos, yypos + 2));
 <INITIAL>"->"                                  => (Tokens.THIN_ARROW(yypos, yypos + 2));
 
