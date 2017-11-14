@@ -53,8 +53,7 @@ struct
 
   and def = ValDef of {name: symbol, ty: ty * pos, pos: pos}
           | TypeDef of {name: symbol, pos: pos}
-          | DatatypeDef of datatydec
-          | ModuleDef of {name: symbol, ty: ty * pos, pos: pos}
+          | ModuleDef of {name: symbol, input_ty: ty, output_ty: ty, pos: pos}
 
   and ty = NameTy of symbol * pos
          | GenericTy of symbol * pos

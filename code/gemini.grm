@@ -48,11 +48,7 @@ fun extractStructSigList (A.StructsSigsExp(structsigs)) = SOME(structsigs)
                     | sigs of A.def list
                         | val_sig of A.def
                         | ty_sig of A.def
-                        | dataty_sig of A.def
                         | module_sig of A.def
-                        | non_ty_sigs of A.def list
-                        | non_dataty_sigs of A.def list
-                        | non_module_sigs of A.def list
         | exp of A.exp
             | access of A.exp
                 | array_access of A.exp
@@ -217,43 +213,16 @@ signature_nt  : SIGNATURE ID EQ sig_body                                    (A.S
 
 sig_body      : SIG sigs END                                                (sigs)
 
-sigs          : val_sig sigs                                                ()
-              | ty_sig non_ty_sigs                                          ()
-              | module_sig non_module_sigs                                  ()
-              | dataty_sig non_dataty_sigs                                  ()
-              | epsilon                                                     ()
+sigs          : val_sig sigs                                                (val_sig::sigs)
+              | ty_sig sigs                                                 (ty_sig::sigs)
+              | module_sig sigs                                             (module_sig::sigs)
+              | epsilon                                                     ([])
 
-non_ty_sigs   : val_sig sigs                                                ()
-              | module_sig non_module_sigs                                  ()
-              | dataty_sig non_dataty_sigs                                  ()
-              | epsilon                                                     ()
+val_sig       : VAL ID COLON ty                                             (A.ValDef{name = Symbol.symbol(ID), ty = (ty, tyleft), pos = VALleft})
 
-non_module_sigs
-              : val_sig sigs                                                ()
-              | ty_sig non_ty_sigs                                          ()
-              | dataty_sig non_dataty_sigs                                  ()
-              | epsilon                                                     ()
+ty_sig        : TYPE ID                                                     (A.TypeDef{name = Symbol.symbol(ID), pos = TYPEleft})
 
-non_dataty_sigs
-              : val_sig sigs                                                ()
-              | ty_sig non_ty_sigs                                          ()
-              | module_sig non_module_sigs                                  ()
-              | epsilon                                                     ()
-
-val_sig       : VAL ID COLON ty                                             ()
-
-ty_sig        : TYPE ID EQ ty                                               ()
-              | TYPE ID EQ ty ty_sig                                        ()
-              | TYPE ID                                                     ()
-              | TYPE ID ty_sig                                              ()
-
-module_sig    : MODULE ID COLON ty THIN_ARROW  ty                           ()
-              | MODULE ID COLON ty THIN_ARROW ty module_sig                 ()
-
-dataty_sig    : dataty_dec                                                  ()
-              | dataty_dec dataty_sig                                       ()
-              | DATATYPE ID                                                 ()
-              | DATATYPE ID dataty_sig                                      ()
+module_sig    : MODULE ID COLON ty THIN_ARROW ty                            (A.ModuleDef{name = Symbol.symbol(ID), input_ty = ty1, output_ty = ty2, pos = MODULEleft})
 
 array_access  : exp LBRACK exp RBRACK                                       (A.ArrayAccExp{exp = exp1, index = exp2, pos = exp1left})
 
@@ -308,36 +277,36 @@ list_op       : exp CONS exp                                                (A.O
 
 let_block     : LET decs IN exp END                                         (A.LetExp{decs = decs, body = exp1, pos = LETleft})
 
-decs          : val_dec decs                                                ()
-              | fun_dec non_fun_dec                                         ()
-              | ty_dec non_ty_dec                                           ()
-              | dataty_dec non_dataty_dec                                   ()
-              | module_dec non_module_dec                                   ()
-              | epsilon                                                     ()
+decs          : val_dec decs                                                (val_dec::decs)
+              | fun_dec non_fun_dec                                         (fun_dec::non_fun_dec)
+              | ty_dec non_ty_dec                                           (ty_dec::non_ty_dec)
+              | dataty_dec non_dataty_dec                                   (data_ty_dec::non_dataty_dec)
+              | module_dec non_module_dec                                   (module_dec::non_module_dec)
+              | epsilon                                                     ([])
 
-non_fun_dec   : val_dec decs                                                ()
-              | ty_dec non_ty_dec                                           ()
-              | dataty_dec non_dataty_dec                                   ()
-              | module_dec non_module_dec                                   ()
-              | epsilon                                                     ()
+non_fun_dec   : val_dec decs                                                (val_dec::decs)
+              | ty_dec non_ty_dec                                           (ty_dec::non_ty_dec)
+              | dataty_dec non_dataty_dec                                   (dataty_dec::non_dataty_dec)
+              | module_dec non_module_dec                                   (module_dec::non_module_dec)
+              | epsilon                                                     ([])
 
-non_ty_dec    : val_dec decs                                                ()
-              | fun_dec non_fun_dec                                         ()
-              | dataty_dec non_dataty_dec                                   ()
-              | module_dec non_module_dec                                   ()
-              | epsilon                                                     ()
+non_ty_dec    : val_dec decs                                                (val_dec::decs)
+              | fun_dec non_fun_dec                                         (fun_dec::non_fun_dec)
+              | dataty_dec non_dataty_dec                                   (dataty_dec::non_dataty_dec)
+              | module_dec non_module_dec                                   (module_dec::non_module_dec)
+              | epsilon                                                     ([])
 
-non_dataty_dec: val_dec decs                                                ()
-              | ty_dec non_ty_dec                                           ()
-              | fun_dec non_fun_dec                                         ()
-              | module_dec non_module_dec                                   ()
-              | epsilon                                                     ()
+non_dataty_dec: val_dec decs                                                (val_dec::decs)
+              | ty_dec non_ty_dec                                           (ty_dec::non_ty_dec)
+              | fun_dec non_fun_dec                                         (fun_dec::non_fun_dec)
+              | module_dec non_module_dec                                   (module_dec::non_module_dec)
+              | epsilon                                                     ([])
 
-non_module_dec: val_dec decs                                                ()
-              | fun_dec non_fun_dec                                         ()
-              | ty_dec non_ty_dec                                           ()
-              | dataty_dec non_dataty_dec                                   ()
-              | epsilon                                                     ()
+non_module_dec: val_dec decs                                                (val_dec::decs)
+              | fun_dec non_fun_dec                                         (fun_dec::non_fun_dec)
+              | ty_dec non_ty_dec                                           (ty_dec::non_ty_dec)
+              | dataty_dec non_dataty_dec                                   (dataty_dec::non_dataty_dec)
+              | epsilon                                                     ([])
 
 val_dec       : VAL ID EQ exp                                               (A.ValDec{name = Symbol.symbol(ID), escape = ref true, ty = NONE, init = exp1, pos = VALleft})
               | VAL ID COLON ty EQ exp                                      (A.ValDec{name = Symbol.symbol(ID), escape = ref true, ty = SOME(ty, tyleft), init = exp1, pos = VALleft})
