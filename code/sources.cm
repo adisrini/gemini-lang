@@ -12,6 +12,7 @@ driver.sml
 errormsg.sml
 gemini.lex
 gemini.grm
+prabsyn.sml
 symbol.sml
 table.sig
 table.sml
