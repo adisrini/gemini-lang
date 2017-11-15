@@ -78,18 +78,9 @@ fun print (outstream, e0) =
     | ss(A.NamedSigExp(sym), d) = (indent d; say "NamedSigExp("; say(Symbol.name sym); say ")")
     | ss(A.AnonSigExp(defs), d) = (indent d; say "AnonSigExp["; dolist d def defs; say "]")
 
-
-    (*
-
-      and def = ValDef of {name: symbol, ty: ty * pos, pos: pos}
-              | TypeDef of {name: symbol, pos: pos}
-              | ModuleDef of {name: symbol, input_ty: ty, output_ty: ty, pos: pos}
-
-    *)
-
-  and def(A.ValDef{name, ty = (t, p), pos}, d) = ()
-    | def(A.TypeDef{name, pos}, d) = ()
-    | def(A.ModuleDef{name, input_ty, output_ty, pos}, d) = ()
+  and def(A.ValDef{name, ty = (t, p), pos}, d) = (indent d; sayln "ValDef("; indent (d + 1); say(Symbol.name name); sayln ","; ty(t, d + 1); sayln ""; indent d; say ")")
+    | def(A.TypeDef{name, pos}, d) = (indent d; say "TypeDef("; say(Symbol.name name); say ")")
+    | def(A.ModuleDef{name, input_ty, output_ty, pos}, d) = (indent d; sayln "ModuleDef("; indent (d + 1); say(Symbol.name name); sayln ","; ty(input_ty, d + 1); sayln " -> "; ty(output_ty, d + 1); say ")")
 
   and dec(A.FunctionDec l, d) =
 	    let fun field({name,escape,typ,pos},d) =
