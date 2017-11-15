@@ -161,18 +161,17 @@ fun print (outstream, e0) =
           indent d; say "TypeDec["; dolist d tdec tydecs; say "]"
       end
 
-  and ty(A.NameTy(s,p), d) = (indent d; say "NameTy("; say(Symbol.name s);
-			      say ")")
-    | ty(A.RecordTy l, d) =
-		let fun f({name,escape,typ,pos},d) =
-			(indent d; say "("; say (Symbol.name name);
-		         say ","; say (Bool.toString (!escape)); say ",";
-			 say (Symbol.name typ); say ")")
-	         in indent d; say "RecordTy["; dolist d f l; say "]"
-		end
-    | ty(A.ArrayTy(s,p),d) = (indent d; say "ArrayTy("; say(Symbol.name s);
-			      say ")")
-
+  and ty(A.NameTy(s, p), d) = (indent d; say "NameTy("; say(Symbol.name s); say ")")
+    | ty(A.GenericTy(s, p), d) = (indent d; say "GenericTy("; say(Symbol.name s); say ")")
+    | ty(A.RecordTy(fields, p), d) = (indent d; say "RecordTy["; dolist d print_field fields; sayln ""; indent d; say "]")
+    | ty(A.ArrayTy(t, e, p), d) = (indent d; sayln "ArrayTy("; ty(t, d + 1); sayln ","; exp(e, d + 1); sayln ""; indent d; say ")")
+    | ty(A.ListTy(t, p), d) = (indent d; sayln "ListTy("; ty(t, d + 1); sayln ""; indent d; say ")")
+    | ty(A.SWTupleTy(t1, t2, p), d) = (indent d; sayln "SWTupleTy("; ty(t1, d + 1); sayln " * "; ty(t2, d + 1); sayln ""; indent d; say ")")
+    | ty(A.HWTupleTy(t1, t2, p), d) = (indent d; sayln "HWTupleTy("; ty(t1, d + 1); sayln " #* "; ty(t2, d + 1); sayln ""; indent d; say ")")
+    | ty(A.TemporalTy(t, e, p), d) = (indent d; sayln "TemporalTy("; ty(t, d + 1); sayln " @ "; exp(e, d + 1); sayln ""; indent d; say ")")
+    | ty(A.RefTy(t, p), d) = (indent d; sayln "RefTy("; ty(t, d + 1); sayln ""; indent d; say ")")
+    | ty(A.SWTy(t, p), d) = (indent d; sayln "SWTy("; ty(t, d + 1); sayln ""; indent d; say ")")
+    | ty(A.FunTy(t1, t2, p), d) = (indent d; sayln "FunTy("; ty(t1, d + 1); sayln " -> "; ty(t2, d + 1); sayln ""; indent d; say ")")
  in
     exp(e0, 0); sayln ""; TextIO.flushOut outstream
  end
