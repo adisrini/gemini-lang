@@ -82,31 +82,73 @@ fun print (outstream, e0) =
     | def(A.TypeDef{name, pos}, d) = (indent d; say "TypeDef("; say(Symbol.name name); say ")")
     | def(A.ModuleDef{name, input_ty, output_ty, pos}, d) = (indent d; sayln "ModuleDef("; indent (d + 1); say(Symbol.name name); sayln ","; ty(input_ty, d + 1); sayln " -> "; ty(output_ty, d + 1); say ")")
 
-  and dec(A.FunctionDec l, d) =
-	    let fun field({name,escape,typ,pos},d) =
-			(indent d; say "("; say(Symbol.name name);
-			 say ","; say(Bool.toString(!escape));
-			 say ","; say(Symbol.name typ); say ")")
-		fun f({name,params,result,body,pos},d) =
-		   (indent d; say "("; say (Symbol.name name); say ",[";
-		    dolist d field params; sayln "],";
-		    case result of NONE => say "NONE"
-			 | SOME(s,_) => (say "SOME("; say(Symbol.name s); say ")");
-		    sayln ","; exp(body,d+1); say ")")
-	     in indent d; say "FunctionDec["; dolist d f l; say "]"
+  (*
+
+  and dec = TypeDec of tydec list
+         | ModuleDec of moddec list
+         | DatatypeDec of datatydec list
+
+  and opdef = {oper: oper, param_a: symbol, param_b: symbol, body: exp, pos: pos}
+
+  and tydec = {name: symbol, ty: ty, opdef: (opdef list) option, pos: pos}
+
+  and moddec = {name: symbol, arg: param, result: (ty * pos) option, body: exp, pos: pos}
+
+  and datacon = {datacon: symbol, ty: ty, pos: pos}
+
+  and datatydec = {name: symbol, datacons: datacon list}
+
+  *)
+
+  and dec(A.FunctionDec(fundecs), d) =
+	    let
+          fun field({name, escape, ty = t, pos}, d) =
+              (indent d; sayln "Field(";
+               indent (d + 1); say(Symbol.name name); sayln ",";
+               indent (d + 1); say(Bool.toString(!escape)); sayln ",";
+               indent (d + 1); ty(t, d + 1); sayln "";
+               indent d; say ")")
+          fun param(A.NoParam, d) = (indent d; say "NoParam")
+            | param(A.SingleParam(fld), d) = (indent d; sayln "SingleParam("; field(fld, d + 1); sayln ""; indent d; say ")")
+            | param(A.MultiParams(flds), d) = (indent d; say "MultiParams["; dolist d field flds; sayln "]")
+          fun func({name, params, result, body, pos}, d) =
+              (indent d; say (Symbol.name name); say "([";
+		           dolist d param params; sayln "],";
+		           case result of NONE => say "NONE"
+			                      | SOME(t, _) => (sayln "SOME("; ty(t, d + 1); sayln ""; indent d; say ")");
+               sayln ",";
+               exp(body, d + 1); sayln "";
+               indent d; say ")")
+	    in
+          indent d; say "FunctionDec["; dolist d func fundecs; say "]"
 	    end
-    | dec(A.VarDec{name,escape,typ,init,pos},d) =
-	   (indent d; say "VarDec("; say(Symbol.name name); say ",";
-	    say(Bool.toString (!escape)); say ",";
-	    case typ of NONE => say "NONE"
-		      | SOME(s,p)=> (say "SOME("; say(Symbol.name s); say ")");
-            sayln ","; exp(init,d+1); say ")")
-    | dec(A.TypeDec l, d) =
-	 let fun tdec({name,ty=t,pos},d) = (indent d; say"(";
-				  	    say(Symbol.name name); sayln ",";
-					    ty(t,d+1); say ")")
-	  in indent d; say "TypeDec["; dolist d tdec l; say "]"
-         end
+    | dec(A.ValDec{name, escape, ty = t, init, pos}, d) =
+          (indent d; sayln "ValDec(";
+           indent (d + 1); say(Symbol.name name); sayln ",";
+           indent (d + 1); say(Bool.toString (!escape)); sayln ",";
+           indent (d + 1); case ty of NONE => say "NONE"
+		                                | SOME(t, p)=> (sayln "SOME("; ty(t, d + 1); sayln ""; indent d; say ")");
+           sayln ",";
+           exp(init, d + 1); sayln "";
+           indent d; say ")")
+    | dec(A.TypeDec(tydecs), d) =
+	    let
+          fun opd({oper, param_a, param_b, body, pos}, d) =
+              (indent d; sayln "Opdef(";
+               indent (d + 1); say(opname oper); sayln ",";
+               indent (d + 1); say(Symbol.name param_a); sayln ",";
+               indent (d + 1); say(Symbol.name param_b); sayln ",";
+               exp(body, d + 1); sayln "";
+               indent d; say ")")
+          fun tdec({name, ty = t, opdef, pos}, d) =
+              (indent d; say(Symbol.name name); sayln "(";
+					     ty(t, d + 1); sayln ",";
+               case opdef of NONE => ()
+                           | SOME(opds) => (indent (d + 1); say "["; dolist d opd opds; sayln "]")
+               indent d; say ")")
+      in
+          indent d; say "TypeDec["; dolist d tdec tydecs; say "]"
+      end
 
   and ty(A.NameTy(s,p), d) = (indent d; say "NameTy("; say(Symbol.name s);
 			      say ")")
