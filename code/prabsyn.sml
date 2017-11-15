@@ -5,7 +5,8 @@ struct
   structure A = Absyn
 
 fun print (outstream, e0) =
- let fun say s =  TextIO.output(outstream,s)
+ let
+  fun say s =  TextIO.output(outstream,s)
 
   fun sayln s = (say s; say "\n")
 
@@ -42,83 +43,48 @@ fun print (outstream, e0) =
 
   (*
 
-  datatype exp = StructsSigsExp of structsig list
-          | VarExp of symbol * pos
-          | IntExp of int * pos
-          | StringExp of string * pos
-          | RealExp of real * pos
-          | BitExp of GeminiBit.bit * pos
-          | ApplyExp of (exp * exp * pos)
-          | NilExp of pos
-          | OpExp of {left: exp, oper: oper, right: exp, pos: pos}
-          | NegExp of {exp: exp, pos: pos}
-          | LetExp of {decs: dec list, body: exp, pos: pos}
-          | AssignExp of {lhs: exp, rhs: exp, pos: pos}
-          | SeqExp of (exp * pos) list
-          | IfExp of {test: exp, then': exp, else': exp option, pos: pos}
-          | ListExp of (exp * pos) list
-          | ArrayExp of (exp * pos) vector
-          | RefExp of exp * pos
-          | RecordExp of {fields: (symbol * exp * pos) list, pos: pos}
-          | HWTupleExp of (exp * pos) list
-          | WithExp of {exp: exp, fields: (symbol * exp * pos) list, pos: pos}
-          | DerefExp of {exp: exp, pos: pos}
-          | StructAccExp of {name: symbol, field: symbol, pos: pos}
-          | RecordAccExp of {exp: exp, field: symbol, pos: pos}
-          | ArrayAccExp of {exp: exp, index: exp, pos: pos}
+  datatype exp =
           | PatternMatchExp of {exp: exp, cases: match list, pos: pos}
-          | BitArrayExp of {size: exp, result: exp, spec: string option}
-          | ZeroExp
 
   *)
 
-  and exp(A.VarExp v, d) = (indent d; sayln "VarExp("; var(v,d+1); say ")")
-    | exp(A.NilExp, d) = (indent d; say "NilExp")
-    | exp(A.IntExp i, d) = (indent d; say "IntExp("; say(Int.toString i);
-			    say ")")
-    | exp(A.StringExp(s,p),d) = (indent d; say "StringExp(\"";
-				 say s; say "\")")
-    | exp(A.CallExp{func,args,pos},d) =
-		        (indent d; say "CallExp("; say(Symbol.name func);
-			 say ",["; dolist d exp args; say "])")
-    | exp(A.OpExp{left,oper,right,pos},d) =
-		(indent d; say "OpExp("; say(opname oper); sayln ",";
-		 exp(left,d+1); sayln ","; exp(right,d+1); say ")")
-    | exp(A.RecordExp{fields,typ,pos},d) =
-	    let fun f((name,e,pos),d) =
-			(indent d; say "("; say(Symbol.name name);
-			 sayln ","; exp(e,d+1);
-			 say ")")
-	     in indent d; say "RecordExp("; say(Symbol.name typ);
-	        sayln ",["; dolist d f fields; say "])"
-	    end
-    | exp(A.SeqExp l, d) = (indent d; say "SeqExp["; dolist d exp (map #1 l);
-			    say "]")
-    | exp(A.AssignExp{var=v,exp=e,pos},d) =
-		(indent d; sayln "AssignExp("; var(v,d+1); sayln ",";
-		 exp(e,d+1); say ")")
-    | exp(A.IfExp{test,then',else',pos},d) =
-		(indent d; sayln "IfExp("; exp(test,d+1); sayln ",";
-		 exp(then',d+1);
-		 case else' of NONE => ()
-			| SOME e => (sayln ","; exp(e,d+1));
-		 say ")")
-    | exp(A.WhileExp{test,body,pos},d) =
-		(indent d; sayln "WhileExp("; exp(test,d+1); sayln ",";
-		 exp(body,d+1); say ")")
-    | exp(A.ForExp{var=v,escape=b,lo,hi,body,pos},d) =
-		(indent d; sayln "ForExp(";
-		 say(Symbol.name v); say ","; say(Bool.toString (!b)); sayln ",";
-		 exp(lo,d+1); sayln ","; exp(hi,d+1); sayln ",";
-		 exp(body,d+1); say ")")
-    | exp(A.BreakExp p, d) = (indent d; say "BreakExp")
-    | exp(A.LetExp{decs,body,pos},d) =
-		(indent d; say "LetExp([";
-		 dolist d dec decs; sayln "],"; exp(body,d+1); say")")
-    | exp(A.ArrayExp{typ,size,init,pos},d) =
-	        (indent d; say "ArrayExp("; say(Symbol.name typ); sayln ",";
-		 exp(size,d+1); sayln ","; exp(init,d+1); say ")")
+  and f((name, e, pos), d) = (indent d; say "("; say(Symbol.name name); sayln ":"; exp(e, d + 1); say ")")
 
+  and m({match, result, pos}, d) = (indent d; sayln "("; exp(match, d + 1); sayln "=>"; exp(result, d + 1); sayln ""; indent d; say ")")
+
+  and exp(A.StructsSigsExp(structsigs), d) = (indent d; say "StructsSigsExp["; dolist d structsig structsigs; say "]")
+    | exp(A.VarExp(sym, pos), d) = (indent d; say "VarExp("; say(Symbol.name sym); say ")")
+    | exp(A.IntExp(i, pos), d) = (indent d; say "IntExp("; say(Int.toString i); say ")")
+    | exp(A.StringExp(s, pos), d) = (indent d; say "StringExp(\""; say s; say "\")")
+    | exp(A.RealExp(r, pos), d) = (indent d; say "RealExp("; say(Real.toString r); say ")")
+    | exp(A.BitExp(b, pos), d) = (indent d; say "BitExp("; say(Bit.toString b); say ")")
+    | exp(A.ApplyExp(e1, e2, pos), d) = (indent d; sayln "ApplyExp("; exp(e1, d + 1); sayln ","; exp(e2, d + 1); sayln ""; indent d; say ")")
+    | exp(A.NilExp, d) = (indent d; say "NilExp")
+    | exp(A.OpExp{left, oper, right, pos}, d) = (indent d; sayln "OpExp("; indent (d + 1); say(opname oper); sayln ","; exp(left, d + 1); sayln ","; exp(right, d + 1); sayln ""; indent d; say ")")
+    | exp(A.NegExp{e, p}, d) = (indent d; sayln "NegExp("; exp(e, d + 1); sayln ""; indent d; say ")")
+    | exp(A.LetExp{decs, body, pos}, d) = (indent d; say "LetExp(["; dolist d dec decs; sayln "],"; exp(body, d + 1); sayln ""; indent d; say ")")
+    | exp(A.AssignExp{lhs, rhs, pos}, d) = (indent d; sayln "AssignExp("; exp(lhs, d + 1); sayln "," exp(rhs, d + 1); sayln ""; indent d; say ")")
+    | exp(A.SeqExp(exps), d) = (indent d; say "SeqExp["; dolist d exp (map #1 exps); sayln ""; indent d; say "]")
+    | exp(A.IfExp{test, then', else', pos}, d) = (indent d; sayln "IfExp("; exp(test, d + 1); sayln ","; exp(then', d + 1); case else' of NONE => () | SOME e => (sayln ","; exp(e, d + 1)); sayln ""; indent d; say ")")
+    | exp(A.ListExp(exps), d) = (indent d; say "ListExp["; dolist d exp (map #1 exps); sayln ""; indent d; say "]")
+    | exp(A.ArrayExp(exps), d) = (indent d; say "ArrayExp["; dolist d exp (map #1 (Vector.toList(exps))); sayln ""; indent d; say "]")
+    | exp(A.RefExp(e, p)) = (indent d; sayln "RefExp("; exp(e, d + 1); sayln ""; indent d; say ")")
+    | exp(A.RecordExp{fields, pos}, d) = (indent d; say "RecordExp(["; dolist d f fields; sayln "]"; indent d; say ")")
+    | exp(A.HWTupleExp(exps)) = (indent d; say "HWTupleExp["; dolist d exp (map #1 exps); sayln ""; indent d; say "]")
+    | exp(A.WithExp{exp = e, fields, pos}) = (indent d; sayln "WithExp("; exp(e, d + 1); sayln ","; indent (d + 1); say "["; dolist d f fields; sayln "]"; indent d; say ")")
+    | exp(A.DerefExp{exp = e, pos}) = (indent d; sayln "DerefExp("; exp(e, d + 1); sayln ""; indent d; say ")")
+    | exp(A.StructAccExp{name, field, pos}) = (indent d; say "StructAccExp("; say(Symbol.name name); say (Symbol.name field); say ")")
+    | exp(A.RecordAccExp{exp = e, field, pos}) = (indent d; sayln "RecordAccExp("; indent (d + 1); say(Symbol.name field); sayln ","; exp(e, d + 1); sayln ""; indent d; say ")")
+    | exp(A.ArrayAccExp{exp = e, index, pos}) = (indent d; sayln "ArrayAccExp("; exp(e, d + 1); sayln ","; exp(index, d + 1); sayln ""; indent d; say ")")
+    | exp(A.PatternMatchExp{exp = e, cases, pos}) = (indent d; sayln "PatternMatchExp("; exp(e, d + 1); sayln ","; say "["; dolist d m cases; sayln "]"; indent d; say ")")
+    | exp(A.BitArrayExp{size, result, spec}) = (indent d; sayln "BitArrayExp("; exp(size, d + 1); sayln ","; exp(result, d + 1); case spec of NONE => () | SOME s => (sayln ","; indent (d + 1); say s); sayln ""; indent d; say ")")
+    | exp(A.ZeroExp) = (indent d; say "ZeroExp")
+
+  (* TODO *)
+  and structsig StructExp({name, signat, decs, pos}) = ()
+    | structsig SigExp({name, defs}) = ()
+    | structsig NamedSigExp(sym) = ()
+    | structsig AnonSigExp(defs) = ()
 
   and dec(A.FunctionDec l, d) =
 	    let fun field({name,escape,typ,pos},d) =
@@ -158,7 +124,8 @@ fun print (outstream, e0) =
     | ty(A.ArrayTy(s,p),d) = (indent d; say "ArrayTy("; say(Symbol.name s);
 			      say ")")
 
- in  exp(e0, 0); sayln ""; TextIO.flushOut outstream
-end
+ in
+    exp(e0, 0); sayln ""; TextIO.flushOut outstream
+ end
 
 end
