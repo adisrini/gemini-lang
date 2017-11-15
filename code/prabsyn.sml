@@ -73,11 +73,23 @@ fun print (outstream, e0) =
     | exp(A.BitArrayExp{size, result, spec}, d) = (indent d; sayln "BitArrayExp("; exp(size, d + 1); sayln ","; exp(result, d + 1); case spec of NONE => () | SOME s => (sayln ","; indent (d + 1); say s); sayln ""; indent d; say ")")
     | exp(A.ZeroExp, d) = (indent d; say "ZeroExp")
 
-  (* TODO *)
-  and ss(A.StructExp({name, signat, decs, pos}), d) = ()
-    | ss(A.SigExp({name, defs}), d) = ()
-    | ss(A.NamedSigExp(sym), d) = ()
-    | ss(A.AnonSigExp(defs), d) = ()
+  and ss(A.StructExp({name, signat, decs, pos}), d) = (indent d; sayln "StructExp("; indent (d + 1); say(Symbol.name name); sayln ","; case signat of NONE => () | SOME (s, _) => (ss(s, d + 1); sayln ","); indent (d + 1); say "["; dolist d dec decs; sayln "]"; indent d; say ")")
+    | ss(A.SigExp({name, defs}), d) = (indent d; sayln "SigExp("; indent (d + 1); say(Symbol.name name); sayln ","; indent (d + 1); say "["; dolist d def defs; sayln "]"; indent d; say ")")
+    | ss(A.NamedSigExp(sym), d) = (indent d; say "NamedSigExp("; say(Symbol.name sym); say ")")
+    | ss(A.AnonSigExp(defs), d) = (indent d; say "AnonSigExp["; dolist d def defs; say "]")
+
+
+    (*
+
+      and def = ValDef of {name: symbol, ty: ty * pos, pos: pos}
+              | TypeDef of {name: symbol, pos: pos}
+              | ModuleDef of {name: symbol, input_ty: ty, output_ty: ty, pos: pos}
+
+    *)
+
+  and def(A.ValDef{name, ty = (t, p), pos}, d) = ()
+    | def(A.TypeDef{name, pos}, d) = ()
+    | def(A.ModuleDef{name, input_ty, output_ty, pos}, d) = ()
 
   and dec(A.FunctionDec l, d) =
 	    let fun field({name,escape,typ,pos},d) =
