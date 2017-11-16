@@ -1,0 +1,15 @@
+let
+  (* ints *)
+  val _ = 1029348
+  val _ = ~293
+  val _ = 000
+  val _ = ~0000
+  val _ = #'b:10010
+  val _ = #'o:7402
+  val _ = #'h:dead
+  val _ = ~#'b:101
+  val _ = ~#'o:777
+  val _ = ~#'h:d00d
+in
+  0
+end

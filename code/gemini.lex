@@ -130,13 +130,13 @@ fun eof() = let val pos = hd(!linePos) in
 
 <INITIAL>"\'"[a-zA-Z][a-zA-Z0-9_]*             => (Tokens.TID(yytext, yypos, yypos + size(yytext)));
 <INITIAL>[a-zA-Z_][a-zA-Z0-9_]*                => (Tokens.ID(yytext, yypos, yypos + size(yytext)));
-<INITIAL>[-+]?[0-9]+                           => (Tokens.INT(valOf(Int.fromString(yytext)), yypos, yypos + size(yytext)));
+<INITIAL>[~]?[0-9]+                            => (Tokens.INT(valOf(Int.fromString(yytext)), yypos, yypos + size(yytext)));
 <INITIAL>#'b:[0-1]+                            => (Tokens.INT(parseInt (String.substring(yytext, 4, size(yytext) - 4)) StringCvt.BIN, yypos, yypos + size(yytext)));
 <INITIAL>#'o:[0-7]+                            => (Tokens.INT(parseInt (String.substring(yytext, 4, size(yytext) - 4)) StringCvt.OCT, yypos, yypos + size(yytext)));
 <INITIAL>#'h:[0-9a-fA-F]+                      => (Tokens.INT(parseInt (String.substring(yytext, 4, size(yytext) - 4)) StringCvt.HEX, yypos, yypos + size(yytext)));
-<INITIAL>[-+]?[0-9]+\.[0-9]*([eE][-+]?[0-9]+)? => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
-<INITIAL>[-+]?[0-9]*\.[0-9]+([eE][-+]?[0-9]+)? => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
-<INITIAL>[-+]?[0-9]+([eE][-+]?[0-9]+)?         => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
+<INITIAL>[~]?[0-9]+\.[0-9]*([eE][~]?[0-9]+)?   => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
+<INITIAL>[~]?[0-9]*\.[0-9]+([eE][~]?[0-9]+)?   => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
+<INITIAL>[~]?[0-9]+([eE][~]?[0-9]+)?           => (Tokens.REAL(valOf(Real.fromString(yytext)), yypos, yypos + size(yytext)));
 <INITIAL>'b:(0 | 1)                            => (Tokens.BIT(GeminiBit.fromString(yytext), yypos, yypos + size(yytext)));
 <INITIAL>"\""                                  => (YYBEGIN STRING; stringLiteralClosed := false; buffer:= ""; stringStartPosition := yypos; continue());
 <STRING>[ -!#-\[\]-~]*                         => (buffer := !buffer ^ yytext; continue());
