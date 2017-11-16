@@ -1,5 +1,116 @@
 let
-  type x = (int * string) * real * bit
+  type a = int -> string -> real    (*
+                                        FunTy(
+                                          NameTy(int) ->
+                                          FunTy(
+                                            NameTy(string) ->
+                                            NameTy(real)
+                                          )
+                                        )
+                                     *)
+  type b = int * string -> real     (*
+                                        FunTy(
+                                          RecordTy[
+                                            Field(
+                                              1,
+                                              true,
+                                              NameTy(int)
+                                            ),
+                                            Field(
+                                              2,
+                                              true,
+                                              NameTy(string)
+                                            )
+                                          ] ->
+                                          NameTy(real)
+                                        )
+                                     *)
+  type c = real -> int * string     (*
+                                        FunTy(
+                                          NameTy(real) ->
+                                          RecordTy[
+                                            Field(
+                                              1,
+                                              true,
+                                              NameTy(int)
+                                            ),
+                                            Field(
+                                              2,
+                                              true,
+                                              NameTy(string)
+                                            )
+                                          ]
+                                        )
+                                     *)
+  val x = 0 + 1 * 2 / 3 % 4         (*
+                                        OpExp(
+                                          IntPlusOp,
+                                          IntExp(0),
+                                          OpExp(
+                                            IntModOp,
+                                            OpExp(
+                                              IntDivideOp,
+                                              OpExp(
+                                                IntTimesOp,
+                                                IntExp(1),
+                                                IntExp(2)
+                                              ),
+                                              IntExp(3)
+                                            ),
+                                            IntExp(4)
+                                          )
+                                        )
+                                     *)
+  val _ = f a b c                   (*
+                                        ApplyExp(
+                                          ApplyExp(
+                                            ApplyExp(
+                                              VarExp(f),
+                                              VarExp(a)
+                                            ),
+                                            VarExp(b)
+                                          ),
+                                          VarExp(c)
+                                        )
+                                     *)
+  val _ = a := b := c               (*
+                                        AssignExp(
+                                          VarExp(a),
+                                          AssignExp(
+                                            VarExp(b),
+                                            VarExp(c)
+                                          )
+                                        )
+                                     *)
+  val _ = #1(foo) := 0.0            (*
+                                        AssignExp(
+                                          RecordAccExp(
+                                            1,
+                                            VarExp(foo)
+                                          ),
+                                          RealExp(0.0)
+                                        )
+                                     *)
+  val _ = #1 x * 10                 (*
+                                        OpExp(
+                                          IntTimesOp,
+                                          RecordAccExp(
+                                            1,
+                                            VarExp(x)
+                                          ),
+                                          IntExp(10)
+                                        )
+                                     *)
+
+  val _ = !!x                       (*
+                                        DerefExp(
+                                          DerefExp(
+                                            VarExp(x)
+                                          )
+                                        )
+                                     *)
+
+  val _ =
 in
   0
 end

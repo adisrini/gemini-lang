@@ -68,6 +68,7 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"if"  	                               => (Tokens.IF(yypos, yypos + 2));
 <INITIAL>"then"  	                             => (Tokens.THEN(yypos, yypos + 4));
 <INITIAL>"else"  	                             => (Tokens.ELSE(yypos, yypos + 4));
+<INITIAL>"case"                                => (Tokens.CASE(yypos, yypos + 4));
 
 <INITIAL>"orelse"  	                           => (Tokens.ORELSE(yypos, yypos + 6));
 <INITIAL>"andalso"  	                         => (Tokens.ANDALSO(yypos, yypos + 7));

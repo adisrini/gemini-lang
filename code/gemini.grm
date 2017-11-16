@@ -52,7 +52,7 @@ fun coalesce((A.RecordTy(fields1, rp1), p1), (A.RecordTy(fields2, rp2), p2)) = A
   | RBRACE | LBRACE | RBRACK | LBRACK | RPAREN | LPAREN
   | DOT | SEMICOLON | COLON | COMMA | POUND | AT | ASSIGN | BANG | CONS | POUND_TIMES | AND
   | ID of string | TID of string | INT of int | STRING of string | REAL of real | BIT of GeminiBit.bit
-  | APPLY
+  | APPLY | REC_ACC | DEREF
 
 %nonterm
       program of A.exp
@@ -177,16 +177,20 @@ fun coalesce((A.RecordTy(fields1, rp1), p1), (A.RecordTy(fields2, rp2), p2)) = A
 
 %right ASSIGN
 %right WITH
+%right THIN_ARROW
 
-%left LBRACE RBRACE
 %left CONS
 %left ORELSE
 %left ANDALSO
 %left BIT_SLL BIT_SRA BIT_SRL
+
 %nonassoc EQ NEQ GT LT GE LE
 %left REAL_MINUS REAL_PLUS INT_MINUS INT_PLUS BIT_XOR BIT_OR POUND_TIMES
 %left REAL_DIVIDE REAL_TIMES INT_DIVIDE INT_TIMES BIT_AND INT_MOD
 
+%right DEREF
+%right REC_ACC
+%left AT
 %left LIST SW REF
 
 %left UMINUS BIT_NOT
@@ -250,11 +254,11 @@ array_access  : exp LBRACK exp RBRACK                                       (A.A
 
 struct_access : ID DOT ID                                                   (A.StructAccExp{name = Symbol.symbol(ID1), field = Symbol.symbol(ID2), pos = ID1left})
 
-tuple_access  : POUND INT exp                                               (A.RecordAccExp{exp = exp, field = Symbol.symbol(Int.toString(INT)), pos = POUNDleft})
+tuple_access  : POUND INT exp %prec REC_ACC                                 (A.RecordAccExp{exp = exp, field = Symbol.symbol(Int.toString(INT)), pos = POUNDleft})
 
-record_access : POUND ID exp                                                (A.RecordAccExp{exp = exp, field = Symbol.symbol(ID), pos = POUNDleft})
+record_access : POUND ID exp %prec REC_ACC                                  (A.RecordAccExp{exp = exp, field = Symbol.symbol(ID), pos = POUNDleft})
 
-deref         : BANG exp                                                    (A.DerefExp{exp = exp, pos = BANGleft})
+deref         : BANG exp %prec DEREF                                        (A.DerefExp{exp = exp, pos = BANGleft})
 
 access        : array_access                                                (array_access)
               | struct_access                                               (struct_access)
