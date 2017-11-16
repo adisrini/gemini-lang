@@ -10,6 +10,40 @@ let
   val _ = ~#'b:101
   val _ = ~#'o:777
   val _ = ~#'h:d00d
+
+  (* reals *)
+  val _ = 123.456     (* normal *)
+  val _ = 123.        (* no fractional part *)
+  val _ = .456        (* no integer part *)
+  val _ = 123.4E4     (* normal w/ exponent *)
+  val _ = .456E5      (* no integer part w/ exponent *)
+  val _ = 123E4       (* no decimal point w/ exponent *)
+
+  (* negated versions of above *)
+  val _ = ~123.456
+  val _ = ~123.
+  val _ = ~.456
+  val _ = ~123.4E4
+  val _ = ~.456E5
+  val _ = ~123E4
+
+  (* negative exponents *)
+  val _ = 123.4E~4
+  val _ = .456E~5
+  val _ = 123E~4
+  val _ = ~123.4E~4
+  val _ = ~.456E~5
+  val _ = ~123E~4
+
+  (* bits *)
+  val _ = 'b:0
+  val _ = 'b:1
+
+  (* ids *)
+  val abcABC123 = 0
+  val _abcABC123 = 0
+  val _a_b_c = 0
+
 in
   0
 end
