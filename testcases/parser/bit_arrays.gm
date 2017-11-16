@@ -6,6 +6,8 @@ let
             then 'b:0
             else 'b:1
   val d = #[32; f]
+  val h = x'u:y
+  val i = (x * 10, y - z)'r:(g q r s)
 in
   0
 end
