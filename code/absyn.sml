@@ -62,12 +62,12 @@ struct
          | RecordTy of field list * pos
          | ArrayTy of ty * exp * pos
          | ListTy of ty * pos
-         | SWTupleTy of ty * ty * pos
          | HWTupleTy of ty * ty * pos
          | TemporalTy of ty * exp * pos
          | RefTy of ty * pos
          | SWTy of ty * pos
          | FunTy of ty * ty * pos
+         | GroupedTy of ty * pos
 
   and param = NoParam
             | SingleParam of field

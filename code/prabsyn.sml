@@ -47,7 +47,7 @@ fun print (outstream, e0) =
       (indent d; sayln "Field(";
        indent (d + 1); say(Symbol.name name); sayln ",";
        indent (d + 1); say(Bool.toString(!escape)); sayln ",";
-       indent (d + 1); case tyopt of NONE => say "NONE" | SOME t => ty(t, d + 1); sayln "";
+       case tyopt of NONE => (indent (d + 1); say "NONE") | SOME t => ty(t, d + 1); sayln "";
        indent d; say ")")
 
   and print_param(A.NoParam, d) = (indent d; say "NoParam")
@@ -166,12 +166,12 @@ fun print (outstream, e0) =
     | ty(A.RecordTy(fields, p), d) = (indent d; say "RecordTy["; dolist d print_field fields; sayln ""; indent d; say "]")
     | ty(A.ArrayTy(t, e, p), d) = (indent d; sayln "ArrayTy("; ty(t, d + 1); sayln ","; exp(e, d + 1); sayln ""; indent d; say ")")
     | ty(A.ListTy(t, p), d) = (indent d; sayln "ListTy("; ty(t, d + 1); sayln ""; indent d; say ")")
-    | ty(A.SWTupleTy(t1, t2, p), d) = (indent d; sayln "SWTupleTy("; ty(t1, d + 1); sayln " * "; ty(t2, d + 1); sayln ""; indent d; say ")")
     | ty(A.HWTupleTy(t1, t2, p), d) = (indent d; sayln "HWTupleTy("; ty(t1, d + 1); sayln " #* "; ty(t2, d + 1); sayln ""; indent d; say ")")
     | ty(A.TemporalTy(t, e, p), d) = (indent d; sayln "TemporalTy("; ty(t, d + 1); sayln " @ "; exp(e, d + 1); sayln ""; indent d; say ")")
     | ty(A.RefTy(t, p), d) = (indent d; sayln "RefTy("; ty(t, d + 1); sayln ""; indent d; say ")")
     | ty(A.SWTy(t, p), d) = (indent d; sayln "SWTy("; ty(t, d + 1); sayln ""; indent d; say ")")
     | ty(A.FunTy(t1, t2, p), d) = (indent d; sayln "FunTy("; ty(t1, d + 1); sayln " -> "; ty(t2, d + 1); sayln ""; indent d; say ")")
+    | ty(A.GroupedTy(t, p), d) = (indent d; sayln "GroupedTy("; ty(t, d + 1); sayln ""; indent d; say ")")
  in
     exp(e0, 0); sayln ""; TextIO.flushOut outstream
  end

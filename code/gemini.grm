@@ -25,8 +25,18 @@ fun param [] = A.NoParam
   | param [f] = A.SingleParam(f)
   | param fields = A.MultiParams(fields)
 
-fun numberedFields lst = #2 (foldl (fn((expr, posn), (idx, acc)) => (idx + 1, (Symbol.symbol(Int.toString(idx)), expr, posn)::acc)) (1, []) lst)
+fun numberedExpFields lst = #2 (foldl (fn((expr, posn), (idx, acc)) => (idx + 1, acc @ [(Symbol.symbol(Int.toString(idx)), expr, posn)])) (1, []) lst)
 
+fun numberedTyField i t p = {name = Symbol.symbol(Int.toString(i)), ty = SOME(t), escape = ref true, pos = p}
+
+fun numberedTyFields tps = #2 (foldl (fn((t, p), (idx, acc)) => (idx + 1, acc @ [numberedTyField idx t p])) (1, []) tps)
+
+fun renumberTyFields fields offset = map (fn({name, ty, escape, pos}) => {name = Symbol.symbol(Int.toString(valOf(Int.fromString(Symbol.name name)) + offset)), ty = ty, escape = escape, pos = pos}) fields
+
+fun coalesce((A.RecordTy(fields1, rp1), p1), (A.RecordTy(fields2, rp2), p2)) = A.RecordTy(fields1 @ (renumberTyFields fields2 (length(fields1))), rp1)
+  | coalesce((A.RecordTy(fields, rp), p), (ty', p')) = A.RecordTy(fields @ [numberedTyField (length(fields) + 1) ty' p'], rp)
+  | coalesce((ty', p'), (A.RecordTy(fields, rp), p)) = A.RecordTy([numberedTyField 1 ty' p'] @ (renumberTyFields fields 1), p')
+  | coalesce((t1, p1), (t2, p2)) = A.RecordTy(numberedTyFields([(t1, p1), (t2, p2)]), p1)
 
 %%
 %term
@@ -164,8 +174,10 @@ fun numberedFields lst = #2 (foldl (fn((expr, posn), (idx, acc)) => (idx + 1, (S
 %nonassoc THEN
 %nonassoc ELSE
 %nonassoc LBRACK RBRACK
+
 %right ASSIGN
 %right WITH
+
 %left LBRACE RBRACE
 %left CONS
 %left ORELSE
@@ -174,9 +186,11 @@ fun numberedFields lst = #2 (foldl (fn((expr, posn), (idx, acc)) => (idx + 1, (S
 %nonassoc EQ NEQ GT LT GE LE
 %left REAL_MINUS REAL_PLUS INT_MINUS INT_PLUS BIT_XOR BIT_OR POUND_TIMES
 %left REAL_DIVIDE REAL_TIMES INT_DIVIDE INT_TIMES BIT_AND INT_MOD
+
 %left LIST SW REF
+
 %left UMINUS BIT_NOT
-%left LPAREN RPAREN APPLY
+%left APPLY
 
 %%
 
@@ -344,7 +358,7 @@ ty_dec        : TYPE ID EQ ty                                               (A.T
 
 ty            : TID                                                         (A.GenericTy(Symbol.symbol(TID), TIDleft))
               | ID                                                          (A.NameTy(Symbol.symbol(ID), IDleft))
-              | ty INT_TIMES ty                                             (A.SWTupleTy(ty1, ty2, ty1left))
+              | ty INT_TIMES ty                                             (coalesce((ty1, ty1left), (ty2, ty2left)))
               | ty POUND_TIMES ty                                           (A.HWTupleTy(ty1, ty2, ty1left))
               | LBRACE ty_fields RBRACE                                     (A.RecordTy(ty_fields, LBRACEleft))
               | ty AT exp                                                   (A.TemporalTy(ty1, exp1, ty1left))
@@ -353,6 +367,7 @@ ty            : TID                                                         (A.G
               | ty REF                                                      (A.RefTy(ty1, ty1left))
               | ty SW                                                       (A.SWTy(ty1, ty1left))
               | ty THIN_ARROW ty                                            (A.FunTy(ty1, ty2, ty1left))
+              | LPAREN ty RPAREN                                            (A.GroupedTy(ty, tyleft))
 
 no_ty_fields  : ID                                                          ([{name = Symbol.symbol(ID), ty = NONE, escape = ref true, pos = IDleft}])
               | no_ty_fields COMMA ID                                       (no_ty_fields1 @ [{name = Symbol.symbol(ID), ty = NONE, escape = ref true, pos = no_ty_fields1left}])
@@ -434,7 +449,7 @@ list_inst     : LBRACK list_elements RBRACK                                 (A.L
 list_elements : exp exp_comma_tail                                          ([(exp1, exp1left)] @ exp_comma_tail)
               | epsilon                                                     ([])
 
-sw_tuple_inst : LPAREN list_elements RPAREN                                 (A.RecordExp{fields = numberedFields(list_elements), pos = LPARENleft})
+sw_tuple_inst : LPAREN list_elements RPAREN                                 (A.RecordExp{fields = numberedExpFields(list_elements), pos = LPARENleft})
 
 hw_tuple_inst : POUND LPAREN list_elements RPAREN                           (A.HWTupleExp(list_elements))
 

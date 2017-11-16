@@ -1,0 +1,5 @@
+let
+  type x = (int * string) * real * bit
+in
+  0
+end

@@ -122,6 +122,7 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"::"                                  => (Tokens.CONS(yypos, yypos + 2));
 <INITIAL>":"                                   => (Tokens.COLON(yypos, yypos + 1));
 <INITIAL>";"                                   => (Tokens.SEMICOLON(yypos, yypos + 1));
+<INITIAL>"#*"                                  => (Tokens.POUND_TIMES(yypos, yypos + 2));
 <INITIAL>"#"                                   => (Tokens.POUND(yypos, yypos + 1));
 <INITIAL>"@"                                   => (Tokens.AT(yypos, yypos + 1));
 <INITIAL>"!"                                   => (Tokens.BANG(yypos, yypos + 1));
