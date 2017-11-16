@@ -179,7 +179,7 @@ fun coalesce((A.RecordTy(fields1, rp1), p1), (A.RecordTy(fields2, rp2), p2)) = A
 %right WITH
 %right THIN_ARROW
 
-%left CONS
+%right CONS
 %left ORELSE
 %left ANDALSO
 %left BIT_SLL BIT_SRA BIT_SRL

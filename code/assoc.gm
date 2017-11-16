@@ -110,7 +110,32 @@ let
                                         )
                                      *)
 
-  val _ =
+  val _ = #1 foo [100]              (*
+                                        ArrayAccExp(
+                                          RecordAccExp(
+                                            1,
+                                            VarExp(foo)
+                                          ),
+                                          IntExp(100)
+                                        )
+                                     *)
+  val _ = 0::1::2::[3]              (*
+                                        OpExp(
+                                          ConsOp,
+                                          IntExp(0),
+                                          OpExp(
+                                            ConsOp,
+                                            IntExp(1),
+                                            OpExp(
+                                              ConsOp,
+                                              IntExp(2),
+                                              ListExp[
+                                                IntExp(3)
+                                              ]
+                                            )
+                                          )
+                                        )
+                                     *)
 in
   0
 end
