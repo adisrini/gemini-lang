@@ -1,3 +1,4 @@
+(* no sig *)
 structure S =
 struct
 
@@ -15,6 +16,7 @@ struct
   module m x = 'b:0
 end
 
+(* anon sig *)
 structure T :
 sig
   val x : int
@@ -27,6 +29,7 @@ struct
 
 end
 
+(* named sig *)
 structure U : V =
 struct
 

@@ -112,6 +112,7 @@ fun print (outstream, e0) =
           fun print_mod({name, arg, result, body, pos}, d) =
             (indent d; say (Symbol.name name); say "(";
              dolist d print_param [arg]; sayln ",";
+             indent (d + 1);
              case result of NONE => say "NONE"
                           | SOME(t, _) => (sayln "SOME("; ty(t, d + 1); sayln ""; indent d; say ")");
              sayln ",";
@@ -125,6 +126,7 @@ fun print (outstream, e0) =
           fun func({name, params, result, body, pos}, d) =
               (indent d; say (Symbol.name name); say "([";
 		           dolist d print_param params; sayln "],";
+               indent (d + 1);
 		           case result of NONE => say "NONE"
 			                      | SOME(t, _) => (sayln "SOME("; ty(t, d + 1); sayln ""; indent d; say ")");
                sayln ",";
