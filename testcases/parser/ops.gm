@@ -1,38 +1,38 @@
-structure A =
-struct
+let
+  (* int ops *)
+  val _ = (~x;
+           x + y;
+           x * y;
+           x - y;
+           x / y;
+           x % y;
+           x + (y - z);
+           x + (y * z);
+           ((x % z) * y) - (~x)
+          )
 
-    (* int ops *)
-    val _ = (~x;
-             x + y;
-             x * y;
-             x - y;
-             x / y;
-             x % y;
-             x + (y - z);
-             x + (y * z);
-             ((x % z) * y) - (~x)
-            )
+  (* bit ops *)
+  val _ = (b';
+           b & c;
+           b | c;
+           b ^ c;
+           b << x;
+           b >> x;
+           b >>> x;
+           b >>> x + y;
+           b & c | d;
+           (b | c)')
 
-    (* bit ops *)
-    val _ = (b';
-             b & c;
-             b | c;
-             b ^ c;
-             b << x;
-             b >> x;
-             b >>> x;
-             b >>> x + y;
-             b & c | d;
-             (b | c)')
-
-    (* comparison ops *)
-    val _ = (x = y;
-             x <> y;
-             x > y;
-             x >= y;
-             x < y;
-             x <= y;
-             x = y > z;     (*      x = (y > z)       *)
-             x = y <> z;    (*      (x = y) <> z      *)
-             x < y > z)     (*      (x < y) > z       *)
+  (* comparison ops *)
+  val _ = (x = y;
+           x <> y;
+           x > y;
+           x >= y;
+           x < y;
+           x <= y;
+           x = y > z;     (*      x = (y > z)       *)
+           x = y <> z;    (*      (x = y) <> z      *)
+           x < y > z)     (*      (x < y) > z       *)
+in
+  0
 end

@@ -1,14 +1,22 @@
-structure A =
-struct
+let
+  (* array access *)
+  val _ = my_array[0]
+  val _ = #['b:0, 'b:1, 'b:0][i * 2]
 
-    (* array accesses *)
-    val _ = my_array[0]
-    
+  (* struct access *)
+  val _ = S.abc
 
+  (* tuple access *)
+  val _ = # 1 (1, "", 3.0)
+  val _ = #999 my_tup
 
-    val _ = B.x
-    val _ = #1 (0, 1, 2, 3)
-    val _ = #valid {valid = 'b:0, resident = 'b:1}
-    val _ = !my_ref
+  (* record access *)
+  val _ = #valid {valid = 'b:0, resident = 'b:1}
+  val _ = #a my_rec
 
+  (* deref *)
+  val _ = !my_ref
+  val _ = !(!(ref (ref 0)))
+in
+  0
 end
