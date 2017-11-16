@@ -136,6 +136,17 @@ let
                                           )
                                         )
                                      *)
+
+  val _ = ref 1 * 10                (*
+                                        OpExp(
+                                          IntTimesOp,
+                                          RefExp(
+                                            IntExp(1)
+                                          ),
+                                          IntExp(10)
+                                        )
+                                     *)
+
 in
   0
 end
