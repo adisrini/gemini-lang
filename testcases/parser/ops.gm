@@ -25,6 +25,14 @@ struct
              b & c | d;
              (b | c)')
 
-    (*  *)
-    val _
+    (* comparison ops *)
+    val _ = (x = y;
+             x <> y;
+             x > y;
+             x >= y;
+             x < y;
+             x <= y;
+             x = y > z;     (*      x = (y > z)       *)
+             x = y <> z;    (*      (x = y) <> z      *)
+             x < y > z)     (*      (x < y) > z       *)
 end

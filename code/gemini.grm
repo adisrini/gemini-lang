@@ -184,7 +184,8 @@ fun coalesce((A.RecordTy(fields1, rp1), p1), (A.RecordTy(fields2, rp2), p2)) = A
 %left ANDALSO
 %left BIT_SLL BIT_SRA BIT_SRL
 
-%nonassoc EQ NEQ GT LT GE LE
+%left EQ NEQ
+%left GT LT GE LE
 %left REAL_MINUS REAL_PLUS INT_MINUS INT_PLUS BIT_XOR BIT_OR POUND_TIMES
 %left REAL_DIVIDE REAL_TIMES INT_DIVIDE INT_TIMES BIT_AND INT_MOD
 
