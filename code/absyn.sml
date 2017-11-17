@@ -23,6 +23,7 @@ struct
           | RefExp of exp * pos
           | RecordExp of {fields: (symbol * exp * pos) list, pos: pos}
           | HWTupleExp of (exp * pos) list
+          | SWExp of exp * pos
           | WithExp of {exp: exp, fields: (symbol * exp * pos) list, pos: pos}
           | DerefExp of {exp: exp, pos: pos}
           | StructAccExp of {name: symbol, field: symbol, pos: pos}

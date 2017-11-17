@@ -120,6 +120,7 @@ fun coalesce((A.RecordTy(fields1, rp1), p1), (A.RecordTy(fields2, rp2), p2)) = A
                     | list_elements of (A.exp * int) list
                 | sw_tuple_inst of A.exp
                 | hw_tuple_inst of A.exp
+                | sw_inst of A.exp
                 | exp_comma_tail of (A.exp * int) list
             | with_value of A.exp
             | pattern_match of A.exp
@@ -432,6 +433,7 @@ insts         : rec_inst                                                    (rec
               | list_inst                                                   (list_inst)
               | sw_tuple_inst                                               (sw_tuple_inst)
               | hw_tuple_inst                                               (hw_tuple_inst)
+              | sw_inst                                                     (sw_inst)
 
 rec_inst      : LBRACE rec_inst_body RBRACE                                 (A.RecordExp{fields = rec_inst_body, pos = LBRACEleft})
 
@@ -457,6 +459,8 @@ list_elements : exp exp_comma_tail                                          ([(e
 sw_tuple_inst : LPAREN list_elements RPAREN                                 (A.RecordExp{fields = numberedExpFields(list_elements), pos = LPARENleft})
 
 hw_tuple_inst : POUND LPAREN list_elements RPAREN                           (A.HWTupleExp(list_elements))
+
+sw_inst       : SW exp                                                      (A.SWExp(exp, SWleft))
 
 bit_array_inst: exp TID COLON exp                                           (A.BitArrayExp{size = exp1, result = exp2, spec = SOME(TID)})
 
