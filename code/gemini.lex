@@ -87,6 +87,9 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"|->"                                 => (Tokens.BIT_OR_REDUCE(yypos, yypos + 3));
 <INITIAL>"&->"                                 => (Tokens.BIT_AND_REDUCE(yypos, yypos + 3));
 <INITIAL>"^->"                                 => (Tokens.BIT_XOR_REDUCE(yypos, yypos + 3));
+<INITIAL>"&&"                                  => (Tokens.BIT_DOUBLE_AND(yypos, yypos + 2));
+<INITIAL>"||"                                  => (Tokens.BIT_DOUBLE_OR(yypos, yypos + 2));
+<INITIAL>"^^"                                  => (Tokens.BIT_DOUBLE_XOR(yypos, yypos + 2));
 <INITIAL>"!"	                                 => (Tokens.BIT_NOT(yypos, yypos + 1));
 <INITIAL>"|"	                                 => (Tokens.BIT_OR(yypos, yypos + 1));
 <INITIAL>"&"	                                 => (Tokens.BIT_AND(yypos, yypos + 1));

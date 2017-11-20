@@ -41,6 +41,7 @@ struct
   and oper = IntPlusOp | IntMinusOp | IntTimesOp | IntDivideOp | IntModOp
            | RealPlusOp | RealMinusOp | RealTimesOp | RealDivideOp
            | BitNotOp | BitAndOp | BitOrOp | BitXorOp | BitSLLOp | BitSRLOp | BitSRAOp
+           | BitDoubleAndOp | BitDoubleOrOp | BitDoubleXorOp
            | BitOrReduceOp | BitAndReduceOp | BitXorReduceOp
            | EqOp | NeqOp | LtOp | GtOp | LeOp | GeOp
            | ConsOp
