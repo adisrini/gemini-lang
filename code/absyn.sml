@@ -12,8 +12,8 @@ struct
           | BitExp of GeminiBit.bit * pos
           | ApplyExp of (exp * exp * pos)
           | NilExp of pos
-          | OpExp of {left: exp, oper: oper, right: exp, pos: pos}
-          | NegExp of {exp: exp, pos: pos}
+          | BinOpExp of {left: exp, oper: oper, right: exp, pos: pos}
+          | UnOpExp of {exp: exp, oper: oper, pos: pos}
           | LetExp of {decs: dec list, body: exp, pos: pos}
           | AssignExp of {lhs: exp, rhs: exp, pos: pos}
           | SeqExp of (exp * pos) list
@@ -41,6 +41,7 @@ struct
   and oper = IntPlusOp | IntMinusOp | IntTimesOp | IntDivideOp | IntModOp
            | RealPlusOp | RealMinusOp | RealTimesOp | RealDivideOp
            | BitNotOp | BitAndOp | BitOrOp | BitXorOp | BitSLLOp | BitSRLOp | BitSRAOp
+           | BitOrReduceOp | BitAndReduceOp | BitXorReduceOp
            | EqOp | NeqOp | LtOp | GtOp | LeOp | GeOp
            | ConsOp
 

@@ -45,6 +45,9 @@ val THIN_ARROW: linenum * linenum -> token
 
 (******* OPERATORS *******)
 (* bitwise *)
+val BIT_OR_REDUCE: linenum * linenum -> token
+val BIT_AND_REDUCE: linenum * linenum -> token
+val BIT_XOR_REDUCE: linenum * linenum -> token
 val BIT_NOT: linenum * linenum -> token
 val BIT_OR:  linenum * linenum -> token
 val BIT_AND: linenum * linenum -> token

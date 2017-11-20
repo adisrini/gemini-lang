@@ -84,7 +84,10 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"=>"                                  => (Tokens.FAT_ARROW(yypos, yypos + 2));
 <INITIAL>"->"                                  => (Tokens.THIN_ARROW(yypos, yypos + 2));
 
-<INITIAL>"\'"	                                 => (Tokens.BIT_NOT(yypos, yypos + 1));
+<INITIAL>"|->"                                 => (Tokens.BIT_OR_REDUCE(yypos, yypos + 3));
+<INITIAL>"&->"                                 => (Tokens.BIT_AND_REDUCE(yypos, yypos + 3));
+<INITIAL>"^->"                                 => (Tokens.BIT_XOR_REDUCE(yypos, yypos + 3));
+<INITIAL>"!"	                                 => (Tokens.BIT_NOT(yypos, yypos + 1));
 <INITIAL>"|"	                                 => (Tokens.BIT_OR(yypos, yypos + 1));
 <INITIAL>"&"	                                 => (Tokens.BIT_AND(yypos, yypos + 1));
 <INITIAL>"^"	                                 => (Tokens.BIT_XOR(yypos, yypos + 1));
@@ -126,7 +129,7 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"#*"                                  => (Tokens.POUND_TIMES(yypos, yypos + 2));
 <INITIAL>"#"                                   => (Tokens.POUND(yypos, yypos + 1));
 <INITIAL>"@"                                   => (Tokens.AT(yypos, yypos + 1));
-<INITIAL>"!"                                   => (Tokens.BANG(yypos, yypos + 1));
+<INITIAL>"$"                                   => (Tokens.BANG(yypos, yypos + 1));
 
 <INITIAL>"\'"[a-zA-Z][a-zA-Z0-9_]*             => (Tokens.TID(yytext, yypos, yypos + size(yytext)));
 <INITIAL>[a-zA-Z_][a-zA-Z0-9_]*                => (Tokens.ID(yytext, yypos, yypos + size(yytext)));

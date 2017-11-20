@@ -29,6 +29,9 @@ fun print (outstream, e0) =
     | opname A.BitSLLOp = "BitSLLOp"
     | opname A.BitSRLOp = "BitSRLOp"
     | opname A.BitSRAOp = "BitSRAOp"
+    | opname A.BitOrReduceOp = "BitOrReduceOp"
+    | opname A.BitAndReduceOp = "BitAndReduceOp"
+    | opname A.BitXorReduceOp = "BitXorReduceOp"
     | opname A.EqOp = "EqOp"
     | opname A.NeqOp = "NeqOp"
     | opname A.LtOp = "LtOp"
@@ -64,8 +67,8 @@ fun print (outstream, e0) =
     | exp(A.BitExp(b, pos), d) = (indent d; say "BitExp("; say(GeminiBit.toString b); say ")")
     | exp(A.ApplyExp(e1, e2, pos), d) = (indent d; sayln "ApplyExp("; exp(e1, d + 1); sayln ","; exp(e2, d + 1); sayln ""; indent d; say ")")
     | exp(A.NilExp(p), d) = (indent d; say "NilExp")
-    | exp(A.OpExp{left, oper, right, pos}, d) = (indent d; sayln "OpExp("; indent (d + 1); say(opname oper); sayln ","; exp(left, d + 1); sayln ","; exp(right, d + 1); sayln ""; indent d; say ")")
-    | exp(A.NegExp{exp = e, pos}, d) = (indent d; sayln "NegExp("; exp(e, d + 1); sayln ""; indent d; say ")")
+    | exp(A.BinOpExp{left, oper, right, pos}, d) = (indent d; sayln "BinOpExp("; indent (d + 1); say(opname oper); sayln ","; exp(left, d + 1); sayln ","; exp(right, d + 1); sayln ""; indent d; say ")")
+    | exp(A.UnOpExp{exp = e, oper, pos}, d) = (indent d; sayln "UnOpExp("; indent (d + 1); say(opname oper); sayln ","; exp(e, d + 1); sayln ""; indent d; say ")")
     | exp(A.LetExp{decs, body, pos}, d) = (indent d; say "LetExp(["; dolist d dec decs; sayln "],"; exp(body, d + 1); sayln ""; indent d; say ")")
     | exp(A.AssignExp{lhs, rhs, pos}, d) = (indent d; sayln "AssignExp("; exp(lhs, d + 1); sayln ","; exp(rhs, d + 1); sayln ""; indent d; say ")")
     | exp(A.SeqExp(exps), d) = (indent d; say "SeqExp["; dolist d exp (map #1 exps); sayln ""; indent d; say "]")

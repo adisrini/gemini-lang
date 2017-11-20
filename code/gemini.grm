@@ -46,7 +46,7 @@ fun coalesce((A.RecordTy(fields1, rp1), p1), (A.RecordTy(fields2, rp2), p2)) = A
   | ORELSE | ANDALSO | NOT
   | NIL | WITH | OF | OP | CASE
   | PIPE_EQUALS | FAT_ARROW | THIN_ARROW
-  | BIT_NOT | BIT_OR | BIT_AND | BIT_XOR | BIT_SLL | BIT_SRL | BIT_SRA
+  | BIT_OR_REDUCE | BIT_AND_REDUCE | BIT_XOR_REDUCE | BIT_NOT | BIT_OR | BIT_AND | BIT_XOR | BIT_SLL | BIT_SRL | BIT_SRA
   | GE | GT | LE | LT | NEQ | EQ
   | UMINUS | INT_DIVIDE | INT_TIMES | INT_PLUS | INT_MINUS | INT_MOD | REAL_DIVIDE | REAL_TIMES | REAL_PLUS | REAL_MINUS
   | RBRACE | LBRACE | RBRACK | LBRACK | RPAREN | LPAREN
@@ -195,7 +195,7 @@ fun coalesce((A.RecordTy(fields1, rp1), p1), (A.RecordTy(fields2, rp2), p2)) = A
 %left AT
 %left LIST SW REF
 
-%left UMINUS BIT_NOT
+%left UMINUS BIT_NOT BIT_OR_REDUCE BIT_AND_REDUCE BIT_XOR_REDUCE
 %left APPLY
 
 %%
@@ -274,7 +274,7 @@ operation     : int_op                                                      (int
               | compare_op                                                  (compare_op)
               | list_op                                                     (list_op)
 
-int_op        : UMINUS exp                                                  (A.NegExp{exp = exp1, pos = UMINUSleft})
+int_op        : UMINUS exp                                                  (A.UnOpExp{exp = exp1, oper = A.IntMinusOp, pos = UMINUSleft})
               | exp INT_PLUS exp                                            (A.OpExp{left = exp1, oper = A.IntPlusOp, right = exp2, pos = exp1left})
               | exp INT_MINUS exp                                           (A.OpExp{left = exp1, oper = A.IntMinusOp, right = exp2, pos = exp1left})
               | exp INT_TIMES exp                                           (A.OpExp{left = exp1, oper = A.IntTimesOp, right = exp2, pos = exp1left})
@@ -286,7 +286,10 @@ real_op       : exp REAL_PLUS exp                                           (A.O
               | exp REAL_TIMES exp                                          (A.OpExp{left = exp1, oper = A.RealTimesOp, right = exp2, pos = exp1left})
               | exp REAL_DIVIDE exp                                         (A.OpExp{left = exp1, oper = A.RealDivideOp, right = exp2, pos = exp1left})
 
-bit_op        : exp BIT_NOT                                                 (A.NegExp{exp = exp1, pos = exp1left})
+bit_op        : BIT_NOT exp                                                 (A.UnOpExp{exp = exp1, oper = A.BitNotOp, pos = BIT_NOTleft})
+              | BIT_OR_REDUCE exp                                           (A.UnOpExp{exp = exp1, oper = A.BitOrReduceOp, pos = BIT_OR_REDUCEleft})
+              | BIT_AND_REDUCE exp                                          (A.UnOpExp{exp = exp1, oper = A.BitAndReduceOp, pos = BIT_AND_REDUCEleft})
+              | BIT_XOR_REDUCE exp                                          (A.UnOpExp{exp = exp1, oper = A.BitXorReduceOp, pos = BIT_XOR_REDUCEleft})
               | exp BIT_OR exp                                              (A.OpExp{left = exp1, oper = A.BitOrOp, right = exp2, pos = exp1left})
               | exp BIT_AND exp                                             (A.OpExp{left = exp1, oper = A.BitAndOp, right = exp2, pos = exp1left})
               | exp BIT_XOR exp                                             (A.OpExp{left = exp1, oper = A.BitXorOp, right = exp2, pos = exp1left})
