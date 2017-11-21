@@ -102,7 +102,7 @@ let
                                         )
                                      *)
 
-  val _ = !!x                       (*
+  val _ = $$x                       (*
                                         DerefExp(
                                           DerefExp(
                                             VarExp(x)

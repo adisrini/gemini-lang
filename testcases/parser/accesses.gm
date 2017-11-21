@@ -15,8 +15,8 @@ let
   val _ = #a my_rec
 
   (* deref *)
-  val _ = !my_ref
-  val _ = !(!(ref (ref 0)))
+  val _ = $my_ref
+  val _ = $($(ref (ref 0)))
 in
   0
 end

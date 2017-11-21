@@ -12,7 +12,7 @@ let
           )
 
   (* bit ops *)
-  val _ = (b';
+  val _ = (!b;
            b & c;
            b | c;
            b ^ c;
@@ -21,7 +21,11 @@ let
            b >>> x;
            b >>> x + y;
            b & c | d;
-           (b | c)')
+           !(b | c);
+           b && c || d;
+           b ^^ c || d;
+           &->x;
+           &->x & y)
 
   (* comparison ops *)
   val _ = (x = y;
