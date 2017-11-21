@@ -21,8 +21,11 @@ fun extractStructSigList (A.StructsSigsExp list) = SOME(list)
 fun extractDatatypeDecList (A.DatatypeDec list) = SOME(list)
   | extractDatatypeDecList _ = NONE
 
-fun extractFields (A.RecordExp{fields, pos}) = SOME(fields)
-  | extractFields _ = NONE
+fun extractSWFields (A.SWRecordExp{fields, pos}) = SOME(fields)
+  | extractSWFields _ = NONE
+
+fun extractHWFields (A.HWRecordExp{fields, pos}) = SOME(fields)
+  | extractHWFields _ = NONE
 
 fun param [] = A.NoParam
   | param [f] = A.SingleParam(f)
@@ -36,10 +39,16 @@ fun numberedTyFields tps = #2 (foldl (fn((t, p), (idx, acc)) => (idx + 1, acc @ 
 
 fun renumberTyFields fields offset = map (fn({name, ty, escape, pos}) => {name = Symbol.symbol(Int.toString(valOf(Int.fromString(Symbol.name name)) + offset)), ty = ty, escape = escape, pos = pos}) fields
 
-fun coalesce((A.RecordTy(fields1, rp1), p1), (A.RecordTy(fields2, rp2), p2)) = A.RecordTy(fields1 @ (renumberTyFields fields2 (length(fields1))), rp1)
-  | coalesce((A.RecordTy(fields, rp), p), (ty', p')) = A.RecordTy(fields @ [numberedTyField (length(fields) + 1) ty' p'], rp)
-  | coalesce((ty', p'), (A.RecordTy(fields, rp), p)) = A.RecordTy([numberedTyField 1 ty' p'] @ (renumberTyFields fields 1), p')
-  | coalesce((t1, p1), (t2, p2)) = A.RecordTy(numberedTyFields([(t1, p1), (t2, p2)]), p1)
+fun sw_coalesce((A.SWRecordTy(fields1, rp1), p1), (A.SWRecordTy(fields2, rp2), p2)) = A.SWRecordTy(fields1 @ (renumberTyFields fields2 (length(fields1))), rp1)
+  | sw_coalesce((A.SWRecordTy(fields, rp), p), (ty', p')) = A.SWRecordTy(fields @ [numberedTyField (length(fields) + 1) ty' p'], rp)
+  | sw_coalesce((ty', p'), (A.SWRecordTy(fields, rp), p)) = A.SWRecordTy([numberedTyField 1 ty' p'] @ (renumberTyFields fields 1), p')
+  | sw_coalesce((t1, p1), (t2, p2)) = A.SWRecordTy(numberedTyFields([(t1, p1), (t2, p2)]), p1)
+
+
+fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p2)) = A.HWRecordTy(fields1 @ (renumberTyFields fields2 (length(fields1))), rp1)
+  | hw_coalesce((A.HWRecordTy(fields, rp), p), (ty', p')) = A.HWRecordTy(fields @ [numberedTyField (length(fields) + 1) ty' p'], rp)
+  | hw_coalesce((ty', p'), (A.HWRecordTy(fields, rp), p)) = A.HWRecordTy([numberedTyField 1 ty' p'] @ (renumberTyFields fields 1), p')
+  | hw_coalesce((t1, p1), (t2, p2)) = A.HWRecordTy(numberedTyFields([(t1, p1), (t2, p2)]), p1)
 
 %%
 %term
@@ -386,9 +395,10 @@ ty_dec        : TYPE ID EQ ty                                               (A.T
 
 ty            : TID                                                         (A.GenericTy(Symbol.symbol(TID), TIDleft))
               | ID                                                          (A.NameTy(Symbol.symbol(ID), IDleft))
-              | ty INT_TIMES ty                                             (coalesce((ty1, ty1left), (ty2, ty2left)))
-              | ty POUND_TIMES ty                                           (A.HWTupleTy(ty1, ty2, ty1left))
-              | LBRACE ty_fields RBRACE                                     (A.RecordTy(ty_fields, LBRACEleft))
+              | ty INT_TIMES ty                                             (sw_coalesce((ty1, ty1left), (ty2, ty2left)))
+              | ty POUND_TIMES ty                                           (hw_coalesce((ty1, ty1left), (ty2, ty2left)))
+              | LBRACE ty_fields RBRACE                                     (A.SWRecordTy(ty_fields, LBRACEleft))
+              | POUND LBRACE ty_fields RBRACE                               (A.HWRecordTy(ty_fields, LBRACEleft))
               | ty AT exp                                                   (A.TemporalTy(ty1, exp1, ty1left))
               | ty LBRACK exp RBRACK                                        (A.ArrayTy(ty1, exp1, ty1left))
               | ty LIST                                                     (A.ListTy(ty1, ty1left))
@@ -457,7 +467,7 @@ insts         : rec_inst                                                    (rec
               | hw_tuple_inst                                               (hw_tuple_inst)
               | sw_inst                                                     (sw_inst)
 
-rec_inst      : LBRACE rec_inst_body RBRACE                                 (A.RecordExp{fields = rec_inst_body, pos = LBRACEleft})
+rec_inst      : LBRACE rec_inst_body RBRACE                                 (A.SWRecordExp{fields = rec_inst_body, pos = LBRACEleft})
 
 rec_inst_body : ID EQ exp rec_field_comma_tail                              ([(Symbol.symbol(ID), exp, IDleft)] @ rec_field_comma_tail)
               | epsilon                                                     ([])
@@ -478,15 +488,15 @@ list_inst     : LBRACK list_elements RBRACK                                 (A.L
 list_elements : exp exp_comma_tail                                          ([(exp1, exp1left)] @ exp_comma_tail)
               | epsilon                                                     ([])
 
-sw_tuple_inst : LPAREN list_elements RPAREN                                 (A.RecordExp{fields = numberedExpFields(list_elements), pos = LPARENleft})
+sw_tuple_inst : LPAREN list_elements RPAREN                                 (A.SWRecordExp{fields = numberedExpFields(list_elements), pos = LPARENleft})
 
-hw_tuple_inst : POUND LPAREN list_elements RPAREN                           (A.HWTupleExp(list_elements))
+hw_tuple_inst : POUND LPAREN list_elements RPAREN                           (A.HWRecordExp{fields = numberedExpFields(list_elements), pos = LPARENleft})
 
 sw_inst       : SW exp                                                      (A.SWExp(exp, SWleft))
 
 bit_array_inst: exp TID COLON exp                                           (A.BitArrayExp{size = exp1, result = exp2, spec = SOME(TID)})
 
-with_value    : exp WITH rec_inst                                           (A.WithExp{exp = exp, fields = valOf(extractFields(rec_inst)), pos = expleft})
+with_value    : exp WITH rec_inst                                           (A.WithExp{exp = exp, fields = valOf(extractSWFields(rec_inst)), pos = expleft})
 
 pattern_match : CASE exp OF matches                                         (A.PatternMatchExp{exp = exp, cases = matches, pos = CASEleft})
 

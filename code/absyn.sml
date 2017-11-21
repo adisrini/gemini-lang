@@ -21,8 +21,8 @@ struct
           | ListExp of (exp * pos) list
           | ArrayExp of (exp * pos) vector
           | RefExp of exp * pos
-          | RecordExp of {fields: (symbol * exp * pos) list, pos: pos}
-          | HWTupleExp of (exp * pos) list
+          | SWRecordExp of {fields: (symbol * exp * pos) list, pos: pos}
+          | HWRecordExp of {fields: (symbol * exp * pos) list, pos: pos}
           | SWExp of exp * pos
           | WithExp of {exp: exp, fields: (symbol * exp * pos) list, pos: pos}
           | DerefExp of {exp: exp, pos: pos}
@@ -62,10 +62,10 @@ struct
 
   and ty = NameTy of symbol * pos
          | GenericTy of symbol * pos
-         | RecordTy of field list * pos
+         | SWRecordTy of field list * pos
+         | HWRecordTy of field list * pos
          | ArrayTy of ty * exp * pos
          | ListTy of ty * pos
-         | HWTupleTy of ty * ty * pos
          | TemporalTy of ty * exp * pos
          | RefTy of ty * pos
          | SWTy of ty * pos
