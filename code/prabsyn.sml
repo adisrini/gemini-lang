@@ -142,15 +142,19 @@ fun print (outstream, e0) =
 	    in
           indent d; say "FunctionDec["; dolist d func fundecs; say "]"
 	    end
-    | dec(A.ValDec{name, escape, ty = tyo, init, pos}, d) =
-          (indent d; sayln "ValDec(";
-           indent (d + 1); say(Symbol.name name); sayln ",";
-           indent (d + 1); say(Bool.toString (!escape)); sayln ",";
-           indent (d + 1); case tyo of NONE => say "NONE"
-		                                 | SOME(t, p)=> (sayln "SOME("; ty(t, d + 1); sayln ""; indent d; say ")");
-           sayln ",";
-           exp(init, d + 1); sayln "";
-           indent d; say ")")
+    | dec(A.ValDec(valdecs), d) =
+      let
+          fun vald({name, init, ty = tyo, escape, pos}, d) =
+            (indent d; say(Symbol.name name); sayln "(";
+             indent d; say(Bool.toString (!escape)); sayln ",";
+             indent d; case tyo of NONE => say "NONE"
+                                       | SOME(t, p)=> (sayln "SOME("; ty(t, d + 1); sayln ""; indent d; say ")");
+             sayln ",";
+             exp(init, d); sayln "";
+             indent d; say ")")
+      in
+          indent d; say "ValDec["; dolist d vald valdecs; say "]"
+      end
     | dec(A.TypeDec(tydecs), d) =
 	    let
           fun opd({oper, param_a, param_b, body, pos}, d) =

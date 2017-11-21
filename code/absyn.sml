@@ -54,7 +54,7 @@ struct
                       escape: bool ref,
                       ty: (ty * pos) option,
                       init: exp,
-                      pos: pos}
+                      pos: pos} list
 
   and def = ValDef of {name: symbol, ty: ty * pos, pos: pos}
           | TypeDef of {name: symbol, pos: pos}
