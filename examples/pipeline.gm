@@ -1,0 +1,21 @@
+structure Pipelatch =
+struct
+    module pipelatch(inp_opt, stall_in) =
+       let val a_d_b_d     = case (a_q, b,_q,stall_in) of
+                                  (NONE, NONE, _ ) => (inp_opt, NONE)
+                               |: (NONE, SOME _, _) => (b_q, inp_opt)
+                               |: (SOME _, NONE, false) => (inp_opt, NONE)
+                               |: (SOME _, SOME _, false) => (b_q, inp_opt)
+                               |: (SOME _, NONE, true) => (a_q, inp_opt)
+                               |: (SOME _, SOME _, true) => (case inp_opt of
+                                                                 NONE => (a_q, b_q)
+                                                              |: SOME _ => fail ("Previous stage should have stalled"))
+             val a_q = dff #1(a_d_b_d)
+             val b_q = dff #2(a_d_b_d)
+        in
+             {out_v = if stall_in
+                      then NONE
+                      else a_q,
+              stall_out = isSome #2(a_d_b_d)}
+        end
+end

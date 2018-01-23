@@ -8,10 +8,12 @@ string.sml
 
 (* compiler *)
 absyn.sml
-driver.sml
+main.sml
 errormsg.sml
 gemini.lex
 gemini.grm
+infer.sml
+parse.sml
 prabsyn.sml
 symbol.sml
 table.sig

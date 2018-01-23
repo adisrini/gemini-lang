@@ -1,0 +1,12 @@
+module rca (a, b) =
+    let module rca’ (ai, bi, cin) =
+        let
+            val sum = ai ^ bi ^ cin
+            val cout = (ai & bi) | (ai & cin) | (bi & cin)
+        in
+            (cout, sum)
+        end
+    in
+        (* mapfoldl: ((int * 'a * 'b) -> ('b * 'c)) -> 'b -> 'a[n] -> 'c[n] *)
+        Array.mapfoldl (mod(i, ai, cin) => rca'(ai, b[i], cin)) 'b:0 a
+    end

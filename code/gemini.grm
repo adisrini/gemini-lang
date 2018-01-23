@@ -383,6 +383,7 @@ fun_dec_with_type
 
 fun_params    : fun_params fun_param                                        (fun_params1 @ [fun_param1])
               | fun_param                                                   ([fun_param1])
+              | epsilon                                                     ([])
 
 fun_param     : ID                                                          (A.SingleParam{name = Symbol.symbol(ID), ty = NONE, escape = ref true, pos = IDleft})
               | LPAREN no_ty_fields RPAREN                                  (param(no_ty_fields))
