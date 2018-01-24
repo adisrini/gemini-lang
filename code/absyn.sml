@@ -31,7 +31,6 @@ struct
           | ArrayAccExp of {exp: exp, index: exp, pos: pos}
           | PatternMatchExp of {exp: exp, cases: match list, pos: pos}
           | BitArrayExp of {size: exp, result: exp, spec: string option}
-          | ZeroExp
 
   and structsig = StructExp of {name: symbol, signat: (structsig * pos) option, decs: dec list, pos: pos}
                 | SigExp of {name: symbol, defs: def list}

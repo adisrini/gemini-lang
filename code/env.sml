@@ -14,7 +14,7 @@ struct
   datatype enventry = ValEntry of {ty : Types.ty}
                     | FunEntry of {arg: Types.ty, result: Types.ty}
 
-  (* fun createEnvironmentWithData (l: (Symbol.symbol * 'a) list) = foldr (fn(x, env) => Symbol.enter(env, #1 x, #2 x)) Symbol.empty l *)
+  fun createEnvironmentWithData (l: (Symbol.symbol * 'a) list) = foldr (fn(x, env) => Symbol.enter(env, #1 x, #2 x)) Symbol.empty l
 
   val meta_count = ref 0
 

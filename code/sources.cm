@@ -9,6 +9,7 @@ string.sml
 (* compiler *)
 absyn.sml
 main.sml
+env.sml
 errormsg.sml
 gemini.lex
 gemini.grm
@@ -18,6 +19,7 @@ prabsyn.sml
 symbol.sml
 table.sig
 table.sml
+types.sml
 
 (* base *)
 $/ml-yacc-lib.cm

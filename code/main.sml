@@ -10,7 +10,8 @@ struct
     let
       val ast = Parse.parse filename
     in
-      Infer.inferProg ast
+      Infer.inferProg ast;
+      ()
     end
 
 end
