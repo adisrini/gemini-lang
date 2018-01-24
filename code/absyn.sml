@@ -82,7 +82,7 @@ struct
 
   and opdef = {oper: oper, param_a: symbol, param_b: symbol, body: exp, pos: pos}
 
-  and tydec = {name: symbol, ty: ty, opdef: (opdef list) option, pos: pos}
+  and tydec = {name: symbol, ty: ty, tyvar: symbol option, opdef: (opdef list) option, pos: pos}
 
   and moddec = {name: symbol, arg: param, result: (ty * pos) option, body: exp, pos: pos}
 

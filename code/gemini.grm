@@ -389,10 +389,14 @@ fun_param     : ID                                                          (A.S
               | LPAREN no_ty_fields RPAREN                                  (param(no_ty_fields))
               | LPAREN ty_fields RPAREN                                     (param(ty_fields))
 
-ty_dec        : TYPE ID EQ ty                                               (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, opdef = NONE, pos = TYPEleft}])
-              | TYPE ID EQ ty ty_dec                                        (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, opdef = NONE, pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
-              | TYPE ID EQ ty with_type                                     (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, opdef = SOME(with_type), pos = TYPEleft}])
-              | TYPE ID EQ ty with_type ty_dec                              (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, opdef = SOME(with_type), pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
+ty_dec        : TYPE TID ID EQ ty                                           (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvar = SOME(Symbol.symbol(TID1)), opdef = NONE, pos = TYPEleft}])
+              | TYPE TID ID EQ ty ty_dec                                    (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvar = SOME(Symbol.symbol(TID1)), opdef = NONE, pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
+              | TYPE TID ID EQ ty with_type                                 (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvar = SOME(Symbol.symbol(TID1)), opdef = SOME(with_type), pos = TYPEleft}])
+              | TYPE TID ID EQ ty with_type ty_dec                          (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvar = SOME(Symbol.symbol(TID1)), opdef = SOME(with_type), pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
+              | TYPE ID EQ ty                                               (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvar = NONE, opdef = NONE, pos = TYPEleft}])
+              | TYPE ID EQ ty ty_dec                                        (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvar = NONE, opdef = NONE, pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
+              | TYPE ID EQ ty with_type                                     (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvar = NONE, opdef = SOME(with_type), pos = TYPEleft}])
+              | TYPE ID EQ ty with_type ty_dec                              (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvar = NONE, opdef = SOME(with_type), pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
 
 ty            : TID                                                         (A.GenericTy(Symbol.symbol(TID), TIDleft))
               | ID                                                          (A.NameTy(Symbol.symbol(ID), IDleft))

@@ -112,7 +112,7 @@ fun print (outstream, e0) =
           fun print_dataty({name, tyvar, datacons}, d) =
             (indent d; say(Symbol.name name); say "(";
              case tyvar of
-                  SOME(x) => (sayln ""; indent (d + 1); say(Symbol.name x); say ",")
+                  SOME(x) => (sayln ""; indent (d + 1); say "TYVAR("; say(Symbol.name x); say "),")
                 | NONE => ();
              dolist d print_datacon datacons; sayln "";
              indent d; say ")")
@@ -169,8 +169,10 @@ fun print (outstream, e0) =
                indent (d + 1); say(Symbol.name param_b); sayln ",";
                exp(body, d + 1); sayln "";
                indent d; say ")")
-          fun tdec({name, ty = t, opdef, pos}, d) =
+          fun tdec({name, ty = t, tyvar, opdef, pos}, d) =
               (indent d; say(Symbol.name name); sayln "(";
+              case tyvar of NONE => ()
+                          | SOME(tyv) => (indent (d + 1); say "TYVAR("; say(Symbol.name tyv); sayln "),");
 					     ty(t, d + 1); sayln ",";
                case opdef of NONE => ()
                            | SOME(opds) => (indent (d + 1); say "["; dolist d opd opds; sayln "]");
