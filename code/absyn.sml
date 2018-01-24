@@ -88,7 +88,7 @@ struct
 
   and datacon = {datacon: symbol, ty: ty option, pos: pos}
 
-  and datatydec = {name: symbol, datacons: datacon list}
+  and datatydec = {name: symbol, tyvar: symbol option, datacons: datacon list}
 
   and match = {match: exp, result: exp, pos: pos}
 

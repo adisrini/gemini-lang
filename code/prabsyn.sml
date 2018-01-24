@@ -109,8 +109,11 @@ fun print (outstream, e0) =
              then (ty(valOf(t), d + 1); sayln "")
              else ();
              indent d; say ")")
-          fun print_dataty({name, datacons}, d) =
+          fun print_dataty({name, tyvar, datacons}, d) =
             (indent d; say(Symbol.name name); say "(";
+             case tyvar of
+                  SOME(x) => (sayln ""; indent (d + 1); say(Symbol.name x); say ",")
+                | NONE => ();
              dolist d print_datacon datacons; sayln "";
              indent d; say ")")
       in
