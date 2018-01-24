@@ -51,7 +51,7 @@ struct
          | DatatypeDec of datatydec list
          | ValDec of {name: symbol,
                       escape: bool ref,
-                      ty: (ty * pos) option,
+                      ty: ty * pos, (*  *)
                       init: exp,
                       pos: pos} list
 
@@ -70,14 +70,16 @@ struct
          | SWTy of ty * pos
          | FunTy of ty * ty * pos
          | GroupedTy of ty * pos
+         | PlaceholderTy of unit ref
+         | ExplicitTy of Types.ty
 
   and param = NoParam
             | SingleParam of field
             | MultiParams of field list
 
-  withtype field = {name: symbol, ty: ty option, escape: bool ref, pos: pos}
+  withtype field = {name: symbol, ty: ty, escape: bool ref, pos: pos}
 
-  and fundec = {name: symbol, params: param list, result: (ty * pos) option, body: exp, pos: pos}
+  and fundec = {name: symbol, params: param list, result: ty * pos, body: exp, pos: pos}
 
   and opdef = {oper: oper, param_a: symbol, param_b: symbol, body: exp, pos: pos}
 
