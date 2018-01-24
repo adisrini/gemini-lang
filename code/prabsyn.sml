@@ -105,7 +105,9 @@ fun print (outstream, e0) =
           fun print_datacon({datacon, ty = t, pos}, d) =
             (indent d; sayln "Datacon(";
              indent (d + 1); say (Symbol.name datacon); sayln ",";
-             ty(t, d + 1); sayln "";
+             if isSome(t)
+             then (ty(valOf(t), d + 1); sayln "")
+             else ();
              indent d; say ")")
           fun print_dataty({name, datacons}, d) =
             (indent d; say(Symbol.name name); say "(";

@@ -86,7 +86,7 @@ struct
 
   and moddec = {name: symbol, arg: param, result: (ty * pos) option, body: exp, pos: pos}
 
-  and datacon = {datacon: symbol, ty: ty, pos: pos}
+  and datacon = {datacon: symbol, ty: ty option, pos: pos}
 
   and datatydec = {name: symbol, datacons: datacon list}
 

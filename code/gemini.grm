@@ -427,10 +427,13 @@ with_type     : WITH OP EQ LPAREN ID COMMA ID RPAREN EQ exp with_type_tail  ([{o
 with_type_tail: AND with_type                                               (with_type)
               | epsilon                                                     ([])
 
-dataty_dec    : DATATYPE ID EQ ID OF ty dataty_tail                         (A.DatatypeDec([{name = Symbol.symbol(ID1), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
-              | DATATYPE ID EQ ID OF ty dataty_tail dataty_dec              (A.DatatypeDec({name = Symbol.symbol(ID1), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(dataty_dec))))
+dataty_dec    : DATATYPE ID EQ ID dataty_tail                               (A.DatatypeDec([{name = Symbol.symbol(ID1), datacons = {datacon = Symbol.symbol(ID2), ty = NONE, pos = ID2left}::dataty_tail}]))
+              | DATATYPE ID EQ ID dataty_tail dataty_dec                    (A.DatatypeDec({name = Symbol.symbol(ID1), datacons = {datacon = Symbol.symbol(ID2), ty = NONE, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(dataty_dec))))
+              | DATATYPE ID EQ ID OF ty dataty_tail                         (A.DatatypeDec([{name = Symbol.symbol(ID1), datacons = {datacon = Symbol.symbol(ID2), ty = SOME(ty), pos = ID2left}::dataty_tail}]))
+              | DATATYPE ID EQ ID OF ty dataty_tail dataty_dec              (A.DatatypeDec({name = Symbol.symbol(ID1), datacons = {datacon = Symbol.symbol(ID2), ty = SOME(ty), pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(dataty_dec))))
 
-dataty_tail   : PIPE_EQUALS ID OF ty dataty_tail                            ({datacon = Symbol.symbol(ID), ty = ty, pos = IDleft}::dataty_tail)
+dataty_tail   : PIPE_EQUALS ID OF ty dataty_tail                            ({datacon = Symbol.symbol(ID), ty = SOME(ty), pos = IDleft}::dataty_tail)
+              | PIPE_EQUALS ID dataty_tail                                  ({datacon = Symbol.symbol(ID), ty = NONE, pos = IDleft}::dataty_tail)
               | epsilon                                                     ([])
 
 module_dec    : module_dec_no_type                                          (A.ModuleDec([module_dec_no_type]))

@@ -11,15 +11,17 @@ struct
 
   datatype s_ty =
             APP of (s_tycon * ty list)
+          | VAR of Symbol.symbol
+          | POLY of (Symbol.symbol list * s_ty)
+
 
   datatype s_tycon =
-            INT
-          | REAL
+            INT | REAL | STRING
           | ARROW
           | LIST
           | SW
-          | RECORD of (Symbol.symbol * ty) list
-          | TYFUN of ...
-          | UNIQUE of (tycon * ???)
+          | RECORD of (Symbol.symbol * s_ty) list
+          | REF of s_ty
+          | DATATYPE of {name: Symbol.symbol, cons: (Symbol.symbol * s_ty) list}
 
 end
