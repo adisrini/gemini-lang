@@ -43,8 +43,37 @@ struct
       exp
     end
 
-  and inferExp(menv, tenv, venv, expression) =
-    let infexp(A.StructsSigsExp(structsigs))
+  and inferExp(menv, tenv, venv, exp) =
+    let fun infexp(A.StructsSigsExp(structsigs)) =
+          | infexp(A.VarExp(sym, pos)) =
+          | infexp(A.IntExp(num, pos)) =
+          | infexp(A.StringExp(str, pos)) =
+          | infexp(A.RealExp(num, pos)) =
+          | infexp(A.BitExp(bit, pos)) =
+          | infexp(A.ApplyExp(e1, e2, pos)) =
+          | infexp(A.NilExp(pos)) =
+          | infexp(A.BinOpExp({left, oper, right, pos})) =
+          | infexp(A.UnOpExp({exp, oper, pos})) =
+          | infexp(A.LetExp({decs, body, pos})) =
+          | infexp(A.AssignExp({lhs, rhs, pos})) =
+          | infexp(A.SeqExp(exps)) =
+          | infexp(A.IfExp({test, then', else', pos})) =
+          | infexp(A.ListExp(exps)) =
+          | infexp(A.ArrayExp(exps)) =
+          | infexp(A.RefExp(exp, pos)) =
+          | infexp(A.SWRecordExp({fields, pos})) =
+          | infexp(A.HWRecordExp({fields, pos})) =
+          | infexp(A.SWExp(exp, pos)) =
+          | infexp(A.WithExp({exp, fields, pos})) =
+          | infexp(A.DerefExp({exp, pos})) =
+          | infexp(A.StructAccExp({name, field, pos})) =
+          | infexp(A.RecordAccExp({exp, field, pos})) =
+          | infexp(A.ArrayAccExp({exp, index, pos})) =
+          | infexp(A.PatternMatchExp({exp, cases, pos})) =
+          | infexp(A.BitArrayExp({size, result, spec})) =
+    in
+      infexp(exp)
+    end
 
   and inferTy(menv, tenv, venv, ty) =
     let fun infty(A.NameTy(sym, pos)) = getTypeFromEnv(tenv, sym)
@@ -180,35 +209,5 @@ struct
     in
       infty(ty)
     end
-
-  (*
-  and inferExp(tenv, venv, A.StructsSigsExp(structsigs)) =
-    | inferExp(tenv, venv, A.VarExp(sym, pos)) =
-    | inferExp(tenv, venv, A.IntExp(num, pos)) =
-    | inferExp(tenv, venv, A.StringExp(str, pos)) =
-    | inferExp(tenv, venv, A.RealExp(num, pos)) =
-    | inferExp(tenv, venv, A.BitExp(bit, pos)) =
-    | inferExp(tenv, venv, A.ApplyExp(e1, e2, pos)) =
-    | inferExp(tenv, venv, A.NilExp(pos)) =
-    | inferExp(tenv, venv, A.BinOpExp({left, oper, right, pos})) =
-    | inferExp(tenv, venv, A.UnOpExp({exp, oper, pos})) =
-    | inferExp(tenv, venv, A.LetExp({decs, body, pos})) =
-    | inferExp(tenv, venv, A.AssignExp({lhs, rhs, pos})) =
-    | inferExp(tenv, venv, A.SeqExp(exps)) =
-    | inferExp(tenv, venv, A.IfExp({test, then', else', pos})) =
-    | inferExp(tenv, venv, A.ListExp(exps)) =
-    | inferExp(tenv, venv, A.ArrayExp(exps)) =
-    | inferExp(tenv, venv, A.RefExp(exp, pos)) =
-    | inferExp(tenv, venv, A.SWRecordExp({fields, pos})) =
-    | inferExp(tenv, venv, A.HWRecordExp({fields, pos})) =
-    | inferExp(tenv, venv, A.SWExp(exp, pos)) =
-    | inferExp(tenv, venv, A.WithExp({exp, fields, pos})) =
-    | inferExp(tenv, venv, A.DerefExp({exp, pos})) =
-    | inferExp(tenv, venv, A.StructAccExp({name, field, pos})) =
-    | inferExp(tenv, venv, A.RecordAccExp({exp, field, pos})) =
-    | inferExp(tenv, venv, A.ArrayAccExp({exp, index, pos})) =
-    | inferExp(tenv, venv, A.PatternMatchExp({exp, cases, pos})) =
-    | inferExp(tenv, venv, A.BitArrayExp({size, result, spec})) =
-  *)
 
 end
