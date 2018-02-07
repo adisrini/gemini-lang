@@ -9,6 +9,7 @@ struct
             H_TY of h_ty
           | S_TY of s_ty
           | M_TY of m_ty
+          | META of tyvar
           | TOP
           | BOTTOM
 
@@ -16,7 +17,7 @@ struct
             BIT
           | ARRAY of {ty: h_ty, size: A.exp}    (* type of size? *)
           | H_RECORD of (tyvar * h_ty) list
-          | TEMPORAL of {ty: h_ty, time: A.exp} (* type of size? *)
+          | TEMPORAL of {ty: h_ty, time: A.exp} (* type of time? *)
           | H_VAR of tyvar
           | H_POLY of tyvar list * h_ty
           | H_UNPOLY of h_ty * h_ty list
@@ -28,7 +29,8 @@ struct
             INT | REAL | STRING
           | ARROW of (s_ty * s_ty)
           | LIST of s_ty
-          | SW of h_ty
+          | SW_H of h_ty
+          | SW_M of m_ty
           | S_RECORD of (tyvar * s_ty) list
           | REF of s_ty
           | DATATYPE of (tyvar * s_ty) list * unit ref

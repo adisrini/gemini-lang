@@ -130,10 +130,52 @@ struct
               T.S_TY(T.LIST(retTy))
             end
           | infty(A.TemporalTy(ty, time, pos)) =
+            let
+              val realTy = infty(ty)
+              val retTy = case realTy of
+                               T.H_TY(t) => t
+                             | _ => T.H_TOP (* TODO: error message (expected hw type) *)
+              val {exp = timeExp, ty = timeTy} = inferExp(menv, tenv, venv, time)
+              val () = case timeTy of
+                            T.S_TY(T.INT) => ()
+                          | _ => () (* TODO: error message (expected int type) *)
+            in
+              T.H_TY(T.TEMPORAL({ty = retTy, time = timeExp}))
+            end
           | infty(A.RefTy(ty, pos)) =
+            let
+              val realTy = infty(ty)
+              val retTy = case realTy of
+                               T.S_TY(t) => t
+                             | _ => T.S_TOP (* TODO: error message (expected sw type) *)
+            in
+              T.S_TY(T.REF(retTy))
+            end
           | infty(A.SWTy(ty, pos)) =
-          | infty(A.FunTy(ty1, ty2, pos)) = T.S_TY(T.ARROW(infty(ty1), infty(ty2)))
-          | infty(A.PlaceholderTy(u)) =
+            let
+              val realTy = infty(ty)
+              val ret = case realTy of
+                             T.H_TY(t) => T.S_TY(T.SW_H(t))
+                           | T.M_TY(t) => T.S_TY(T.SW_M(t))
+                           | _ => T.S_TY(T.S_TOP) (* TODO: error message (expected hw/m type ) *)
+            in
+              ret
+            end
+          | infty(A.FunTy(ty1, ty2, pos)) =
+            let
+              val realArgTy = infty(ty1)
+              val realResTy = infty(ty2)
+
+              val retArgTy = case realArgTy of
+                                  T.S_TY(t) => t
+                                | _ => T.S_TOP (* TODO: error message (expected sw type) *)
+              val retResTy = case realResTy of
+                                  T.S_TY(t) => t
+                                | _ => T.S_BOTTOM (* TODO: error message (expected sw type) *)
+            in
+              T.S_TY(T.ARROW(infty(ty1), infty(ty2)))
+            end
+          | infty(A.PlaceholderTy(u)) = T.META(E.newMeta())
           | infty(A.ExplicitTy(t)) = t
     in
       infty(ty)
@@ -141,42 +183,32 @@ struct
 
   (*
   and inferExp(tenv, venv, A.StructsSigsExp(structsigs)) =
-      let
-
-      in
-      end
-    | inferExp(tenv, venv, A.VarExp(sym, pos)) = { polytree: A.VarExp(sym, pos), tenv: tenv, venv: venv }
-    | inferExp(tenv, venv, A.IntExp(num, pos)) = { polytree: A.IntExp(num, pos), tenv: tenv, venv: venv }
-    | inferExp(tenv, venv, A.StringExp(str, pos)) = { polytree: A.StringExp(str, pos), tenv: tenv, venv: venv }
-    | inferExp(tenv, venv, A.RealExp(num, pos)) = { polytree: A.RealExp(num, pos), tenv: tenv, venv: venv }
-    | inferExp(tenv, venv, A.BitExp(bit, pos)) = { polytree: A.BitExp(bit, pos), tenv: tenv, venv: venv }
+    | inferExp(tenv, venv, A.VarExp(sym, pos)) =
+    | inferExp(tenv, venv, A.IntExp(num, pos)) =
+    | inferExp(tenv, venv, A.StringExp(str, pos)) =
+    | inferExp(tenv, venv, A.RealExp(num, pos)) =
+    | inferExp(tenv, venv, A.BitExp(bit, pos)) =
     | inferExp(tenv, venv, A.ApplyExp(e1, e2, pos)) =
-      let
-        val e1_polytree = #polytree(inferExp(tenv, venv, e1))
-        val e2_polytree = #polytree(inferExp(tenv, venv, e2))
-      in
-        { polytree: A.ApplyExp(e1_polytree, e2_polytree) }
-      end
-    | inferExp(tenv, venv, A.NilExp(pos)) = (tenv, venv)
-    | inferExp(tenv, venv, A.BinOpExp({left, oper, right, pos})) = (tenv, venv)
-    | inferExp(tenv, venv, A.UnOpExp({exp, oper, pos})) = (tenv, venv)
-    | inferExp(tenv, venv, A.LetExp({decs, body, pos})) = (tenv, venv)
-    | inferExp(tenv, venv, A.AssignExp({lhs, rhs, pos})) = (tenv, venv)
-    | inferExp(tenv, venv, A.SeqExp(exps)) = (tenv, venv)
-    | inferExp(tenv, venv, A.IfExp({test, then', else', pos})) = (tenv, venv)
-    | inferExp(tenv, venv, A.ListExp(exps)) = (tenv, venv)
-    | inferExp(tenv, venv, A.ArrayExp(exps)) = (tenv, venv)
-    | inferExp(tenv, venv, A.RefExp(exp, pos)) = (tenv, venv)
-    | inferExp(tenv, venv, A.SWRecordExp({fields, pos})) = (tenv, venv)
-    | inferExp(tenv, venv, A.HWRecordExp({fields, pos})) = (tenv, venv)
-    | inferExp(tenv, venv, A.SWExp(exp, pos)) = (tenv, venv)
-    | inferExp(tenv, venv, A.WithExp({exp, fields, pos})) = (tenv, venv)
-    | inferExp(tenv, venv, A.DerefExp({exp, pos})) = (tenv, venv)
-    | inferExp(tenv, venv, A.StructAccExp({name, field, pos})) = (tenv, venv)
-    | inferExp(tenv, venv, A.RecordAccExp({exp, field, pos})) = (tenv, venv)
-    | inferExp(tenv, venv, A.ArrayAccExp({exp, index, pos})) = (tenv, venv)
-    | inferExp(tenv, venv, A.PatternMatchExp({exp, cases, pos})) = (tenv, venv)
-    | inferExp(tenv, venv, A.BitArrayExp({size, result, spec})) = (tenv, venv)
+    | inferExp(tenv, venv, A.NilExp(pos)) =
+    | inferExp(tenv, venv, A.BinOpExp({left, oper, right, pos})) =
+    | inferExp(tenv, venv, A.UnOpExp({exp, oper, pos})) =
+    | inferExp(tenv, venv, A.LetExp({decs, body, pos})) =
+    | inferExp(tenv, venv, A.AssignExp({lhs, rhs, pos})) =
+    | inferExp(tenv, venv, A.SeqExp(exps)) =
+    | inferExp(tenv, venv, A.IfExp({test, then', else', pos})) =
+    | inferExp(tenv, venv, A.ListExp(exps)) =
+    | inferExp(tenv, venv, A.ArrayExp(exps)) =
+    | inferExp(tenv, venv, A.RefExp(exp, pos)) =
+    | inferExp(tenv, venv, A.SWRecordExp({fields, pos})) =
+    | inferExp(tenv, venv, A.HWRecordExp({fields, pos})) =
+    | inferExp(tenv, venv, A.SWExp(exp, pos)) =
+    | inferExp(tenv, venv, A.WithExp({exp, fields, pos})) =
+    | inferExp(tenv, venv, A.DerefExp({exp, pos})) =
+    | inferExp(tenv, venv, A.StructAccExp({name, field, pos})) =
+    | inferExp(tenv, venv, A.RecordAccExp({exp, field, pos})) =
+    | inferExp(tenv, venv, A.ArrayAccExp({exp, index, pos})) =
+    | inferExp(tenv, venv, A.PatternMatchExp({exp, cases, pos})) =
+    | inferExp(tenv, venv, A.BitArrayExp({size, result, spec})) =
   *)
 
 end
