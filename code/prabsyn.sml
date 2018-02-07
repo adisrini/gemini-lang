@@ -49,11 +49,11 @@ fun print (outstream, e0) =
 
   fun f((name, e, pos), d) = (indent d; say "("; say(Symbol.name name); sayln ":"; exp(e, d + 1); say ")")
 
-  and print_field({name, escape, ty = tyopt, pos}, d) =
+  and print_field({name, escape, ty = t, pos}, d) =
       (indent d; sayln "Field(";
        indent (d + 1); say(Symbol.name name); sayln ",";
        indent (d + 1); say(Bool.toString(!escape)); sayln ",";
-       case tyopt of NONE => (indent (d + 1); say "NONE") | SOME t => ty(t, d + 1); sayln "";
+       ty(t, d + 1); sayln "";
        indent d; say ")")
 
   and print_param(A.NoParam, d) = (indent d; say "NoParam")
@@ -104,9 +104,7 @@ fun print (outstream, e0) =
           fun print_datacon({datacon, ty = t, pos}, d) =
             (indent d; sayln "Datacon(";
              indent (d + 1); say (Symbol.name datacon); sayln ",";
-             if isSome(t)
-             then (ty(valOf(t), d + 1); sayln "")
-             else ();
+             ty(t, d + 1); sayln "";
              indent d; say ")")
           fun print_dataty({name, tyvar, datacons}, d) =
             (indent d; say(Symbol.name name); say "(";
@@ -120,12 +118,11 @@ fun print (outstream, e0) =
       end
     | dec(A.ModuleDec(moddecs), d) =
       let
-          fun print_mod({name, arg, result, body, pos}, d) =
+          fun print_mod({name, arg, result = (t, p), body, pos}, d) =
             (indent d; say (Symbol.name name); say "(";
              dolist d print_param [arg]; sayln ",";
              indent (d + 1);
-             case result of NONE => say "NONE"
-                          | SOME(t, _) => (sayln "SOME("; ty(t, d + 1); sayln ""; indent d; say ")");
+             ty(t, d + 1);
              sayln ",";
              exp(body, d + 1); sayln "";
              indent d; say ")")
@@ -134,12 +131,11 @@ fun print (outstream, e0) =
       end
     | dec(A.FunctionDec(fundecs), d) =
 	    let
-          fun func({name, params, result, body, pos}, d) =
+          fun func({name, params, result = (t, p), body, pos}, d) =
               (indent d; say (Symbol.name name); say "([";
 		           dolist d print_param params; sayln "],";
                indent (d + 1);
-		           case result of NONE => say "NONE"
-			                      | SOME(t, _) => (sayln "SOME("; ty(t, d + 1); sayln ""; indent d; say ")");
+		           ty(t, d + 1);
                sayln ",";
                exp(body, d + 1); sayln "";
                indent d; say ")")
@@ -148,11 +144,10 @@ fun print (outstream, e0) =
 	    end
     | dec(A.ValDec(valdecs), d) =
       let
-          fun vald({name, init, ty = tyo, escape, pos}, d) =
+          fun vald({name, init, ty = (t, p), escape, pos}, d) =
             (indent d; say(Symbol.name name); sayln "(";
              indent d; say(Bool.toString (!escape)); sayln ",";
-             indent d; case tyo of NONE => say "NONE"
-                                       | SOME(t, p)=> (sayln "SOME("; ty(t, d + 1); sayln ""; indent d; say ")");
+             indent d; ty(t, d + 1);
              sayln ",";
              exp(init, d); sayln "";
              indent d; say ")")
@@ -191,6 +186,8 @@ fun print (outstream, e0) =
     | ty(A.SWTy(t, p), d) = (indent d; sayln "SWTy("; ty(t, d + 1); sayln ""; indent d; say ")")
     | ty(A.FunTy(t1, t2, p), d) = (indent d; sayln "FunTy("; ty(t1, d + 1); sayln " -> "; ty(t2, d + 1); sayln ""; indent d; say ")")
     | ty(A.GroupedTy(t, p), d) = (indent d; sayln "GroupedTy("; ty(t, d + 1); sayln ""; indent d; say ")")
+    | ty(A.PlaceholderTy(_), d) = (indent d; say "PlaceholderTy()")
+    | ty(A.ExplicitTy(t), d) = (indent d; say "ExplicitTy()") (* TODO *)
  in
     exp(e0, 0); sayln ""; TextIO.flushOut outstream
  end

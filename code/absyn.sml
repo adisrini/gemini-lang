@@ -85,9 +85,9 @@ struct
 
   and tydec = {name: symbol, ty: ty, tyvar: symbol option, opdef: (opdef list) option, pos: pos}
 
-  and moddec = {name: symbol, arg: param, result: (ty * pos) option, body: exp, pos: pos}
+  and moddec = {name: symbol, arg: param, result: ty * pos, body: exp, pos: pos}
 
-  and datacon = {datacon: symbol, ty: ty option, pos: pos}
+  and datacon = {datacon: symbol, ty: ty, pos: pos}
 
   and datatydec = {name: symbol, tyvar: symbol option, datacons: datacon list}
 
