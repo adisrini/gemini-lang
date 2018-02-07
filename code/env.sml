@@ -1,7 +1,7 @@
 signature ENV =
 sig
-  datatype enventry = ValEntry of {ty : Types.ty}
-                    | FunEntry of {arg: Types.ty, result: Types.ty}
+  type enventry
+  
   val base_tenv : Types.ty Symbol.table
   val base_venv : enventry Symbol.table
   val base_menv : Types.ty Symbol.table
@@ -29,6 +29,6 @@ struct
       val x = !meta_count;
     in
       meta_count := x + 1;
-      Symbol.symbol(Int.toString x)
+      Symbol.symbol("m" ^ (Int.toString x))
     end
 end

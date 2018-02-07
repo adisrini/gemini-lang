@@ -176,7 +176,7 @@ fun print (outstream, e0) =
       end
 
   and ty(A.NameTy(s, p), d) = (indent d; say "NameTy("; say(Symbol.name s); say ")")
-    | ty(A.GenericTy(s, p), d) = (indent d; say "GenericTy("; say(Symbol.name s); say ")")
+    | ty(A.TyVar(s, p), d) = (indent d; say "TyVar("; say(Symbol.name s); say ")")
     | ty(A.SWRecordTy(fields, p), d) = (indent d; say "SWRecordTy["; dolist d print_field fields; sayln ""; indent d; say "]")
     | ty(A.HWRecordTy(fields, p), d) = (indent d; say "HWRecordTy["; dolist d print_field fields; sayln ""; indent d; say "]")
     | ty(A.ArrayTy(t, e, p), d) = (indent d; sayln "ArrayTy("; ty(t, d + 1); sayln ","; exp(e, d + 1); sayln ""; indent d; say ")")
@@ -185,9 +185,8 @@ fun print (outstream, e0) =
     | ty(A.RefTy(t, p), d) = (indent d; sayln "RefTy("; ty(t, d + 1); sayln ""; indent d; say ")")
     | ty(A.SWTy(t, p), d) = (indent d; sayln "SWTy("; ty(t, d + 1); sayln ""; indent d; say ")")
     | ty(A.FunTy(t1, t2, p), d) = (indent d; sayln "FunTy("; ty(t1, d + 1); sayln " -> "; ty(t2, d + 1); sayln ""; indent d; say ")")
-    | ty(A.GroupedTy(t, p), d) = (indent d; sayln "GroupedTy("; ty(t, d + 1); sayln ""; indent d; say ")")
     | ty(A.PlaceholderTy(_), d) = (indent d; say "PlaceholderTy()")
-    | ty(A.ExplicitTy(t), d) = (indent d; say "ExplicitTy()") (* TODO *)
+    | ty(A.ExplicitTy(t), d) = (indent d; say "ExplicitTy()")
  in
     exp(e0, 0); sayln ""; TextIO.flushOut outstream
  end

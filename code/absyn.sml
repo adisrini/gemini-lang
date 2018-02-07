@@ -51,7 +51,7 @@ struct
          | DatatypeDec of datatydec list
          | ValDec of {name: symbol,
                       escape: bool ref,
-                      ty: ty * pos, (*  *)
+                      ty: ty * pos,
                       init: exp,
                       pos: pos} list
 
@@ -60,7 +60,7 @@ struct
           | ModuleDef of {name: symbol, input_ty: ty, output_ty: ty, pos: pos}
 
   and ty = NameTy of symbol * pos
-         | GenericTy of symbol * pos
+         | TyVar of symbol * pos
          | SWRecordTy of field list * pos
          | HWRecordTy of field list * pos
          | ArrayTy of ty * exp * pos
@@ -69,7 +69,6 @@ struct
          | RefTy of ty * pos
          | SWTy of ty * pos
          | FunTy of ty * ty * pos
-         | GroupedTy of ty * pos
          | PlaceholderTy of unit ref
          | ExplicitTy of Types.ty
 

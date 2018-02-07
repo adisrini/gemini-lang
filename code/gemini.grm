@@ -398,7 +398,7 @@ ty_dec        : TYPE TID ID EQ ty                                           (A.T
               | TYPE ID EQ ty with_type                                     (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvar = NONE, opdef = SOME(with_type), pos = TYPEleft}])
               | TYPE ID EQ ty with_type ty_dec                              (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvar = NONE, opdef = SOME(with_type), pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
 
-ty            : TID                                                         (A.GenericTy(Symbol.symbol(TID), TIDleft))
+ty            : TID                                                         (A.TyVar(Symbol.symbol(TID), TIDleft))
               | ID                                                          (A.NameTy(Symbol.symbol(ID), IDleft))
               | ty INT_TIMES ty                                             (sw_coalesce((ty1, ty1left), (ty2, ty2left)))
               | ty POUND_TIMES ty                                           (hw_coalesce((ty1, ty1left), (ty2, ty2left)))
