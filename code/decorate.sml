@@ -33,14 +33,21 @@ struct
 
   and decorateExp(menv, tenv, venv, exp) =
     let fun decorexp(A.StructsSigsExp(structsigs)) =
+            (* NOTE: double check this! *)
             let
-              fun processStructSig(A.StructExp({name, signat, decs, pos}))
-                | processStructSig(A.SigExp({name, defs}))
-                | processStructSig(A.NamedSigExp(sym)) = A.NamedSigExp(sym) (* NO-OP *)
-                | processStructSig(A.AnonSigExp(defs))
+              fun processStructSig(A.StructExp({name, signat, decs, pos}), {structsigs, menv, tenv, venv}) =
+                let
+                  val (s, pos') = signat
+                  val signat' = processStructSig(s)
+                  val structsig = A.StructExp({name = name, signat = (signat', pos') pos = pos})
+                in
+                  {structsigs = structsig::structsigs, menv = menv', tenv = tenv', venv = venv'}
+                end
+                | processStructSig(A.SigExp({name, defs}), {structsigs, menv, tenv, venv})
+                | processStructSig(A.NamedSigExp(sym), {structsigs, menv, tenv, venv}) = {structsigs = A.NamedSigExp(sym)::structsigs, menv = menv, tenv = tenv, venv = venv} (* NO-OP *)
+                | processStructSig(A.AnonSigExp(defs), {structsigs, menv, tenv, venv})
             in
-              (* NOTE: not sure if fold is appropriate *)
-              foldr processStructSig [] structsigs
+              foldr processStructSig {structsigs = [], menv = menv, tenv = tenv, venv = venv} structsigs
             end
           | decorexp(A.VarExp(sym, pos)) = A.VarExp(sym, pos) (* NO-OP *)
           | decorexp(A.IntExp(num, pos)) = A.IntExp(num, pos) (* NO-OP *)
@@ -113,133 +120,69 @@ struct
     end
 
   and decorateTy(menv, tenv, venv, ty) =
-    let fun decoty(A.NameTy(sym, pos)) = getTypeFromEnv(tenv, sym)
-          | decoty(A.TyVar(sym, pos)) = getTypeFromEnv(menv, sym)
+    let fun getSWTy(t) = case t of
+                              T.S_TY(x) => x
+                            | _ => T.S_TOP  (* NOTE: error? *)
+        fun getHWTy(t) = case t of
+                              T.H_TY(x) => x
+                            | _ => T.H_TOP  (* NOTE: error? *)
+        fun decoty(A.NameTy(sym, pos)) = case Symbol.look(tenv, sym) of
+                                              SOME(t) => t
+                                            | NONE => case Symbol.look(menv, sym) of
+                                                      SOME(t) => t
+                                                    | NONE => T.TOP (* NOTE: error? *)
+          | decoty(A.TyVar(sym, pos)) = T.META(E.newMeta())
           | decoty(A.SWRecordTy(fields, pos)) =
             let
-              fun absynToTy({name, ty, escape, pos}) =
-                let
-                  val realTy = case Symbol.look(tenv, name) of
-                                    SOME(t) => t
-                                  | NONE => (case Symbol.look(menv, name) of
-                                                  SOME(t) => t
-                                                | NONE => T.S_TOP) (* TODO: error message (symbol not found) *)
-                  val retTy = case realTy of
-                                   T.S_TY(t) => t
-                                 | _ => T.S_TOP (* TODO: error message (sw type expected) *)
-                in
-                  (name, retTy)
-                end
-              fun processFields fs = foldl (fn(f, l) => l @ [absynToTy(f)]) [] fs
-              fun checkDuplicateFields [] = ()
-                | checkDuplicateFields ({name, ty, escape, pos}::rest) =
-                let
-                  val () = if (List.exists (fn r => (Symbol.name name) = (Symbol.name (#name r))) rest)
-                           then () (* TODO: error message (duplicate field name) *)
-                           else ()
-                in
-                  checkDuplicateFields(rest)
-                end
-              val () = checkDuplicateFields(fields)
+              fun mapFields({name, ty, escape, pos}) = (name, getSWTy(decoty(ty)))
             in
-              T.S_TY(T.S_RECORD(processFields(fields)))
+              A.S_TY(A.S_RECORD(map mapFields fields))
             end
           | decoty(A.HWRecordTy(fields, pos)) =
             let
-              fun absynToTy({name, ty, escape, pos}) =
-                let
-                  val realTy = case Symbol.look(tenv, name) of
-                                    SOME(t) => t
-                                  | NONE => (case Symbol.look(menv, name) of
-                                                  SOME(t) => t
-                                                | NONE => T.H_TOP) (* TODO: error message (symbol not found) *)
-                  val retTy = case realTy of
-                                   T.H_TY(t) => t
-                                 | _ => T.H_TOP (* TODO: error message (hw type expected) *)
-                in
-                  (name, retTy)
-                end
-              fun processFields fs = foldl (fn(f, l) => l @ [absynToTy(f)]) [] fs
-              fun checkDuplicateFields [] = ()
-                | checkDuplicateFields ({name, ty, escape, pos}::rest) =
-                let
-                  val () = if (List.exists (fn r => (Symbol.name name) = (Symbol.name (#name r))) rest)
-                           then () (* TODO: error message (duplicate field name) *)
-                           else ()
-                in
-                  checkDuplicateFields(rest)
-                end
-              val () = checkDuplicateFields(fields)
+              fun mapFields({name, ty, escape, pos}) = (name, getHWTy(decoty(ty)))
             in
-              T.H_TY(T.H_RECORD(processFields(fields)))
+              A.H_TY(A.H_RECORD(map mapFields fields))
             end
           | decoty(A.ArrayTy(ty, size, pos)) =
             let
-              val realTy = decoty(ty)
-              val retTy = case realTy of
-                               T.H_TY(t) => t
-                             | _ => T.H_TOP (* TODO: error message (hw type expected) *)
-              val {exp = sizeExp, ty = sizeTy} = inferExp(menv, tenv, venv, size)
-              val () = case sizeTy of
-                            T.S_TY(T.INT) => ()
-                          | _ => () (* TODO: error message (int type expected) *)
+              val realTy1 = getHWTy(decoty(ty))
             in
-              T.H_TY(T.ARRAY({ty = retTy, size = int}))
+              A.H_TY(A.ARRAY({ty = realTy1, size = size}))
             end
           | decoty(A.ListTy(ty, pos)) =
             let
-              val realTy = decoty(ty)
-              val retTy = case realTy of
-                               T.S_TY(t) => t
-                             | _ => T.S_TOP (* TODO: error message (sw type expected) *)
+              val realTy = getSWTy(decoty(ty))
             in
-              T.S_TY(T.LIST(retTy))
+              A.S_TY(A.LIST(realTy))
             end
           | decoty(A.TemporalTy(ty, time, pos)) =
             let
-              val realTy = decoty(ty)
-              val retTy = case realTy of
-                               T.H_TY(t) => t
-                             | _ => T.H_TOP (* TODO: error message (expected hw type) *)
-              val {exp = timeExp, ty = timeTy} = inferExp(menv, tenv, venv, time)
-              val () = case timeTy of
-                            T.S_TY(T.INT) => ()
-                          | _ => () (* TODO: error message (expected int type) *)
+              val realTy1 = getHWTy(decoty(ty))
             in
-              T.H_TY(T.TEMPORAL({ty = retTy, time = timeExp}))
+              A.H_TY(A.TEMPORAL({ty = realTy1, time = time}))
             end
           | decoty(A.RefTy(ty, pos)) =
             let
-              val realTy = decoty(ty)
-              val retTy = case realTy of
-                               T.S_TY(t) => t
-                             | _ => T.S_TOP (* TODO: error message (expected sw type) *)
+              val realTy = getSWTy(decoty(ty))
             in
-              T.S_TY(T.REF(retTy))
+              A.S_TY(A.REF(realTy))
             end
           | decoty(A.SWTy(ty, pos)) =
             let
-              val realTy = decoty(ty)
-              val ret = case realTy of
-                             T.H_TY(t) => T.S_TY(T.SW_H(t))
-                           | T.M_TY(t) => T.S_TY(T.SW_M(t))
-                           | _ => T.S_TY(T.S_TOP) (* TODO: error message (expected hw/m type ) *)
+              val exTy = decoty(ty)
+              val retTy = case exTy of
+                               T.H_TY(h) => T.S_TY(T.SW_H(h))
+                             | T.M_TY(m) => T.S_TY(T.SW_M(m))
             in
-              ret
+              retTy
             end
           | decoty(A.FunTy(ty1, ty2, pos)) =
             let
-              val realArgTy = decoty(ty1)
-              val realResTy = decoty(ty2)
-
-              val retArgTy = case realArgTy of
-                                  T.S_TY(t) => t
-                                | _ => T.S_TOP (* TODO: error message (expected sw type) *)
-              val retResTy = case realResTy of
-                                  T.S_TY(t) => t
-                                | _ => T.S_BOTTOM (* TODO: error message (expected sw type) *)
+              val realTy1 = getSWTy(decoty(ty1))
+              val realTy2 = getSWTy(decoty(ty2))
             in
-              T.S_TY(T.ARROW(decoty(ty1), decoty(ty2)))
+              T.S_TY(T.ARROW(realTy1, realTy2))
             end
           | decoty(A.PlaceholderTy(u)) = T.META(E.newMeta())
           | decoty(A.ExplicitTy(t)) = t
