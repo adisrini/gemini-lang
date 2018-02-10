@@ -18,6 +18,24 @@ sig
 
 end
 
+(* rename this to decorate
+
+- should keep track of a substitution mapping
+- after this is done, should go through once more and do substitutions
+
+
+*)
+
+(* UNIFY
+
+take in two types and try to UNIFY
+if variable and something, substitute (v -> s)
+if something and variable, substitute (v -> s)
+otherwise, check outermost tycon and if match, recurse (do left first, then apply substitution to right and do right)
+if not match, report error
+
+ *)
+
 structure Infer : INFER =
 struct
 
@@ -51,7 +69,7 @@ struct
           | infexp(A.RealExp(num, pos)) =
           | infexp(A.BitExp(bit, pos)) =
           | infexp(A.ApplyExp(e1, e2, pos)) =
-          | infexp(A.NilExp(pos)) =
+          | infexp(A.NilExp(pos)) = {exp = A.NilExp(pos), ty = T.S_TY(T.LIST(T.S_META))}
           | infexp(A.BinOpExp({left, oper, right, pos})) =
           | infexp(A.UnOpExp({exp, oper, pos})) =
           | infexp(A.LetExp({decs, body, pos})) =

@@ -10,7 +10,7 @@ struct
     let
       val ast = Parse.parse filename
     in
-      Infer.inferProg ast;
+      Decorate.decorateProg ast;
       ()
     end
 

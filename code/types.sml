@@ -15,9 +15,9 @@ struct
 
   and h_ty =
             BIT
-          | ARRAY of {ty: h_ty, size: A.exp}    (* type of size? *)
+          | ARRAY of {ty: h_ty, size: A.exp}    (* type of size? default to max int/-1 *)
           | H_RECORD of (tyvar * h_ty) list
-          | TEMPORAL of {ty: h_ty, time: A.exp} (* type of time? *)
+          | TEMPORAL of {ty: h_ty, time: A.exp} (* type of time? default to max int/-1 *)
           | H_VAR of tyvar
           | H_POLY of tyvar list * h_ty
           | H_UNPOLY of h_ty * h_ty list
@@ -33,7 +33,7 @@ struct
           | SW_M of m_ty
           | S_RECORD of (tyvar * s_ty) list
           | REF of s_ty
-          | DATATYPE of (tyvar * s_ty) list * unit ref
+          | DATATYPE of (tyvar * s_ty option) list * unit ref
           | S_VAR of tyvar
           | S_POLY of tyvar list * s_ty
           | S_UNPOLY of s_ty * s_ty list
@@ -42,7 +42,7 @@ struct
           | S_BOTTOM
 
   (* datatype 'a tree = NODE of 'a | LEAF
-  tree -> POLY(a, DATATYPE({'a tree, [NODE, META a)]'})) *)
+  tree -> POLY(a, DATATYPE([(NODE, SOME(META a)), (LEAF, NONE)], ref ())) *)
 
   and m_ty =
             MODULE of h_ty * h_ty

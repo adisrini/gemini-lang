@@ -9,6 +9,7 @@ string.sml
 (* compiler *)
 absyn.sml
 main.sml
+decorate.sml
 env.sml
 errormsg.sml
 gemini.lex
