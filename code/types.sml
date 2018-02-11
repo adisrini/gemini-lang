@@ -1,8 +1,6 @@
 structure Types =
 struct
 
-  structure A = Absyn
-
   type tyvar = Symbol.symbol
 
   datatype ty =
@@ -15,9 +13,9 @@ struct
 
   and h_ty =
             BIT
-          | ARRAY of {ty: h_ty, size: A.exp}    (* type of size? default to max int/-1 *)
+          | ARRAY of {ty: h_ty, size: int ref}    (* type of size? default to max int/-1 *)
           | H_RECORD of (tyvar * h_ty) list
-          | TEMPORAL of {ty: h_ty, time: A.exp} (* type of time? default to max int/-1 *)
+          | TEMPORAL of {ty: h_ty, time: int ref} (* type of time? default to max int/-1 *)
           | H_VAR of tyvar
           | H_POLY of tyvar list * h_ty
           | H_UNPOLY of h_ty * h_ty list

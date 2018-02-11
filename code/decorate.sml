@@ -5,9 +5,6 @@ sig
   type tenv
   type venv
 
-  type expty
-
-
   val decorateProg :                      Absyn.exp -> Absyn.exp     (* returns explicit poly tree *)
   val decorateExp  : menv * tenv * venv * Absyn.exp -> Absyn.exp     (* returns expression with types made explicit *)
   val decorateTy   : menv * tenv * venv * Absyn.ty  -> Types.ty      (* returns explicit type *)
@@ -32,9 +29,9 @@ struct
   fun decorateProg(e) = decorateExp(E.base_menv, E.base_tenv, E.base_venv, e)
 
   and decorateExp(menv, tenv, venv, exp) =
-    let fun decorexp(A.StructsSigsExp(structsigs)) =
+    let fun decorexp(A.StructsSigsExp(structsigs)) = A.StructsSigsExp(structsigs) (* TODO *)
             (* NOTE: double check this! *)
-            let
+            (* let
               fun processStructSig(A.StructExp({name, signat, decs, pos}), {structsigs, menv, tenv, venv}) =
                 let
                   val (s, pos') = signat
@@ -48,13 +45,13 @@ struct
                 | processStructSig(A.AnonSigExp(defs), {structsigs, menv, tenv, venv})
             in
               foldr processStructSig {structsigs = [], menv = menv, tenv = tenv, venv = venv} structsigs
-            end
+            end *)
           | decorexp(A.VarExp(sym, pos)) = A.VarExp(sym, pos) (* NO-OP *)
           | decorexp(A.IntExp(num, pos)) = A.IntExp(num, pos) (* NO-OP *)
           | decorexp(A.StringExp(str, pos)) = A.StringExp(str, pos) (* NO-OP *)
           | decorexp(A.RealExp(num, pos)) = A.RealExp(num, pos) (* NO-OP *)
           | decorexp(A.BitExp(bit, pos)) = A.BitExp(bit, pos) (* NO-OP *)
-          | decorexp(A.ApplyExp(e1, e2, pos)) = A.ApplyExp(decorexp(e1), decorexp(e2))
+          | decorexp(A.ApplyExp(e1, e2, pos)) = A.ApplyExp(decorexp(e1), decorexp(e2), pos)
           | decorexp(A.NilExp(pos)) = A.NilExp(pos) (* NO-OP *)
           | decorexp(A.BinOpExp({left, oper, right, pos})) = A.BinOpExp({ left = decorexp(left),
                                                                           oper = oper,
@@ -67,7 +64,7 @@ struct
             let
               fun processDecs(dec, {decs, menv, tenv, venv}) =
                 let
-                  {menv = menv', tenv = tenv', venv = venv', dec = dec'} = decorateDec(menv, tenv, venv, dec)
+                  val {menv = menv', tenv = tenv', venv = venv', dec = dec'} = decorateDec(menv, tenv, venv, dec)
                 in
                   {decs = dec'::decs, menv = menv', tenv = tenv', venv = venv'}
                 end
@@ -84,14 +81,14 @@ struct
           | decorexp(A.AssignExp({lhs, rhs, pos})) = A.AssignExp({ lhs = decorexp(lhs),
                                                                    rhs = decorexp(rhs),
                                                                    pos = pos })
-          | decorexp(A.SeqExp(exps)) = A.SeqExp(map decorexp exps)
+          | decorexp(A.SeqExp(exps)) = A.SeqExp(map (fn(e, p) => (decorexp(e), p)) exps)
           | decorexp(A.IfExp({test, then', else', pos})) = A.IfExp({ test = decorexp(test),
                                                                      then' = decorexp(then'),
-                                                                     else' = decorexp(else'),
+                                                                     else' = Option.map (fn(x) => decorexp(x)) else',
                                                                      pos = pos })
-          | decorexp(A.ListExp(exps)) = A.ListExp(map decorexp exps)
-          | decorexp(A.ArrayExp(exps)) = A.ArrayExp(Vector.map decorexp exps)
-          | decorexp(A.RefExp(exp, pos)) = A.RefExp(decorexp(exp, pos))
+          | decorexp(A.ListExp(exps)) = A.ListExp(map (fn(e, p) => (decorexp(e), p)) exps)
+          | decorexp(A.ArrayExp(exps)) = A.ArrayExp(Vector.map (fn(e, p) => (decorexp(e), p)) exps)
+          | decorexp(A.RefExp(exp, pos)) = A.RefExp(decorexp(exp), pos)
           | decorexp(A.SWRecordExp({fields, pos})) = A.SWRecordExp({ fields = map (fn((s, e, p)) => (s, decorexp(e), p)) fields,
                                                                      pos = pos })
           | decorexp(A.HWRecordExp({fields, pos})) = A.HWRecordExp({ fields = map (fn((s, e, p)) => (s, decorexp(e), p)) fields,
@@ -102,7 +99,7 @@ struct
                                                                   pos = pos })
           | decorexp(A.DerefExp({exp, pos})) = A.DerefExp({ exp = decorexp(exp),
                                                             pos = pos })
-          | decorexp(A.StructAccExp({name, field, pos})) = A.StructAccExp({name = name field = field, pos = pos}) (* NO-OP *)
+          | decorexp(A.StructAccExp({name, field, pos})) = A.StructAccExp({name = name, field = field, pos = pos}) (* NO-OP *)
           | decorexp(A.RecordAccExp({exp, field, pos})) = A.RecordAccExp({ exp = decorexp(exp),
                                                                            field = field,
                                                                            pos = pos })
@@ -120,60 +117,61 @@ struct
     end
 
   and decorateTy(menv, tenv, venv, ty) =
-    let fun getSWTy(t) = case t of
-                              T.S_TY(x) => x
-                            | _ => T.S_TOP  (* NOTE: error? *)
-        fun getHWTy(t) = case t of
-                              T.H_TY(x) => x
-                            | _ => T.H_TOP  (* NOTE: error? *)
-        fun decoty(A.NameTy(sym, pos)) = case Symbol.look(tenv, sym) of
-                                              SOME(t) => t
-                                            | NONE => case Symbol.look(menv, sym) of
-                                                      SOME(t) => t
-                                                    | NONE => T.TOP (* NOTE: error? *)
+    let fun getSWTy(t) = (case t of
+                               T.S_TY(x) => x
+                             | _ => T.S_TOP)  (* NOTE: error? *)
+        fun getHWTy(t) = (case t of
+                               T.H_TY(x) => x
+                             | _ => T.H_TOP)  (* NOTE: error? *)
+        fun decoty(A.NameTy(sym, pos)) = (case Symbol.look(tenv, sym) of
+                                               SOME(t) => t
+                                             | NONE => (case Symbol.look(menv, sym) of
+                                                        SOME(t) => t
+                                                      | NONE => T.TOP)) (* NOTE: error? *)
           | decoty(A.TyVar(sym, pos)) = T.META(E.newMeta())
           | decoty(A.SWRecordTy(fields, pos)) =
             let
               fun mapFields({name, ty, escape, pos}) = (name, getSWTy(decoty(ty)))
             in
-              A.S_TY(A.S_RECORD(map mapFields fields))
+              T.S_TY(T.S_RECORD(map mapFields fields))
             end
           | decoty(A.HWRecordTy(fields, pos)) =
             let
               fun mapFields({name, ty, escape, pos}) = (name, getHWTy(decoty(ty)))
             in
-              A.H_TY(A.H_RECORD(map mapFields fields))
+              T.H_TY(T.H_RECORD(map mapFields fields))
             end
           | decoty(A.ArrayTy(ty, size, pos)) =
             let
               val realTy1 = getHWTy(decoty(ty))
             in
-              A.H_TY(A.ARRAY({ty = realTy1, size = size}))
+              T.H_TY(T.ARRAY({ty = realTy1, size = ref ~1}))
             end
           | decoty(A.ListTy(ty, pos)) =
             let
               val realTy = getSWTy(decoty(ty))
             in
-              A.S_TY(A.LIST(realTy))
+              T.S_TY(T.LIST(realTy))
             end
           | decoty(A.TemporalTy(ty, time, pos)) =
             let
               val realTy1 = getHWTy(decoty(ty))
             in
-              A.H_TY(A.TEMPORAL({ty = realTy1, time = time}))
+              T.H_TY(T.TEMPORAL({ty = realTy1, time = ref ~1}))
             end
           | decoty(A.RefTy(ty, pos)) =
             let
               val realTy = getSWTy(decoty(ty))
             in
-              A.S_TY(A.REF(realTy))
+              T.S_TY(T.REF(realTy))
             end
           | decoty(A.SWTy(ty, pos)) =
             let
               val exTy = decoty(ty)
-              val retTy = case exTy of
-                               T.H_TY(h) => T.S_TY(T.SW_H(h))
-                             | T.M_TY(m) => T.S_TY(T.SW_M(m))
+              val retTy = (case exTy of
+                                T.H_TY(h) => T.S_TY(T.SW_H(h))
+                              | T.M_TY(m) => T.S_TY(T.SW_M(m))
+                              | _ => T.S_TY(T.S_TOP))
             in
               retTy
             end
@@ -189,5 +187,7 @@ struct
     in
       decoty(ty)
     end
+
+  and decorateDec(menv, tenv, venv, dec) = {menv = menv, tenv = tenv, venv = venv, dec = dec}
 
 end

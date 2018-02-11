@@ -14,7 +14,7 @@ env.sml
 errormsg.sml
 gemini.lex
 gemini.grm
-infer.sml
+(* infer.sml *)
 parse.sml
 prabsyn.sml
 symbol.sml
