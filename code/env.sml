@@ -12,7 +12,7 @@ sig
   val createEnvironmentWithData : (Symbol.symbol * 'a) list -> 'a Symbol.table
 end
 
-structure Env :> ENV =
+structure Env : ENV =
 struct
 
   type menv = Types.ty Symbol.table
