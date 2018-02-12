@@ -180,6 +180,7 @@ struct
       decoty(ty)
     end
 
+  (* NOTE: CHECK THESE! *)
   and decorateDec(menv, tenv, venv, dec) =
     let
       fun decodec(A.FunctionDec(fundecs)) =
@@ -191,6 +192,7 @@ struct
                   let
                     val realTy = decorateTy(menv, tenv, venv, ty)
                     val venv' = Symbol.enter(venv, name, realTy)
+                    (* NOTE: should add to menv if ty is A.TyVar(_)? *)
                   in
                     {menv = menv,
                      tenv = tenv,
@@ -203,6 +205,7 @@ struct
                       let
                         val realTy = decorateTy(menv, tenv, venv, ty)
                         val venv' = Symbol.enter(venv, name, realTy)
+                        (* NOTE: should add to menv if ty is A.TyVar(_)? *)
                       in
                         {menv = menv,
                          tenv = tenv,
@@ -246,7 +249,36 @@ struct
         in
           {menv = menv', tenv = tenv', venv = venv', dec = A.FunctionDec(fdecs')}
         end
-        | decodec(A.TypeDec(tydecs)) = {menv = menv, tenv = tenv, venv = venv, dec = A.TypeDec(tydecs)} (* TODO *)
+        (* tydec: {name: symbol, ty: ty, tyvar: symbol option, opdef: (opdef list) option, pos: pos} *)
+        | decodec(A.TypeDec(tydecs)) =
+          let
+            fun processTyDec({name, ty, tyvar_opt, opdef_opt, pos}, {menv, tenv, venv, tydecs})
+              let
+                val menv' = case tyvar of
+                                 SOME(s) => Symbol.enter(menv, s, T.META(E.newMeta()))
+                               | _ => menv
+                val realTy = decorateTy(menv', tenv, venv, ty)
+                val tenv' = Symbol.enter(tenv, name, realTy)
+                val opdefs' = Option.map (fn(o) => map (fn({oper, param_a, param_b, body, pos}) => (
+                  let
+                    val venv' = Symbol.enter(venv, param_a, realTy)
+                    val venv'' = Symbol.enter(venv', param_b, realTy)
+                    val body' = decorateExp(menv, tenv, venv'', body)
+                  in
+                    {oper = oper, param_a = param_a, param_b = param_b, body = body', pos = pos}
+                  end
+                  )) o) opdef_opt
+                val tydec' = {name = name, ty = A.ExplicitTy(realTy), tyvar = tyvar_opt, opdef = opdefs', pos = pos}
+              in
+                {menv = menv',
+                 tenv = tenv',
+                 venv = venv,
+                 tydecs = tydec'::tydecs}
+              end
+            val {menv = menv', tenv = tenv', venv = venv', tydecs = tydecs'} = foldr processTyDec {menv = menv, tenv = tenv, venv = venv, tydecs = []} tydecs
+          in
+            {menv = menv', tenv = tenv', venv = venv', dec = A.TypeDec(tydecs')}
+          end
         | decodec(A.ModuleDec(moddecs)) = {menv = menv, tenv = tenv, venv = venv, dec = A.ModuleDec(moddecs)} (* TODO *)
         | decodec(A.DatatypeDec(datatydecs)) = {menv = menv, tenv = tenv, venv = venv, dec = A.DatatypeDec(datatydecs)} (* TODO *)
         | decodec(A.ValDec(valdecs)) = {menv = menv, tenv = tenv, venv = venv, dec = A.ValDec(valdecs)} (* TODO *)
