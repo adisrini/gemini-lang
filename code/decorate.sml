@@ -1,17 +1,13 @@
 signature DECORATE =
 sig
 
-  type menv
-  type tenv
-  type venv
-
-  val decorateProg :                      Absyn.exp -> Absyn.exp     (* returns explicit poly tree *)
-  val decorateExp  : menv * tenv * venv * Absyn.exp -> Absyn.exp     (* returns expression with types made explicit *)
-  val decorateTy   : menv * tenv * venv * Absyn.ty  -> Types.ty      (* returns explicit type *)
-  val decorateDec  : menv * tenv * venv * Absyn.dec -> { menv: menv, (* returns augmented environments and *)
-                                                         tenv: tenv, (* Absyn.dec with explicit types      *)
-                                                         venv: venv,
-                                                         dec: Absyn.dec }
+  val decorateProg :                                  Absyn.exp -> Absyn.exp         (* returns explicit poly tree *)
+  val decorateExp  : Env.menv * Env.tenv * Env.venv * Absyn.exp -> Absyn.exp         (* returns expression with types made explicit *)
+  val decorateTy   : Env.menv * Env.tenv * Env.venv * Absyn.ty  -> Types.ty          (* returns explicit type *)
+  val decorateDec  : Env.menv * Env.tenv * Env.venv * Absyn.dec -> { menv: Env.menv, (* returns augmented environments and *)
+                                                                     tenv: Env.tenv, (* Absyn.dec with explicit types      *)
+                                                                     venv: Env.venv,
+                                                                     dec: Absyn.dec }
 
 end
 
@@ -21,10 +17,6 @@ struct
   structure A = Absyn
   structure T = Types
   structure E = Env
-
-  type menv = T.ty Symbol.table
-  type tenv = T.ty Symbol.table
-  type venv = E.enventry Symbol.table
 
   fun decorateProg(e) = decorateExp(E.base_menv, E.base_tenv, E.base_venv, e)
 
@@ -188,6 +180,78 @@ struct
       decoty(ty)
     end
 
-  and decorateDec(menv, tenv, venv, dec) = {menv = menv, tenv = tenv, venv = venv, dec = dec}
+  and decorateDec(menv, tenv, venv, dec) =
+    let
+      fun decodec(A.FunctionDec(fundecs)) =
+        let
+          fun processFunDec({name, params, result = (ty, typos), body, pos}, {menv, tenv, venv, fdecs}) =
+            let
+              fun foldParams(A.NoParam, {menv, tenv, venv, params}) = {menv = menv, tenv = tenv, venv = venv, params = A.NoParam::params}
+                | foldParams(A.SingleParam({name, ty, escape, pos}), {menv, tenv, venv, params}) =
+                  let
+                    val realTy = decorateTy(menv, tenv, venv, ty)
+                    val venv' = Symbol.enter(venv, name, realTy)
+                  in
+                    {menv = menv,
+                     tenv = tenv,
+                     venv = venv',
+                     params = A.SingleParam({name = name, ty = A.ExplicitTy(realTy), escape = escape, pos = pos})::params}
+                  end
+                | foldParams(A.MultiParams(fs), {menv, tenv, venv, params}) =
+                  let
+                    fun foldField({name, ty, escape, pos}, {menv, tenv, venv, fields}) =
+                      let
+                        val realTy = decorateTy(menv, tenv, venv, ty)
+                        val venv' = Symbol.enter(venv, name, realTy)
+                      in
+                        {menv = menv,
+                         tenv = tenv,
+                         venv = venv',
+                         fields = {name = name, ty = A.ExplicitTy(realTy), escape = escape, pos = pos}::fields}
+                      end
+                    val {menv = menvWithFields,
+                         tenv = tenvWithFields,
+                         venv = venvWithFields,
+                         fields = fs'} = foldr foldField {menv = menv, tenv = tenv, venv = venv, fields = []} fs
+                  in
+                    {menv = menvWithFields,
+                     tenv = tenvWithFields,
+                     venv = venvWithFields,
+                     params = A.MultiParams(fs')::params}
+                  end
+
+              val {menv = menvWithParams,
+                   tenv = tenvWithParams,
+                   venv = venvWithParams,
+                   params = params'} = foldr foldParams {menv = menv, tenv = tenv, venv = venv, params = []} params
+
+              val resultTy = decorateTy(menvWithParams, tenvWithParams, venvWithParams, ty)
+              val resultTy' = case resultTy of
+                                   T.S_TY(x) => x
+                                 | _ => T.S_TOP (* NOTE: check if top or bottom *)
+
+              val venv' = Symbol.enter(venvWithParams, name, T.S_TY(T.ARROW(T.S_TOP, resultTy')))
+
+              val bodyExp = decorateExp(menvWithParams, tenvWithParams, venv', body)
+
+              val fdec' = {name = name, params = params', result = (A.ExplicitTy(resultTy), typos), body = bodyExp, pos = pos}
+            in
+              {menv = menvWithParams,
+               tenv = tenvWithParams,
+               venv = venv',
+               fdecs = fdec'::fdecs}
+            end
+
+          val {menv = menv', tenv = tenv', venv = venv', fdecs = fdecs'} = foldr processFunDec {menv = menv, tenv = tenv, venv = venv, fdecs = []} fundecs
+        in
+          {menv = menv', tenv = tenv', venv = venv', dec = A.FunctionDec(fdecs')}
+        end
+        | decodec(A.TypeDec(tydecs)) = {menv = menv, tenv = tenv, venv = venv, dec = A.TypeDec(tydecs)} (* TODO *)
+        | decodec(A.ModuleDec(moddecs)) = {menv = menv, tenv = tenv, venv = venv, dec = A.ModuleDec(moddecs)} (* TODO *)
+        | decodec(A.DatatypeDec(datatydecs)) = {menv = menv, tenv = tenv, venv = venv, dec = A.DatatypeDec(datatydecs)} (* TODO *)
+        | decodec(A.ValDec(valdecs)) = {menv = menv, tenv = tenv, venv = venv, dec = A.ValDec(valdecs)} (* TODO *)
+    in
+      decodec(dec)
+    end
 
 end

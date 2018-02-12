@@ -6,11 +6,14 @@ end
 structure Main : MAIN =
 struct
 
+  structure P = PrintAbsyn
+
   fun go filename =
     let
       val ast = Parse.parse filename
+      val explicitAST = Decorate.decorateProg ast
+      val () = P.print(TextIO.stdOut, explicitAST);
     in
-      Decorate.decorateProg ast;
       ()
     end
 

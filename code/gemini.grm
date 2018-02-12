@@ -1,4 +1,3 @@
-structure P = PrintAbsyn
 structure A = Absyn
 structure S = GeminiString(String)
 structure BA = GeminiBitArray(Vector)
@@ -217,8 +216,8 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
 
 %%
 
-program	      : structs_or_sigs                                             (P.print(TextIO.stdOut, structs_or_sigs); structs_or_sigs)
-              | exp                                                         (P.print(TextIO.stdOut, exp); exp)
+program	      : structs_or_sigs                                             (structs_or_sigs)
+              | exp                                                         (exp)
 
 exp           : exp exp %prec APPLY                                         (A.ApplyExp(exp1, exp2, exp1left))
               | INT                                                         (A.IntExp(INT, INTleft))
