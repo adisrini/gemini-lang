@@ -36,7 +36,7 @@ struct
                 | processStructSig(A.NamedSigExp(sym), {structsigs, menv, tenv, venv}) = {structsigs = A.NamedSigExp(sym)::structsigs, menv = menv, tenv = tenv, venv = venv} (* NO-OP *)
                 | processStructSig(A.AnonSigExp(defs), {structsigs, menv, tenv, venv})
             in
-              foldr processStructSig {structsigs = [], menv = menv, tenv = tenv, venv = venv} structsigs
+              foldl processStructSig {structsigs = [], menv = menv, tenv = tenv, venv = venv} structsigs
             end *)
           | decorexp(A.VarExp(sym, pos)) = A.VarExp(sym, pos) (* NO-OP *)
           | decorexp(A.IntExp(num, pos)) = A.IntExp(num, pos) (* NO-OP *)
@@ -62,10 +62,10 @@ struct
               val {decs = newDecs,
                    menv = newMenv,
                    tenv = newTenv,
-                   venv = newVenv} = foldr processDecs {decs = [], menv = menv, tenv = tenv, venv = venv} decs
+                   venv = newVenv} = foldl processDecs {decs = [], menv = menv, tenv = tenv, venv = venv} decs
               val newBody = decorateExp(newMenv, newTenv, newVenv, body)
             in
-              A.LetExp({ decs = newDecs,
+              A.LetExp({ decs = List.rev(newDecs),
                          body = newBody,
                          pos = pos })
             end
@@ -216,18 +216,18 @@ struct
                     val {menv = menvWithFields,
                          tenv = tenvWithFields,
                          venv = venvWithFields,
-                         fields = fs'} = foldr foldField {menv = menv, tenv = tenv, venv = venv, fields = []} fs
+                         fields = fs'} = foldl foldField {menv = menv, tenv = tenv, venv = venv, fields = []} fs
                   in
                     {menv = menvWithFields,
                      tenv = tenvWithFields,
                      venv = venvWithFields,
-                     params = A.MultiParams(fs')::params}
+                     params = A.MultiParams(List.rev(fs'))::params}
                   end
 
               val {menv = menvWithParams,
                    tenv = tenvWithParams,
                    venv = venvWithParams,
-                   params = params'} = foldr foldParams {menv = menv, tenv = tenv, venv = venv, params = []} params
+                   params = params'} = foldl foldParams {menv = menv, tenv = tenv, venv = venv, params = []} params
 
               val resultTy = decorateTy(menvWithParams, tenvWithParams, venvWithParams, ty)
               val resultTy' = case resultTy of
@@ -238,7 +238,7 @@ struct
 
               val bodyExp = decorateExp(menvWithParams, tenvWithParams, venv', body)
 
-              val fdec' = {name = name, params = params', result = (A.ExplicitTy(resultTy), typos), body = bodyExp, pos = pos}
+              val fdec' = {name = name, params = List.rev(params'), result = (A.ExplicitTy(resultTy), typos), body = bodyExp, pos = pos}
             in
               {menv = menvWithParams,
                tenv = tenvWithParams,
@@ -246,14 +246,15 @@ struct
                fdecs = fdec'::fdecs}
             end
 
-          val {menv = menv', tenv = tenv', venv = venv', fdecs = fdecs'} = foldr processFunDec {menv = menv, tenv = tenv, venv = venv, fdecs = []} fundecs
+          val {menv = menv', tenv = tenv', venv = venv', fdecs = fdecs'} = foldl processFunDec {menv = menv, tenv = tenv, venv = venv, fdecs = []} fundecs
         in
-          {menv = menv', tenv = tenv', venv = venv', dec = A.FunctionDec(fdecs')}
+          {menv = menv', tenv = tenv', venv = venv', dec = A.FunctionDec(List.rev(fdecs'))}
         end
         | decodec(A.TypeDec(tydecs)) =
           let
             fun processTyDec({name, ty, tyvar = tyvar_opt, opdef = opdef_opt, pos}, {menv, tenv, venv, tydecs}) =
               let
+                val () = print("processing tydec\n")
                 val menv' = case tyvar_opt of
                                  SOME(s) => Symbol.enter(menv, s, T.META(E.newMeta()))
                                | _ => menv
@@ -275,9 +276,9 @@ struct
                  venv = venv,
                  tydecs = tydec'::tydecs}
               end
-            val {menv = menv', tenv = tenv', venv = venv', tydecs = tydecs'} = foldr processTyDec {menv = menv, tenv = tenv, venv = venv, tydecs = []} tydecs
+            val {menv = menv', tenv = tenv', venv = venv', tydecs = tydecs'} = foldl processTyDec {menv = menv, tenv = tenv, venv = venv, tydecs = []} tydecs
           in
-            {menv = menv', tenv = tenv', venv = venv', dec = A.TypeDec(tydecs')}
+            {menv = menv', tenv = tenv', venv = venv', dec = A.TypeDec(List.rev(tydecs'))}
           end
         (* moddec: {name: symbol, arg: param, result: ty * pos, body: exp, pos: pos} *)
         | decodec(A.ModuleDec(moddecs)) =
@@ -302,9 +303,9 @@ struct
                                                in
                                                  {venv' = Symbol.enter(venv, name, realTy), fs' = f'::fs'}
                                                end
-                                             val {venv', fs'} = foldr foldField {venv' = venv, fs' = []} fs
+                                             val {venv', fs'} = foldl foldField {venv' = venv, fs' = []} fs
                                            in
-                                             {venv' = venv', arg' = A.MultiParams(fs')}
+                                             {venv' = venv', arg' = A.MultiParams(List.rev(fs'))}
                                            end)
                 val realTy = decorateTy(menv, tenv, venv, ty)
                 val body' = decorateExp(menv, tenv, venv', body)
@@ -315,9 +316,9 @@ struct
                  venv = venv,
                  moddecs = moddec'::moddecs}
               end
-            val {menv = menv', tenv = tenv', venv = venv', moddecs = moddecs'} = foldr processModDec {menv = menv, tenv = tenv, venv = venv, moddecs = []} moddecs
+            val {menv = menv', tenv = tenv', venv = venv', moddecs = moddecs'} = foldl processModDec {menv = menv, tenv = tenv, venv = venv, moddecs = []} moddecs
           in
-            {menv = menv', tenv = tenv', venv = venv', dec = A.ModuleDec(moddecs')}
+            {menv = menv', tenv = tenv', venv = venv', dec = A.ModuleDec(List.rev(moddecs'))}
           end
         (* dataty: {name: symbol, tyvar: symbol option, datacons: datacon list} *)
         (* datacon: {datacon: symbol, ty: ty, pos: pos} *)
@@ -337,13 +338,14 @@ struct
               in
                 {menv = menv', tenv = tenv', venv = venv, datatydecs = datatydec'::datatydecs}
               end
-            val {menv = menv', tenv = tenv', venv = venv', datatydecs = datatydecs'} = foldr processDatatyDec {menv = menv, tenv = tenv, venv = venv, datatydecs = []} datatydecs
+            val {menv = menv', tenv = tenv', venv = venv', datatydecs = datatydecs'} = foldl processDatatyDec {menv = menv, tenv = tenv, venv = venv, datatydecs = []} datatydecs
           in
-            {menv = menv', tenv = tenv', venv = venv', dec = A.DatatypeDec(datatydecs')}
+            {menv = menv', tenv = tenv', venv = venv', dec = A.DatatypeDec(List.rev(datatydecs'))}
           end
         (* valdec: {name: symbol, escape: bool ref, ty: ty * pos, init: exp, pos: pos} *)
         | decodec(A.ValDec(valdecs)) =
           let
+            val () = print("processing valdec\n")
             fun processValDec({name, escape, ty = (ty, typos), init, pos}, {menv, tenv, venv, valdecs}) =
               let
                 val init' = decorateExp(menv, tenv, venv, init)
@@ -355,9 +357,9 @@ struct
               in
                 {menv = menv, tenv = tenv, venv = venv', valdecs = valdec'::valdecs}
               end
-            val {menv = menv', tenv = tenv', venv = venv', valdecs = valdecs'} = foldr processValDec {menv = menv, tenv = tenv, venv = venv, valdecs = []} valdecs
+            val {menv = menv', tenv = tenv', venv = venv', valdecs = valdecs'} = foldl processValDec {menv = menv, tenv = tenv, venv = venv, valdecs = []} valdecs
           in
-            {menv = menv, tenv = tenv, venv = venv, dec = A.ValDec(valdecs')}
+            {menv = menv, tenv = tenv, venv = venv, dec = A.ValDec(List.rev(valdecs'))}
           end
     in
       decodec(dec)

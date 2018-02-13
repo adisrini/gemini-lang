@@ -133,8 +133,7 @@ fun print (outstream, e0) =
 	    let
           fun func({name, params, result = (t, p), body, pos}, d) =
               (indent d; say (Symbol.name name); say "([";
-		           dolist d print_param params; sayln "],";
-               indent (d + 1);
+		           dolist d print_param params; indent d; sayln "],";
 		           ty(t, d + 1);
                sayln ",";
                exp(body, d + 1); sayln "";
@@ -194,6 +193,8 @@ fun print (outstream, e0) =
       fun sfield((tyv, s), d) = (indent d; say (Symbol.name(tyv)); say ": "; sty(s, 0))
       and tycon((tyv, s_opt), d) = (indent d; say (Symbol.name(tyv)); (case s_opt of SOME(s) => (say ": "; sty(s, 0)) | NONE => ()))
       and sty(T.INT, d) = (indent d; say "INT")
+        | sty(T.STRING, d) = (indent d; say "STRING")
+        | sty(T.REAL, d) = (indent d; say "REAL")
         | sty(T.ARROW(s1, s2), d) = (indent d; sayln "ARROW("; sty(s1, d + 1); sayln "->"; sty(s2, d + 1); sayln ""; indent d; say ")")
         | sty(T.LIST(s), d) = (indent d; sayln "LIST("; sty(s, d + 1); sayln ""; indent d; say ")")
         | sty(T.SW_H(h), d) = (indent d; sayln "SW_H("; hty(h, d + 1); sayln ""; indent d; say ")")
