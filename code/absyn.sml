@@ -70,6 +70,7 @@ struct
          | SWTy of ty * pos
          | FunTy of ty * ty * pos
          | PlaceholderTy of unit ref
+         | NoTy
          | ExplicitTy of Types.ty
 
   and param = NoParam

@@ -175,12 +175,14 @@ struct
               T.S_TY(T.ARROW(realTy1, realTy2))
             end
           | decoty(A.PlaceholderTy(u)) = T.META(E.newMeta())
+          | decoty(A.NoTy) = T.EMPTY
           | decoty(A.ExplicitTy(t)) = t
     in
       decoty(ty)
     end
 
   (* NOTE: CHECK THESE! *)
+  (* NOTE: mainly check which environments are being passed where, and which things are being entered *)
   and decorateDec(menv, tenv, venv, dec) =
     let
       fun decodec(A.FunctionDec(fundecs)) =
@@ -249,17 +251,16 @@ struct
         in
           {menv = menv', tenv = tenv', venv = venv', dec = A.FunctionDec(fdecs')}
         end
-        (* tydec: {name: symbol, ty: ty, tyvar: symbol option, opdef: (opdef list) option, pos: pos} *)
         | decodec(A.TypeDec(tydecs)) =
           let
-            fun processTyDec({name, ty, tyvar_opt, opdef_opt, pos}, {menv, tenv, venv, tydecs})
+            fun processTyDec({name, ty, tyvar = tyvar_opt, opdef = opdef_opt, pos}, {menv, tenv, venv, tydecs}) =
               let
-                val menv' = case tyvar of
+                val menv' = case tyvar_opt of
                                  SOME(s) => Symbol.enter(menv, s, T.META(E.newMeta()))
                                | _ => menv
                 val realTy = decorateTy(menv', tenv, venv, ty)
                 val tenv' = Symbol.enter(tenv, name, realTy)
-                val opdefs' = Option.map (fn(o) => map (fn({oper, param_a, param_b, body, pos}) => (
+                val opdefs' = Option.map (fn(opds) => map (fn({oper, param_a, param_b, body, pos}) => (
                   let
                     val venv' = Symbol.enter(venv, param_a, realTy)
                     val venv'' = Symbol.enter(venv', param_b, realTy)
@@ -267,7 +268,7 @@ struct
                   in
                     {oper = oper, param_a = param_a, param_b = param_b, body = body', pos = pos}
                   end
-                  )) o) opdef_opt
+                  )) opds) opdef_opt
                 val tydec' = {name = name, ty = A.ExplicitTy(realTy), tyvar = tyvar_opt, opdef = opdefs', pos = pos}
               in
                 {menv = menv',
@@ -279,8 +280,68 @@ struct
           in
             {menv = menv', tenv = tenv', venv = venv', dec = A.TypeDec(tydecs')}
           end
-        | decodec(A.ModuleDec(moddecs)) = {menv = menv, tenv = tenv, venv = venv, dec = A.ModuleDec(moddecs)} (* TODO *)
-        | decodec(A.DatatypeDec(datatydecs)) = {menv = menv, tenv = tenv, venv = venv, dec = A.DatatypeDec(datatydecs)} (* TODO *)
+        (* moddec: {name: symbol, arg: param, result: ty * pos, body: exp, pos: pos} *)
+        | decodec(A.ModuleDec(moddecs)) =
+          let
+            fun processModDec({name, arg, result = (ty, typos), body, pos}, {menv, tenv, venv, moddecs}) =
+              let
+                val {venv', arg'} = case arg of
+                                         A.NoParam => {venv' = venv, arg' = A.NoParam}
+                                       | A.SingleParam(f) =>
+                                          (let
+                                             val {name, ty, escape, pos} = f
+                                             val realTy = decorateTy(menv, tenv, venv, ty)
+                                           in
+                                            {venv' = Symbol.enter(venv, name, realTy), arg' = A.SingleParam({name = name, ty = A.ExplicitTy(realTy), escape = escape, pos = pos})}
+                                           end)
+                                       | A.MultiParams(fs) =>
+                                          (let
+                                             fun foldField({name, ty, escape, pos}, {venv', fs'}) =
+                                               let
+                                                 val realTy = decorateTy(menv, tenv, venv', ty)
+                                                 val f' = {name = name, ty = A.ExplicitTy(realTy), escape = escape, pos = pos}
+                                               in
+                                                 {venv' = Symbol.enter(venv, name, realTy), fs' = f'::fs'}
+                                               end
+                                             val {venv', fs'} = foldr foldField {venv' = venv, fs' = []} fs
+                                           in
+                                             {venv' = venv', arg' = A.MultiParams(fs')}
+                                           end)
+                val realTy = decorateTy(menv, tenv, venv, ty)
+                val body' = decorateExp(menv, tenv, venv', body)
+                val moddec' = {name = name, arg = arg', result = (A.ExplicitTy(realTy), typos), body = body', pos = pos}
+              in
+                {menv = menv,
+                 tenv = tenv,
+                 venv = venv,
+                 moddecs = moddec'::moddecs}
+              end
+            val {menv = menv', tenv = tenv', venv = venv', moddecs = moddecs'} = foldr processModDec {menv = menv, tenv = tenv, venv = venv, moddecs = []} moddecs
+          in
+            {menv = menv', tenv = tenv', venv = venv', dec = A.ModuleDec(moddecs')}
+          end
+          (* dataty: {name: symbol, tyvar: symbol option, datacons: datacon list} *)
+          (* datacon: {datacon: symbol, ty: ty, pos: pos} *)
+        | decodec(A.DatatypeDec(datatydecs)) =
+        (* TODO: recursive datatypes *)
+          let
+            fun processDatatyDec({name, tyvar = tyvar_opt, datacons}, {menv, tenv, venv, datatydecs}) =
+              let
+                val menv' = case tyvar_opt of
+                                 SOME(s) => Symbol.enter(menv, s, T.META(E.newMeta()))
+                               | _ => menv
+                val datacons' = map (fn({datacon, ty, pos}) => {datacon = datacon, ty = A.ExplicitTy(decorateTy(menv', tenv, venv, ty)), pos = pos}) datacons
+                val datatydec' = {name = name, tyvar = tyvar_opt, datacons = datacons'}
+                fun mapDatacons({datacon, ty = A.ExplicitTy(t), pos}) = (datacon, case t of T.S_TY(x) => SOME(x) | T.EMPTY => NONE | _ => SOME(T.S_TOP))
+                  | mapDatacons(_) = raise Match
+                val tenv' = Symbol.enter(tenv, name, T.S_TY(T.DATATYPE(map mapDatacons datacons', ref())))
+              in
+                {menv = menv', tenv = tenv', venv = venv, datatydecs = datatydec'::datatydecs}
+              end
+            val {menv = menv', tenv = tenv', venv = venv', datatydecs = datatydecs'} = foldr processDatatyDec {menv = menv, tenv = tenv, venv = venv, datatydecs = []} datatydecs
+          in
+            {menv = menv', tenv = tenv', venv = venv', dec = A.DatatypeDec(datatydecs')} (* TODO *)
+          end
         | decodec(A.ValDec(valdecs)) = {menv = menv, tenv = tenv, venv = venv, dec = A.ValDec(valdecs)} (* TODO *)
     in
       decodec(dec)

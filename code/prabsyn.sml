@@ -186,6 +186,7 @@ fun print (outstream, e0) =
     | ty(A.SWTy(t, p), d) = (indent d; sayln "SWTy("; ty(t, d + 1); sayln ""; indent d; say ")")
     | ty(A.FunTy(t1, t2, p), d) = (indent d; sayln "FunTy("; ty(t1, d + 1); sayln " -> "; ty(t2, d + 1); sayln ""; indent d; say ")")
     | ty(A.PlaceholderTy(_), d) = (indent d; say "PlaceholderTy()")
+    | ty(A.NoTy, d) = (indent d; say "NoTy")
     | ty(A.ExplicitTy(t), d) = (indent d; say "ExplicitTy()")
  in
     exp(e0, 0); sayln ""; TextIO.flushOut outstream

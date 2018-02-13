@@ -8,6 +8,7 @@ struct
           | S_TY of s_ty
           | M_TY of m_ty
           | META of tyvar
+          | EMPTY
           | TOP
           | BOTTOM
 
