@@ -44,7 +44,6 @@ struct
           | decorexp(A.RealExp(num, pos)) = A.RealExp(num, pos) (* NO-OP *)
           | decorexp(A.BitExp(bit, pos)) = A.BitExp(bit, pos) (* NO-OP *)
           | decorexp(A.ApplyExp(e1, e2, pos)) = A.ApplyExp(decorexp(e1), decorexp(e2), pos)
-          | decorexp(A.NilExp(pos)) = A.NilExp(pos) (* NO-OP *)
           | decorexp(A.BinOpExp({left, oper, right, pos})) = A.BinOpExp({ left = decorexp(left),
                                                                           oper = oper,
                                                                           right = decorexp(right),
@@ -320,8 +319,8 @@ struct
           in
             {menv = menv', tenv = tenv', venv = venv', dec = A.ModuleDec(moddecs')}
           end
-          (* dataty: {name: symbol, tyvar: symbol option, datacons: datacon list} *)
-          (* datacon: {datacon: symbol, ty: ty, pos: pos} *)
+        (* dataty: {name: symbol, tyvar: symbol option, datacons: datacon list} *)
+        (* datacon: {datacon: symbol, ty: ty, pos: pos} *)
         | decodec(A.DatatypeDec(datatydecs)) =
         (* TODO: recursive datatypes *)
           let
@@ -342,11 +341,7 @@ struct
           in
             {menv = menv', tenv = tenv', venv = venv', dec = A.DatatypeDec(datatydecs')}
           end
-        (*{name: symbol,
-                     escape: bool ref,
-                     ty: ty * pos,
-                     init: exp,
-                     pos: pos}*)
+        (* valdec: {name: symbol, escape: bool ref, ty: ty * pos, init: exp, pos: pos} *)
         | decodec(A.ValDec(valdecs)) =
           let
             fun processValDec({name, escape, ty = (ty, typos), init, pos}, {menv, tenv, venv, valdecs}) =

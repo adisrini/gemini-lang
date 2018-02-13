@@ -15,6 +15,8 @@ end
 structure Env : ENV =
 struct
 
+  structure T = Types
+
   type menv = Types.ty Symbol.table
   type tenv = Types.ty Symbol.table
   type venv = Types.ty Symbol.table
@@ -25,7 +27,10 @@ struct
 
   val base_menv = Symbol.empty
 
-  val base_tenv = Symbol.empty
+  val base_tenv = createEnvironmentWithData [(Symbol.symbol("int"), T.S_TY(T.INT)),
+                                             (Symbol.symbol("string"), T.S_TY(T.STRING)),
+                                             (Symbol.symbol("real"), T.S_TY(T.REAL)),
+                                             (Symbol.symbol("bit"), T.H_TY(T.BIT))]
 
   val base_venv = Symbol.empty
 

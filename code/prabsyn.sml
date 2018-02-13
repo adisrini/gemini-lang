@@ -3,6 +3,7 @@ structure PrintAbsyn :
 struct
 
   structure A = Absyn
+  structure T = Types
 
 fun print (outstream, e0) =
  let
@@ -69,7 +70,6 @@ fun print (outstream, e0) =
     | exp(A.RealExp(r, pos), d) = (indent d; say "RealExp("; say(Real.toString r); say ")")
     | exp(A.BitExp(b, pos), d) = (indent d; say "BitExp("; say(GeminiBit.toString b); say ")")
     | exp(A.ApplyExp(e1, e2, pos), d) = (indent d; sayln "ApplyExp("; exp(e1, d + 1); sayln ","; exp(e2, d + 1); sayln ""; indent d; say ")")
-    | exp(A.NilExp(p), d) = (indent d; say "NilExp")
     | exp(A.BinOpExp{left, oper, right, pos}, d) = (indent d; sayln "BinOpExp("; indent (d + 1); say(opname oper); sayln ","; exp(left, d + 1); sayln ","; exp(right, d + 1); sayln ""; indent d; say ")")
     | exp(A.UnOpExp{exp = e, oper, pos}, d) = (indent d; sayln "UnOpExp("; indent (d + 1); say(opname oper); sayln ","; exp(e, d + 1); sayln ""; indent d; say ")")
     | exp(A.LetExp{decs, body, pos}, d) = (indent d; say "LetExp(["; dolist d dec decs; sayln "],"; exp(body, d + 1); sayln ""; indent d; say ")")
@@ -147,7 +147,7 @@ fun print (outstream, e0) =
           fun vald({name, init, ty = (t, p), escape, pos}, d) =
             (indent d; say(Symbol.name name); sayln "(";
              indent d; say(Bool.toString (!escape)); sayln ",";
-             indent d; ty(t, d + 1);
+             ty(t, d);
              sayln ",";
              exp(init, d); sayln "";
              indent d; say ")")
@@ -187,7 +187,45 @@ fun print (outstream, e0) =
     | ty(A.FunTy(t1, t2, p), d) = (indent d; sayln "FunTy("; ty(t1, d + 1); sayln " -> "; ty(t2, d + 1); sayln ""; indent d; say ")")
     | ty(A.PlaceholderTy(_), d) = (indent d; say "PlaceholderTy()")
     | ty(A.NoTy, d) = (indent d; say "NoTy")
-    | ty(A.ExplicitTy(t), d) = (indent d; say "ExplicitTy()")
+    | ty(A.ExplicitTy(t), d) = (indent d; sayln "ExplicitTy("; realTy(t, d + 1); sayln ""; indent d; say ")")
+
+  and realTy(t, d) =
+    let
+      fun sfield((tyv, s), d) = (indent d; say (Symbol.name(tyv)); say ": "; sty(s, 0))
+      and tycon((tyv, s_opt), d) = (indent d; say (Symbol.name(tyv)); (case s_opt of SOME(s) => (say ": "; sty(s, 0)) | NONE => ()))
+      and sty(T.INT, d) = (indent d; say "INT")
+        | sty(T.ARROW(s1, s2), d) = (indent d; sayln "ARROW("; sty(s1, d + 1); sayln "->"; sty(s2, d + 1); sayln ""; indent d; say ")")
+        | sty(T.LIST(s), d) = (indent d; sayln "LIST("; sty(s, d + 1); sayln ""; indent d; say ")")
+        | sty(T.SW_H(h), d) = (indent d; sayln "SW_H("; hty(h, d + 1); sayln ""; indent d; say ")")
+        | sty(T.SW_M(m), d) = (indent d; sayln "SW_M("; mty(m, d + 1); sayln ""; indent d; say ")")
+        | sty(T.S_RECORD(fields), d) = (indent d; sayln "S_RECORD(["; dolist (d + 1) sfield fields; say "])")
+        | sty(T.REF(s), d) = (indent d; sayln "REF("; sty(s, d + 1); sayln ""; indent d; say ")")
+        | sty(T.DATATYPE(tycons, u), d) = (indent d; sayln "DATATYPE(["; dolist (d + 1) tycon tycons; say "])")
+        | sty(T.S_META(tyv), d) = (indent d; say "S_META("; say (Symbol.name(tyv)); say ")")
+        | sty(T.S_TOP, d) = (indent d; say "S_TOP")
+        | sty(T.S_BOTTOM, d) = (indent d; say "S_BOTTOM")
+        | sty(_, d) = (indent d; say "UNIMPLEMENTED!")  (* poly, unpoly, var *)
+      and hfield((tyv, h), d) = (indent d; say (Symbol.name(tyv)); say ": "; hty(h, 0))
+      and hty(T.BIT, d) = (indent d; say "BIT")
+        | hty(T.ARRAY{ty, size}, d) = (indent d; sayln "ARRAY("; hty(ty, d + 1); sayln ","; indent (d + 1); say (Int.toString(!size)); sayln ""; indent d; say ")")
+        | hty(T.H_RECORD(fields), d) = (indent d; sayln "S_RECORD(["; dolist (d + 1) hfield fields; say "])")
+        | hty(T.TEMPORAL{ty, time}, d) = (indent d; sayln "TEMPORAL("; hty(ty, d + 1); sayln ","; indent (d + 1); say (Int.toString(!time)); sayln ""; indent d; say ")")
+        | hty(T.H_META(tyv), d) = (indent d; say "H_META("; say (Symbol.name(tyv)); say ")")
+        | hty(T.H_TOP, d) = (indent d; say "H_TOP")
+        | hty(T.H_BOTTOM, d) = (indent d; say "H_BOTTOM")
+        | hty(_, d) = (indent d; say "UNIMPLEMENTED!")  (* poly, unpoly, var *)
+      and mty(T.MODULE(h1, h2), d) = (indent d; sayln "MODULE("; hty(h1, d + 1); sayln "->"; hty(h2, d + 1); sayln ""; indent d; say ")")
+    in
+      case t of
+           T.S_TY(s) => (indent d; sayln "S_TY("; sty(s, d + 1); sayln ""; indent d; say ")")
+         | T.H_TY(h) => (indent d; sayln "H_TY("; hty(h, d + 1); sayln ""; indent d; say ")")
+         | T.M_TY(m) => (indent d; sayln "M_TY("; mty(m, d + 1); sayln ""; indent d; say ")")
+         | T.META(m) => (indent d; say "META("; say (Symbol.name(m)); say ")")
+         | T.EMPTY => (indent d; say "EMPTY")
+         | T.TOP => (indent d; say "TOP")
+         | T.BOTTOM => (indent d; say "BOTTOM")
+    end
+
  in
     exp(e0, 0); sayln ""; TextIO.flushOut outstream
  end

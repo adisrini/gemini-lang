@@ -11,7 +11,6 @@ struct
           | RealExp of real * pos
           | BitExp of GeminiBit.bit * pos
           | ApplyExp of (exp * exp * pos)
-          | NilExp of pos
           | BinOpExp of {left: exp, oper: oper, right: exp, pos: pos}
           | UnOpExp of {exp: exp, oper: oper, pos: pos}
           | LetExp of {decs: dec list, body: exp, pos: pos}
