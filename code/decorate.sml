@@ -340,9 +340,30 @@ struct
               end
             val {menv = menv', tenv = tenv', venv = venv', datatydecs = datatydecs'} = foldr processDatatyDec {menv = menv, tenv = tenv, venv = venv, datatydecs = []} datatydecs
           in
-            {menv = menv', tenv = tenv', venv = venv', dec = A.DatatypeDec(datatydecs')} (* TODO *)
+            {menv = menv', tenv = tenv', venv = venv', dec = A.DatatypeDec(datatydecs')}
           end
-        | decodec(A.ValDec(valdecs)) = {menv = menv, tenv = tenv, venv = venv, dec = A.ValDec(valdecs)} (* TODO *)
+        (*{name: symbol,
+                     escape: bool ref,
+                     ty: ty * pos,
+                     init: exp,
+                     pos: pos}*)
+        | decodec(A.ValDec(valdecs)) =
+          let
+            fun processValDec({name, escape, ty = (ty, typos), init, pos}, {menv, tenv, venv, valdecs}) =
+              let
+                val init' = decorateExp(menv, tenv, venv, init)
+
+                val realTy = decorateTy(menv, tenv, venv, ty)
+                val venv' = Symbol.enter(venv, name, realTy)
+
+                val valdec' = {name = name, escape = escape, ty = (A.ExplicitTy(realTy), typos), init = init', pos = pos}
+              in
+                {menv = menv, tenv = tenv, venv = venv', valdecs = valdec'::valdecs}
+              end
+            val {menv = menv', tenv = tenv', venv = venv', valdecs = valdecs'} = foldr processValDec {menv = menv, tenv = tenv, venv = venv, valdecs = []} valdecs
+          in
+            {menv = menv, tenv = tenv, venv = venv, dec = A.ValDec(valdecs')}
+          end
     in
       decodec(dec)
     end
