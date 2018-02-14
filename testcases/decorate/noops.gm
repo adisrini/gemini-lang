@@ -1,0 +1,9 @@
+(* should be no-ops *)
+(a;
+ 0;
+ "hello";
+ 5.44;
+ 'b:0;
+ nil;
+ S.f
+)

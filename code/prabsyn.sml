@@ -121,7 +121,6 @@ fun print (outstream, e0) =
           fun print_mod({name, arg, result = (t, p), body, pos}, d) =
             (indent d; say (Symbol.name name); say "(";
              dolist d print_param [arg]; sayln ",";
-             indent (d + 1);
              ty(t, d + 1);
              sayln ",";
              exp(body, d + 1); sayln "";
@@ -199,7 +198,7 @@ fun print (outstream, e0) =
         | sty(T.LIST(s), d) = (indent d; sayln "LIST("; sty(s, d + 1); sayln ""; indent d; say ")")
         | sty(T.SW_H(h), d) = (indent d; sayln "SW_H("; hty(h, d + 1); sayln ""; indent d; say ")")
         | sty(T.SW_M(m), d) = (indent d; sayln "SW_M("; mty(m, d + 1); sayln ""; indent d; say ")")
-        | sty(T.S_RECORD(fields), d) = (indent d; sayln "S_RECORD(["; dolist (d + 1) sfield fields; say "])")
+        | sty(T.S_RECORD(fields), d) = (indent d; say "S_RECORD(["; dolist (d + 1) sfield fields; say "])")
         | sty(T.REF(s), d) = (indent d; sayln "REF("; sty(s, d + 1); sayln ""; indent d; say ")")
         | sty(T.DATATYPE(tycons, u), d) = (indent d; sayln "DATATYPE(["; dolist (d + 1) tycon tycons; say "])")
         | sty(T.S_META(tyv), d) = (indent d; say "S_META("; say (Symbol.name(tyv)); say ")")

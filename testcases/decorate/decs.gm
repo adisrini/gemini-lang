@@ -1,0 +1,30 @@
+let
+  (* basic val dec *)
+  val x : bit[4][5] = 0
+
+  (* fun dec with mixed implicit and explicit parameters *)
+  fun foo (a) (b: int, c: string) = b
+
+  (* fun dec with explicit return type *)
+  fun bar a : string = ""
+
+  (* type dec followed by val dec using that type *)
+  type s = int
+  val x : s = 10
+
+  (* type dec with tyvar *)
+  type 'a twin = ('a * 'a)
+
+  (* datatype dec *)
+  datatype intoption = SOME of int
+                    |: NONE
+
+  (* datatype dec with tyvar *)
+  datatype 'a option = SOME of 'a
+                    |: NONE
+
+  (* module dec *)
+  module isZero (x: bit) = x ^ 'b:1
+in
+  0
+end

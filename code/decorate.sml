@@ -110,16 +110,18 @@ struct
   and decorateTy(menv, tenv, venv, ty) =
     let fun getSWTy(t) = (case t of
                                T.S_TY(x) => x
+                             | T.META(x) => T.S_META(x)
                              | _ => T.S_TOP)  (* NOTE: error? *)
         fun getHWTy(t) = (case t of
                                T.H_TY(x) => x
+                             | T.META(x) => T.H_META(x)
                              | _ => T.H_TOP)  (* NOTE: error? *)
         fun decoty(A.NameTy(sym, pos)) = (case Symbol.look(tenv, sym) of
                                                SOME(t) => t
-                                             | NONE => (case Symbol.look(menv, sym) of
-                                                        SOME(t) => t
-                                                      | NONE => T.TOP)) (* NOTE: error? *)
-          | decoty(A.TyVar(sym, pos)) = T.META(E.newMeta())
+                                             | NONE => T.TOP) (* NOTE: error? *)
+          | decoty(A.TyVar(sym, pos)) = (case Symbol.look(menv, sym) of
+                                              SOME(t) => t
+                                            | NONE => T.META(E.newMeta()))
           | decoty(A.SWRecordTy(fields, pos)) =
             let
               fun mapFields({name, ty, escape, pos}) = (name, getSWTy(decoty(ty)))
@@ -234,6 +236,7 @@ struct
                                    T.S_TY(x) => x
                                  | _ => T.S_TOP (* NOTE: check if top or bottom *)
 
+              (* NOTE: specify arguments type *)
               val venv' = Symbol.enter(venvWithParams, name, T.S_TY(T.ARROW(T.S_TOP, resultTy')))
 
               val bodyExp = decorateExp(menvWithParams, tenvWithParams, venv', body)
@@ -254,7 +257,6 @@ struct
           let
             fun processTyDec({name, ty, tyvar = tyvar_opt, opdef = opdef_opt, pos}, {menv, tenv, venv, tydecs}) =
               let
-                val () = print("processing tydec\n")
                 val menv' = case tyvar_opt of
                                  SOME(s) => Symbol.enter(menv, s, T.META(E.newMeta()))
                                | _ => menv
@@ -345,7 +347,6 @@ struct
         (* valdec: {name: symbol, escape: bool ref, ty: ty * pos, init: exp, pos: pos} *)
         | decodec(A.ValDec(valdecs)) =
           let
-            val () = print("processing valdec\n")
             fun processValDec({name, escape, ty = (ty, typos), init, pos}, {menv, tenv, venv, valdecs}) =
               let
                 val init' = decorateExp(menv, tenv, venv, init)
