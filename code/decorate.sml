@@ -197,139 +197,80 @@ struct
     let
       fun decodec(A.FunctionDec(fundecs)) =
         let
-          fun processFunDec({name, params, result = (ty, typos), body, pos}, {menv, tenv, venv, fdecs}) =
+          (* NOTE: menv and tenv are never altered *)
+          fun mapFunDec({name, params, result = (ty, typos), body, pos}) =
             let
-              fun foldParams(A.NoParam, {menv, tenv, venv, params}) = {menv = menv, tenv = tenv, venv = venv, params = A.NoParam::params}
-                | foldParams(A.SingleParam({name, ty, escape, pos}), {menv, tenv, venv, params}) =
-                  let
-                    val realTy = decorateTy(menv, tenv, ty)
-                    val venv' = Symbol.enter(venv, name, realTy)
-                    (* NOTE: should add to menv if ty is A.TyVar(_)? *)
-                  in
-                    {menv = menv,
-                     tenv = tenv,
-                     venv = venv',
-                     params = A.SingleParam({name = name, ty = A.ExplicitTy(realTy), escape = escape, pos = pos})::params}
-                  end
-                | foldParams(A.MultiParams(fs), {menv, tenv, venv, params}) =
-                  let
-                    fun foldField({name, ty, escape, pos}, {menv, tenv, venv, fields}) =
-                      let
-                        val realTy = decorateTy(menv, tenv, ty)
-                        val venv' = Symbol.enter(venv, name, realTy)
-                        (* NOTE: should add to menv if ty is A.TyVar(_)? *)
-                      in
-                        {menv = menv,
-                         tenv = tenv,
-                         venv = venv',
-                         fields = {name = name, ty = A.ExplicitTy(realTy), escape = escape, pos = pos}::fields}
-                      end
-                    val {menv = menvWithFields,
-                         tenv = tenvWithFields,
-                         venv = venvWithFields,
-                         fields = fs'} = foldl foldField {menv = menv, tenv = tenv, venv = venv, fields = []} fs
-                  in
-                    {menv = menvWithFields,
-                     tenv = tenvWithFields,
-                     venv = venvWithFields,
-                     params = A.MultiParams(List.rev(fs'))::params}
-                  end
+              fun mapField({name, ty, escape, pos}) = {name = name, ty = A.ExplicitTy(decorateTy(menv, tenv, ty)), escape = escape, pos = pos}
 
-              val {menv = menvWithParams,
-                   tenv = tenvWithParams,
-                   venv = venvWithParams,
-                   params = params'} = foldl foldParams {menv = menv, tenv = tenv, venv = venv, params = []} params
+              fun mapParam(A.NoParam) = A.NoParam
+                | mapParam(A.SingleParam(f)) = A.SingleParam(mapField(f))
+                | mapParam(A.MultiParams(fs)) = A.MultiParams(map mapField fs)
 
-              val resultTy = decorateTy(menvWithParams, tenvWithParams, ty)
+              val params' = map mapParam params
+
+              val resultTy = decorateTy(menv, tenv, ty)
               val resultTy' = case resultTy of
-                                   T.S_TY(x) => x
-                                 | _ => T.S_TOP (* NOTE: double check if top or bottom *)
+                                   T.S_TY(x) => resultTy
+                                 | _ => T.S_TY(T.S_BOTTOM)
 
-              val venv' = Symbol.enter(venvWithParams, name, T.S_TY(T.ARROW(T.S_TOP, resultTy')))
-
-              val bodyExp = decorateExp(menvWithParams, tenvWithParams, venv', body)
-
-              val fdec' = {name = name, params = List.rev(params'), result = (A.ExplicitTy(resultTy), typos), body = bodyExp, pos = pos}
+              val body' = decorateExp(menv, tenv, body)
             in
-              {menv = menvWithParams,
-               tenv = tenvWithParams,
-               venv = venv',
-               fdecs = fdec'::fdecs}
+              {name = name, params = params', result = (A.ExplicitTy(resultTy'), typos), body = body', pos = pos}
             end
 
-          val {menv = menv', tenv = tenv', venv = venv', fdecs = fdecs'} = foldl processFunDec {menv = menv, tenv = tenv, venv = venv, fdecs = []} fundecs
+          val fdecs' = map mapFunDec fundecs
         in
-          {menv = menv', tenv = tenv', venv = venv', dec = A.FunctionDec(List.rev(fdecs'))}
+          {menv = menv, tenv = tenv, dec = A.FunctionDec(fdecs')}
         end
         | decodec(A.TypeDec(tydecs)) =
           let
-            fun processTyDec({name, ty, tyvar = tyvar_opt, opdef = opdef_opt, pos}, {menv, tenv, venv, tydecs}) =
+            (* menv is only altered in context of type body *)
+            (* tenv is altered and passed on to future decs *)
+            fun processTyDec({name, ty, tyvar, opdef, pos}, {tenv, tydecs}) =
               let
-                val menv' = case tyvar_opt of
-                                 SOME(s) => Symbol.enter(menv, s, T.META(E.newMeta()))
+                val menv' = case tyvar of
+                                 SOME(tyv) => Symbol.enter(menv, tyv, T.META(E.newMeta()))
                                | _ => menv
-                val realTy = decorateTy(menv', tenv, venv, ty)
+                val realTy = decorateTy(menv', tenv, ty)
                 val tenv' = Symbol.enter(tenv, name, realTy)
-                val opdefs' = Option.map (fn(opds) => map (fn({oper, param_a, param_b, body, pos}) => (
-                  let
-                    val venv' = Symbol.enter(venv, param_a, realTy)
-                    val venv'' = Symbol.enter(venv', param_b, realTy)
-                    val body' = decorateExp(menv, tenv, body)
-                  in
-                    {oper = oper, param_a = param_a, param_b = param_b, body = body', pos = pos}
-                  end
-                  )) opds) opdef_opt
-                val tydec' = {name = name, ty = A.ExplicitTy(realTy), tyvar = tyvar_opt, opdef = opdefs', pos = pos}
+                val opdef' = Option.map (fn(defs) => map (fn({oper, param_a, param_b, body, pos}) => {oper = oper, param_a = param_a, param_b = param_b, body = decorateExp(menv, tenv', body), pos = pos}) defs) opdef
+                val tydec' = {name = name, ty = A.ExplicitTy(realTy), tyvar = tyvar, opdef = opdef', pos = pos}
               in
-                {menv = menv',
-                 tenv = tenv',
-                 venv = venv,
+                 {tenv = tenv',
                  tydecs = tydec'::tydecs}
               end
-            val {menv = menv', tenv = tenv', venv = venv', tydecs = tydecs'} = foldl processTyDec {menv = menv, tenv = tenv, venv = venv, tydecs = []} tydecs
+            val {tenv = tenv', tydecs = tydecs'} = foldl processTyDec {tenv = tenv, tydecs = []} tydecs
           in
-            {menv = menv', tenv = tenv', venv = venv', dec = A.TypeDec(List.rev(tydecs'))}
+            {menv = menv, tenv = tenv', dec = A.TypeDec(List.rev(tydecs'))}
           end
         (* moddec: {name: symbol, arg: param, result: ty * pos, body: exp, pos: pos} *)
         | decodec(A.ModuleDec(moddecs)) =
-          let
-            fun processModDec({name, arg, result = (ty, typos), body, pos}, {menv, tenv, venv, moddecs}) =
-              let
-                val {venv', arg'} = case arg of
-                                         A.NoParam => {venv' = venv, arg' = A.NoParam}
-                                       | A.SingleParam(f) =>
-                                          (let
-                                             val {name, ty, escape, pos} = f
-                                             val realTy = decorateTy(menv, tenv, ty)
-                                           in
-                                            {venv' = Symbol.enter(venv, name, realTy), arg' = A.SingleParam({name = name, ty = A.ExplicitTy(realTy), escape = escape, pos = pos})}
-                                           end)
-                                       | A.MultiParams(fs) =>
-                                          (let
-                                             fun foldField({name, ty, escape, pos}, {venv', fs'}) =
-                                               let
-                                                 val realTy = decorateTy(menv, tenv, venv', ty)
-                                                 val f' = {name = name, ty = A.ExplicitTy(realTy), escape = escape, pos = pos}
-                                               in
-                                                 {venv' = Symbol.enter(venv, name, realTy), fs' = f'::fs'}
-                                               end
-                                             val {venv', fs'} = foldl foldField {venv' = venv, fs' = []} fs
-                                           in
-                                             {venv' = venv', arg' = A.MultiParams(List.rev(fs'))}
-                                           end)
-                val realTy = decorateTy(menv, tenv, venv, ty)
-                val body' = decorateExp(menv, tenv, venv', body)
-                val moddec' = {name = name, arg = arg', result = (A.ExplicitTy(realTy), typos), body = body', pos = pos}
-              in
-                {menv = menv,
-                 tenv = tenv,
-                 venv = venv,
-                 moddecs = moddec'::moddecs}
-              end
-            val {menv = menv', tenv = tenv', venv = venv', moddecs = moddecs'} = foldl processModDec {menv = menv, tenv = tenv, venv = venv, moddecs = []} moddecs
-          in
-            {menv = menv', tenv = tenv', venv = venv', dec = A.ModuleDec(List.rev(moddecs'))}
-          end
+        let
+          (* NOTE: menv and tenv are never altered *)
+          fun mapModDec({name, arg, result = (ty, typos), body, pos}) =
+            let
+              fun mapField({name, ty, escape, pos}) = {name = name, ty = A.ExplicitTy(decorateTy(menv, tenv, ty)), escape = escape, pos = pos}
+
+              fun mapArg(A.NoParam) = A.NoParam
+                | mapArg(A.SingleParam(f)) = A.SingleParam(mapField(f))
+                | mapArg(A.MultiParams(fs)) = A.MultiParams(map mapField fs)
+
+              val arg' = mapArg arg
+
+              val resultTy = decorateTy(menv, tenv, ty)
+              val resultTy' = case resultTy of
+                                   T.H_TY(x) => resultTy
+                                 | _ => T.H_TY(T.H_BOTTOM)
+
+              val body' = decorateExp(menv, tenv, body)
+            in
+              {name = name, arg = arg', result = (A.ExplicitTy(resultTy'), typos), body = body', pos = pos}
+            end
+
+          val mdecs' = map mapModDec moddecs
+        in
+          {menv = menv, tenv = tenv, dec = A.ModuleDec(mdecs')}
+        end
         (* dataty: {name: symbol, tyvar: symbol option, datacons: datacon list} *)
         (* datacon: {datacon: symbol, ty: ty, pos: pos} *)
         | decodec(A.DatatypeDec(datatydecs)) =
@@ -343,7 +284,11 @@ struct
 
         *)
           let
-            fun processDatatype({name, tyvar, datacons}, {tenv, datatydecs}) =
+            (* menv is altered if tyvar and passed only to body of dec *)
+            (* tenv is altered to point to temp meta *)
+            (* menv is altered to point from temp meta to real type *)
+            (* both tenv and menv are passed on *)
+            fun processDatatype({name, tyvar, datacons}, {menv, tenv, datatydecs}) =
               let
                 (* if tyvar, add to menv *)
                 val menv' = case tyvar of
@@ -359,23 +304,23 @@ struct
                   in
                     {datacon = datacon, ty = A.ExplicitTy(realTy), pos = pos}
                   end
-                val datacons' = map processDatacon datacons
+                val datacons' = map mapDatacon datacons
                 val datatydec' = {name = name, tyvar = tyvar, datacons = datacons'}
                 (* map from meta to computed datatype type *)
                 fun mapDataconForType({datacon, ty = A.ExplicitTy(t), pos}) = (datacon, (case t of
                                                                                               T.S_TY(s) => SOME(s)
                                                                                             | T.EMPTY => NONE
-                                                                                            | _ => T.S_TOP))
+                                                                                            | _ => SOME(T.S_TOP)))
                   | mapDataconForType(_) = raise Match
-                (* NOTE: what to do with menv'? *)
-                val menv' = Symbol.enter(menv, name, T.S_TY(T.DATATYPE(map mapDataconForType datacons', ref ())))
+                (* NOTE: what to do with menv''? *)
+                val menv'' = Symbol.enter(menv, name, T.S_TY(T.DATATYPE(map mapDataconForType datacons', ref ())))
               in
-                {tenv = tenv', datatydecs = datatydec'::datatydecs}
+                {menv = menv'', tenv = tenv', datatydecs = datatydec'::datatydecs}
               end
-            val {tenv = tenv', datatydecs = datatydecs'} = foldl processDatatype {tenv = tenv, datatydecs = []} datatydecs
+            val {menv = menv', tenv = tenv', datatydecs = datatydecs'} = foldl processDatatype {menv = menv, tenv = tenv, datatydecs = []} datatydecs
           in
-            (* other declarations should see the new type environment, but not the augmented metavariable environment *)
-            {menv = menv, tenv = tenv', dec = A.DatatypeDec(List.rev(datatydecs'))}
+            (* other declarations should see the new type and meta environments *)
+            {menv = menv', tenv = tenv', dec = A.DatatypeDec(List.rev(datatydecs'))}
           end
         | decodec(A.ValDec(valdecs)) =
           let
