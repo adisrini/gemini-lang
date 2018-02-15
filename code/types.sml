@@ -46,4 +46,28 @@ struct
   and m_ty =
             MODULE of h_ty * h_ty
 
+  fun toString(t) =
+    let
+      fun sty(INT) = "INT"
+        | sty(REAL) = "REAL"
+        | sty(STRING) = "STRING"
+        | sty(ARROW(s1, s2)) = "ARROW(" ^ sty(s1) ^ " -> " ^ sty(s2) ^ ")"
+        | sty(LIST(s)) = "LIST(" ^ sty(s) ^ ")"
+        | sty(S_META(tyv)) = "S_META(" ^ Symbol.name(tyv) ^ ")"
+        | sty(S_TOP) = "S_TOP"
+        | sty(S_BOTTOM) = "S_BOTTOM"
+        | sty(_) = "STY: UNIMPLEMENTED FOR NOW"
+
+      and hty(h) = "HTY: UNIMPLEMENTED FOR NOW"
+      and mty(m) = "MTY: UNIMPLEMENTED FOR NOW"
+    in
+      case t of
+           S_TY(s) => "S_TY(" ^ sty(s) ^ ")"
+         | H_TY(h) => "H_TY(" ^ hty(h) ^ ")"
+         | M_TY(m) => "M_TY(" ^ mty(m) ^ ")"
+         | META(tv) => Symbol.name(tv)
+         | EMPTY => "EMPTY"
+         | TOP => "TOP"
+         | BOTTOM => "BOTTOM"
+    end
 end
