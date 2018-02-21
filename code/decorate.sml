@@ -1,11 +1,11 @@
 signature DECORATE =
 sig
 
-  val decorateProg :                       Absyn.exp -> Absyn.exp         (* returns explicit poly tree *)
-  val decorateExp  : Env.menv * Env.tenv * Absyn.exp -> Absyn.exp         (* returns expression with types made explicit *)
-  val decorateTy   : Env.menv * Env.tenv * Absyn.ty  -> Types.ty          (* returns explicit type *)
-  val decorateDec  : Env.menv * Env.tenv * Absyn.dec -> { menv: Env.menv, (* returns augmented environments and *)
-                                                          tenv: Env.tenv, (* Absyn.dec with explicit types      *)
+  val decorateProg :                       Absyn.exp -> Env.menv * Absyn.exp  (* returns explicit poly tree *)
+  val decorateExp  : Env.menv * Env.tenv * Absyn.exp -> Env.menv * Absyn.exp  (* returns expression with types made explicit *)
+  val decorateTy   : Env.menv * Env.tenv * Absyn.ty  -> Types.ty              (* returns explicit type *)
+  val decorateDec  : Env.menv * Env.tenv * Absyn.dec -> { menv: Env.menv,     (* returns augmented environments and *)
+                                                          tenv: Env.tenv,     (* Absyn.dec with explicit types      *)
                                                           dec: Absyn.dec }
 
 end
@@ -23,7 +23,7 @@ struct
   fun decorateProg(e) = decorateExp(E.base_menv, E.base_tenv, e)
 
   and decorateExp(menv, tenv, exp) =
-    let fun decorexp(A.StructsSigsExp(structsigs)) = A.StructsSigsExp(structsigs) (* TODO *)
+    let fun decorexp(A.StructsSigsExp(structsigs)) = (menv, A.StructsSigsExp(structsigs)) (* TODO *)
     (* struct/sig environment in same env with StructEntry and SigEntry *)
             (* let
               fun processStructSig(A.StructExp({name, signat, decs, pos}), {structsigs, menv, tenv, venv}) =
@@ -40,19 +40,36 @@ struct
             in
               foldl processStructSig {structsigs = [], menv = menv, tenv = tenv, venv = venv} structsigs
             end *)
-          | decorexp(A.VarExp(sym, pos)) = A.VarExp(sym, pos) (* NO-OP *)
-          | decorexp(A.IntExp(num, pos)) = A.IntExp(num, pos) (* NO-OP *)
-          | decorexp(A.StringExp(str, pos)) = A.StringExp(str, pos) (* NO-OP *)
-          | decorexp(A.RealExp(num, pos)) = A.RealExp(num, pos) (* NO-OP *)
-          | decorexp(A.BitExp(bit, pos)) = A.BitExp(bit, pos) (* NO-OP *)
-          | decorexp(A.ApplyExp(e1, e2, pos)) = A.ApplyExp(decorexp(e1), decorexp(e2), pos)
-          | decorexp(A.BinOpExp({left, oper, right, pos})) = A.BinOpExp({ left = decorexp(left),
-                                                                          oper = oper,
-                                                                          right = decorexp(right),
-                                                                          pos = pos })
-          | decorexp(A.UnOpExp({exp, oper, pos})) = A.UnOpExp({ exp = decorexp(exp),
-                                                                oper = oper,
-                                                                pos = pos })
+          | decorexp(A.VarExp(sym, pos)) = (menv, A.VarExp(sym, pos)) (* NO-OP *)
+          | decorexp(A.IntExp(num, pos)) = (menv, A.IntExp(num, pos)) (* NO-OP *)
+          | decorexp(A.StringExp(str, pos)) = (menv, A.StringExp(str, pos)) (* NO-OP *)
+          | decorexp(A.RealExp(num, pos)) = (menv, A.RealExp(num, pos)) (* NO-OP *)
+          | decorexp(A.BitExp(bit, pos)) = (menv, A.BitExp(bit, pos)) (* NO-OP *)
+          | decorexp(A.ApplyExp(e1, e2, pos)) =
+            let
+              val (menv', e1') = decorateExp(menv, tenv, e1)
+              val (menv'', e2') = decorateExp(menv', tenv, e2)
+            in
+              (menv'', A.ApplyExp(e1', e2', pos))
+            end
+          | decorexp(A.BinOpExp({left, oper, right, pos})) =
+            let
+              val (menv', left') = decorateExp(menv, tenv, left)
+              val (menv'', right') = decorateExp(menv', tenv, right)
+            in
+              (menv'', A.BinOpExp({left = left',
+                                   oper = oper,
+                                   right = right',
+                                   pos = pos }))
+            end
+          | decorexp(A.UnOpExp({exp, oper, pos})) =
+            let
+              val (menv', exp') = decorateExp(menv, tenv, exp)
+            in
+              (menv', A.UnOpExp({ exp = exp',
+                                  oper = oper,
+                                  pos = pos }))
+            end
           | decorexp(A.LetExp({decs, body, pos})) =
             let
               fun processDecs(dec, {decs, menv, tenv}) =
@@ -61,49 +78,171 @@ struct
                 in
                   {decs = dec'::decs, menv = menv', tenv = tenv'}
                 end
-              val {decs = newDecs,
-                   menv = newMenv,
-                   tenv = newTenv} = foldl processDecs {decs = [], menv = menv, tenv = tenv} decs
-              val newBody = decorateExp(newMenv, newTenv, body)
+              val {decs = decs',
+                   menv = menv',
+                   tenv = tenv'} = foldl processDecs {decs = [], menv = menv, tenv = tenv} decs
+              val (menv'', body') = decorateExp(menv', tenv', body)
             in
-              A.LetExp({decs = List.rev(newDecs),
-                        body = newBody,
-                        pos = pos })
+              (menv'', A.LetExp({decs = List.rev(decs'),
+                                 body = body',
+                                 pos = pos }))
             end
-          | decorexp(A.AssignExp({lhs, rhs, pos})) = A.AssignExp({ lhs = decorexp(lhs),
-                                                                   rhs = decorexp(rhs),
-                                                                   pos = pos })
-          | decorexp(A.SeqExp(exps)) = A.SeqExp(map (fn(e, p) => (decorexp(e), p)) exps)
-          | decorexp(A.IfExp({test, then', else', pos})) = A.IfExp({ test = decorexp(test),
-                                                                     then' = decorexp(then'),
-                                                                     else' = Option.map (fn(x) => decorexp(x)) else',
-                                                                     pos = pos })
-          | decorexp(A.ListExp(exps)) = A.ListExp(map (fn(e, p) => (decorexp(e), p)) exps)
-          | decorexp(A.ArrayExp(exps)) = A.ArrayExp(Vector.map (fn(e, p) => (decorexp(e), p)) exps)
-          | decorexp(A.RefExp(exp, pos)) = A.RefExp(decorexp(exp), pos)
-          | decorexp(A.SWRecordExp({fields, pos})) = A.SWRecordExp({ fields = map (fn((s, e, p)) => (s, decorexp(e), p)) fields,
-                                                                     pos = pos })
-          | decorexp(A.HWRecordExp({fields, pos})) = A.HWRecordExp({ fields = map (fn((s, e, p)) => (s, decorexp(e), p)) fields,
-                                                                     pos = pos })
-          | decorexp(A.SWExp(exp, pos)) = A.SWExp(decorexp(exp), pos)
-          | decorexp(A.WithExp({exp, fields, pos})) = A.WithExp({ exp = decorexp(exp),
-                                                                  fields = map (fn((s, e, p)) => (s, decorexp(e), p)) fields,
-                                                                  pos = pos })
-          | decorexp(A.DerefExp({exp, pos})) = A.DerefExp({ exp = decorexp(exp),
-                                                            pos = pos })
-          | decorexp(A.StructAccExp({name, field, pos})) = A.StructAccExp({name = name, field = field, pos = pos}) (* NO-OP *)
-          | decorexp(A.RecordAccExp({exp, field, pos})) = A.RecordAccExp({ exp = decorexp(exp),
-                                                                           field = field,
-                                                                           pos = pos })
-          | decorexp(A.ArrayAccExp({exp, index, pos})) = A.ArrayAccExp({ exp = decorexp(exp),
-                                                                         index = decorexp(index),
-                                                                         pos = pos })
-          | decorexp(A.PatternMatchExp({exp, cases, pos})) = A.PatternMatchExp({ exp = decorexp(exp),
-                                                                                 cases = map (fn({match, result, pos}) => {match = decorexp(match), result = decorexp(result), pos = pos}) cases,
-                                                                                 pos = pos })
-          | decorexp(A.BitArrayExp({size, result, spec})) = A.BitArrayExp({ size = decorexp(size),
-                                                                            result = decorexp(result),
-                                                                            spec = spec })
+          | decorexp(A.AssignExp({lhs, rhs, pos})) =
+            let
+              val (menv', lhs') = decorateExp(menv, tenv, lhs)
+              val (menv'', rhs') = decorateExp(menv', tenv, rhs)
+            in
+              (menv'', A.AssignExp({ lhs = lhs',
+                                     rhs = rhs',
+                                     pos = pos }))
+            end
+          | decorexp(A.SeqExp(exps)) =
+            let
+              fun foldSeq((e, p), {menv, exps}) =
+                let
+                  val (menv', e') = decorateExp(menv, tenv, e)
+                in
+                  {menv = menv', exps = (e', p)::exps}
+                end
+              val {menv = menv', exps = exps'} = foldl foldSeq {menv = menv, exps = []} exps
+            in
+              (menv', A.SeqExp(List.rev(exps')))
+            end
+          | decorexp(A.IfExp({test, then', else', pos})) =
+            let
+              val (menv', test') = decorateExp(menv, tenv, test)
+              val (menv'', then'') = decorateExp(menv', tenv, then')
+              val ret = Option.map (fn(x) => decorateExp(menv'', tenv, x)) else'
+            in
+              case ret of
+                   SOME(menv''', else'') => (menv''', A.IfExp({ test = test', then' = then'', else' = SOME(else''), pos = pos}))
+                 | NONE => (menv'', A.IfExp({ test = test', then' = then'', else' = NONE, pos = pos}))
+            end
+          | decorexp(A.ListExp(exps)) =
+            let
+              fun foldList((e, p), {menv, exps}) =
+                let
+                  val (menv', e') = decorateExp(menv, tenv, e)
+                in
+                  {menv = menv', exps = (e', p)::exps}
+                end
+              val {menv = menv', exps = exps'} = foldl foldList {menv = menv, exps = []} exps
+            in
+              (menv', A.ListExp(List.rev(exps')))
+            end
+          | decorexp(A.ArrayExp(exps)) =
+            let
+              fun vectorToList(l) = Vector.foldr (fn(a, b) => a::b) [] l
+              fun foldArray((e, p), {menv, exps}) =
+                let
+                  val (menv', e') = decorateExp(menv, tenv, e)
+                in
+                  {menv = menv', exps = (e', p)::exps}
+                end
+              val {menv = menv', exps = exps'} = foldl foldArray {menv = menv, exps = []} (vectorToList(exps))
+            in
+              (menv', A.ArrayExp(Vector.fromList(List.rev(exps'))))
+            end
+          | decorexp(A.RefExp(exp, pos)) =
+            let
+              val (menv', exp') = decorateExp(menv, tenv, exp)
+            in
+              (menv', A.RefExp(exp', pos))
+            end
+          | decorexp(A.SWRecordExp({fields, pos})) =
+            let
+              fun foldField((s, e, p), {menv, fields}) =
+                let
+                  val (menv', e') = decorateExp(menv, tenv, e)
+                in
+                  {menv = menv', fields = (s, e', p)::fields}
+                end
+              val {menv = menv', fields = fields'} = foldl foldField {menv = menv, fields = []} fields
+            in
+              (menv', A.SWRecordExp({fields = List.rev(fields'), pos = pos}))
+            end
+          | decorexp(A.HWRecordExp({fields, pos})) =
+            let
+              fun foldField((s, e, p), {menv, fields}) =
+                let
+                  val (menv', e') = decorateExp(menv, tenv, e)
+                in
+                  {menv = menv', fields = (s, e', p)::fields}
+                end
+              val {menv = menv', fields = fields'} = foldl foldField {menv = menv, fields = []} fields
+            in
+              (menv', A.HWRecordExp({fields = List.rev(fields'), pos = pos}))
+            end
+          | decorexp(A.SWExp(exp, pos)) =
+            let
+              val (menv', exp') = decorateExp(menv, tenv, exp)
+            in
+              (menv', A.SWExp(exp', pos))
+            end
+          | decorexp(A.WithExp({exp, fields, pos})) =
+            let
+              val (menv', exp') = decorateExp(menv, tenv, exp)
+              fun foldField((s, e, p), {menv, fields}) =
+                let
+                  val (menv', e') = decorateExp(menv, tenv, e)
+                in
+                  {menv = menv', fields = (s, e', p)::fields}
+                end
+              val {menv = menv'', fields = fields'} = foldl foldField {menv = menv', fields = []} fields
+            in
+              (menv'', A.WithExp({ exp = exp',
+                                   fields = List.rev(fields'),
+                                   pos = pos }))
+            end
+          | decorexp(A.DerefExp({exp, pos})) =
+            let
+              val (menv', exp') = decorateExp(menv, tenv, exp)
+            in
+              (menv', A.DerefExp({ exp = exp',
+                                   pos = pos }))
+            end
+          | decorexp(A.StructAccExp({name, field, pos})) = (menv, A.StructAccExp({name = name, field = field, pos = pos})) (* NO-OP *)
+          | decorexp(A.RecordAccExp({exp, field, pos})) =
+            let
+              val (menv', exp') = decorateExp(menv, tenv, exp)
+            in
+              (menv', A.RecordAccExp({ exp = exp',
+                                       field = field,
+                                       pos = pos }))
+            end
+          | decorexp(A.ArrayAccExp({exp, index, pos})) =
+            let
+              val (menv', exp') = decorateExp(menv, tenv, exp)
+              val (menv'', index') = decorateExp(menv', tenv, index)
+            in
+              (menv'', A.ArrayAccExp({ exp = exp',
+                                       index = index',
+                                       pos = pos }))
+            end
+          | decorexp(A.PatternMatchExp({exp, cases, pos})) =
+            let
+              val (menv', exp') = decorateExp(menv, tenv, exp)
+              fun foldField({match, result, pos}, {menv, cases}) =
+                let
+                  val (menv', match') = decorateExp(menv, tenv, match)
+                  val (menv'', result') = decorateExp(menv', tenv, result)
+                  val c' = {match = match', result = result', pos = pos}
+                in
+                  {menv = menv'', cases = c'::cases}
+                end
+              val {menv = menv'', cases = cases'} = foldl foldField {menv = menv', cases = []} cases
+            in
+              (menv'', A.PatternMatchExp({exp = exp', cases = List.rev(cases'), pos = pos}))
+            end
+          | decorexp(A.BitArrayExp({size, result, spec})) =
+            let
+              val (menv', size') = decorateExp(menv, tenv, size)
+              val (menv'', result') = decorateExp(menv', tenv, result)
+            in
+              (menv'', A.BitArrayExp({ size = size',
+                                       result = result',
+                                       spec = spec }))
+            end
     in
       decorexp(exp)
     end
@@ -191,14 +330,13 @@ struct
       decoty(ty)
     end
 
-  (* NOTE: CHECK THESE! *)
-  (* NOTE: mainly check which environments are being passed where, and which things are being entered *)
   and decorateDec(menv, tenv, dec) =
     let
+      (* TODO: mutually recursive *)
       fun decodec(A.FunctionDec(fundecs)) =
         let
-          (* NOTE: menv and tenv are never altered *)
-          fun mapFunDec({name, params, result = (ty, typos), body, pos}) =
+          (* NOTE: tenv is never altered *)
+          fun foldFunDec({name, params, result = (ty, typos), body, pos}, {menv, fdecs}) =
             let
               fun mapField({name, ty, escape, pos}) = {name = name, ty = A.ExplicitTy(decorateTy(menv, tenv, ty)), escape = escape, pos = pos}
 
@@ -211,43 +349,58 @@ struct
               val resultTy = decorateTy(menv, tenv, ty)
               val resultTy' = case resultTy of
                                    T.S_TY(x) => resultTy
+                                 | T.META(x) => T.S_TY(T.S_META(x))
                                  | _ => T.S_TY(T.S_BOTTOM)
 
-              val body' = decorateExp(menv, tenv, body)
+              val (menv', body') = decorateExp(menv, tenv, body)
+              val fdec' = {name = name, params = params', result = (A.ExplicitTy(resultTy'), typos), body = body', pos = pos}
             in
-              {name = name, params = params', result = (A.ExplicitTy(resultTy'), typos), body = body', pos = pos}
+              {menv = menv', fdecs = fdec'::fdecs}
             end
 
-          val fdecs' = map mapFunDec fundecs
+          val {menv = menv', fdecs = fdecs'} = foldl foldFunDec {menv = menv, fdecs = []} fundecs
         in
-          {menv = menv, tenv = tenv, dec = A.FunctionDec(fdecs')}
+          {menv = menv', tenv = tenv, dec = A.FunctionDec(List.rev(fdecs'))}
         end
         | decodec(A.TypeDec(tydecs)) =
           let
             (* menv is only altered in context of type body *)
             (* tenv is altered and passed on to future decs *)
-            fun processTyDec({name, ty, tyvar, opdef, pos}, {tenv, tydecs}) =
+            fun processTyDec({name, ty, tyvar, opdef, pos}, {menv, tenv, tydecs}) =
               let
                 val menv' = case tyvar of
                                  SOME(tyv) => Symbol.enter(menv, tyv, T.META(E.newMeta()))
                                | _ => menv
                 val realTy = decorateTy(menv', tenv, ty)
                 val tenv' = Symbol.enter(tenv, name, realTy)
-                val opdef' = Option.map (fn(defs) => map (fn({oper, param_a, param_b, body, pos}) => {oper = oper, param_a = param_a, param_b = param_b, body = decorateExp(menv, tenv', body), pos = pos}) defs) opdef
+                fun foldDef({oper, param_a, param_b, body, pos}, {menv, defs}) =
+                  let
+                    val (menv', body') = decorateExp(menv, tenv, body)
+                    val def' = {oper = oper, param_a = param_a, param_b = param_b, body = body', pos = pos}
+                  in
+                    {menv = menv', defs = def'::defs}
+                  end
+                val {menv = menv'', defs = defs'} = case opdef of
+                                                         SOME(defs) => (foldl foldDef {menv = menv, defs = []} defs)
+                                                       | NONE => {menv = menv, defs = []}
+                val opdef' = case opdef of
+                                  SOME(_) => SOME(defs')
+                                | NONE => NONE
                 val tydec' = {name = name, ty = A.ExplicitTy(realTy), tyvar = tyvar, opdef = opdef', pos = pos}
               in
-                 {tenv = tenv',
-                 tydecs = tydec'::tydecs}
+                 {menv = menv'',
+                  tenv = tenv',
+                  tydecs = tydec'::tydecs}
               end
-            val {tenv = tenv', tydecs = tydecs'} = foldl processTyDec {tenv = tenv, tydecs = []} tydecs
+            val {menv = menv', tenv = tenv', tydecs = tydecs'} = foldl processTyDec {menv = menv, tenv = tenv, tydecs = []} tydecs
           in
-            {menv = menv, tenv = tenv', dec = A.TypeDec(List.rev(tydecs'))}
+            {menv = menv', tenv = tenv', dec = A.TypeDec(List.rev(tydecs'))}
           end
         (* moddec: {name: symbol, arg: param, result: ty * pos, body: exp, pos: pos} *)
         | decodec(A.ModuleDec(moddecs)) =
         let
-          (* NOTE: menv and tenv are never altered *)
-          fun mapModDec({name, arg, result = (ty, typos), body, pos}) =
+          (* NOTE: tenv is never altered *)
+          fun foldModDec({name, arg, result = (ty, typos), body, pos}, {menv, mdecs}) =
             let
               fun mapField({name, ty, escape, pos}) = {name = name, ty = A.ExplicitTy(decorateTy(menv, tenv, ty)), escape = escape, pos = pos}
 
@@ -260,21 +413,22 @@ struct
               val resultTy = decorateTy(menv, tenv, ty)
               val resultTy' = case resultTy of
                                    T.H_TY(x) => resultTy
+                                 | T.META(x) => T.H_TY(T.H_META(x))
                                  | _ => T.H_TY(T.H_BOTTOM)
 
-              val body' = decorateExp(menv, tenv, body)
+              val (menv', body') = decorateExp(menv, tenv, body)
+              val mdec' = {name = name, arg = arg', result = (A.ExplicitTy(resultTy'), typos), body = body', pos = pos}
             in
-              {name = name, arg = arg', result = (A.ExplicitTy(resultTy'), typos), body = body', pos = pos}
+              {menv = menv', mdecs = mdec'::mdecs}
             end
 
-          val mdecs' = map mapModDec moddecs
+          val {menv = menv', mdecs = mdecs'} = foldl foldModDec {menv = menv, mdecs = []} moddecs
         in
-          {menv = menv, tenv = tenv, dec = A.ModuleDec(mdecs')}
+          {menv = menv, tenv = tenv, dec = A.ModuleDec(List.rev(mdecs'))}
         end
         (* dataty: {name: symbol, tyvar: symbol option, datacons: datacon list} *)
         (* datacon: {datacon: symbol, ty: ty, pos: pos} *)
         | decodec(A.DatatypeDec(datatydecs)) =
-        (* TODO: mutually recursive datatypes *)
         (*
 
           datatype ilist = EMPTY | LIST of int * ilist
@@ -312,8 +466,7 @@ struct
                                                                                             | T.EMPTY => NONE
                                                                                             | _ => SOME(T.S_TOP)))
                   | mapDataconForType(_) = raise Match
-                (* NOTE: what to do with menv''? *)
-                val menv'' = Symbol.enter(menv, name, T.S_TY(T.DATATYPE(map mapDataconForType datacons', ref ())))
+                val menv'' = Symbol.enter(menv, tempMeta, T.S_TY(T.DATATYPE(map mapDataconForType datacons', ref ())))
               in
                 {menv = menv'', tenv = tenv', datatydecs = datatydec'::datatydecs}
               end
@@ -324,9 +477,9 @@ struct
           end
         | decodec(A.ValDec(valdecs)) =
           let
-            fun processValDec({name, escape, ty = (ty, typos), init, pos}, valdecs) =
+            fun processValDec({name, escape, ty = (ty, typos), init, pos}, {menv, valdecs}) =
               let
-                val init' = decorateExp(menv, tenv, init)
+                val (menv', init') = decorateExp(menv, tenv, init)
                 val realTy = decorateTy(menv, tenv, ty)
                 val valdec' = {name = name,
                                escape = escape,
@@ -334,11 +487,11 @@ struct
                                init = init',
                                pos = pos}
               in
-                valdec'::valdecs
+                {menv = menv', valdecs = valdec'::valdecs}
               end
-            val valdecs' = foldl processValDec [] valdecs
+            val {menv = menv', valdecs = valdecs'} = foldl processValDec {menv = menv, valdecs = []} valdecs
           in
-            {menv = menv, tenv = tenv, dec = A.ValDec(List.rev(valdecs'))}
+            {menv = menv', tenv = tenv, dec = A.ValDec(List.rev(valdecs'))}
           end
     in
       decodec(dec)

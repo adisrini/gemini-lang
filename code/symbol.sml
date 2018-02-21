@@ -7,6 +7,7 @@ sig
   val empty : 'a table
   val enter : 'a table * symbol * 'a -> 'a table
   val look  : 'a table * symbol -> 'a option
+  val list  : 'a table -> (symbol * 'a) list
 end
 
 structure Symbol :> SYMBOL =
@@ -21,6 +22,8 @@ struct
   val sizeHint = 128
   val hashtable : (string,int) H.hash_table =
 		H.mkTable(HashString.hashString, op = ) (sizeHint,Symbol)
+  val revHashtable : (int,string) H.hash_table =
+    H.mkTable(Word.fromInt, op =) (sizeHint,Symbol)
 
   fun symbol name =
       case H.find hashtable name
@@ -28,6 +31,7 @@ struct
         | NONE => let val i = !nextsym
 	           in nextsym := i+1;
 		      H.insert hashtable (name,i);
+          H.insert revHashtable (i,name);
 		      (name,i)
 		  end
 
@@ -40,4 +44,14 @@ struct
   val empty = Table.empty
   val enter = Table.enter
   val look = Table.look
+  fun list x =
+    let
+      fun mapItems [] = []
+        | mapItems ((i, x)::xs) =
+          (case H.find revHashtable i of
+                SOME(s) => (symbol(s), x)::mapItems(xs)
+              | NONE => mapItems(xs))
+    in
+      mapItems (Table.list(x))
+    end
 end

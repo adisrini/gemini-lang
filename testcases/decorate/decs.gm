@@ -23,8 +23,14 @@ let
   datatype 'a option = SOME of 'a
                     |: NONE
 
+  (* recursive datatype *)
+  datatype ilist = EMPTY
+                |: LIST of int * ilist
+
   (* module dec *)
   module isZero (x: bit) = x ^ 'b:1
+
+  val x : intoption = NONE
 in
   0
 end

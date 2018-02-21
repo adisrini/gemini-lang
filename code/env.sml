@@ -10,6 +10,8 @@ sig
   val base_venv : venv
   val newMeta   : unit -> Symbol.symbol
   val createEnvironmentWithData : (Symbol.symbol * 'a) list -> 'a Symbol.table
+
+  val print : TextIO.outstream * 'a Symbol.table * ('a -> string) -> unit
 end
 
 structure Env : ENV =
@@ -41,4 +43,13 @@ struct
       metaCount := x + 1;
       Symbol.symbol("m" ^ (Int.toString x))
     end
+
+  fun print(outstream, env, str) =
+    let
+      val items = Symbol.list(env)
+      fun pr(k, v) = TextIO.output(outstream, Symbol.name(k) ^ ": " ^ (str(v)) ^ "\n")
+    in
+      app pr items
+    end
+
 end

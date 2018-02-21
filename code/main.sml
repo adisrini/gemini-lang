@@ -7,12 +7,16 @@ structure Main : MAIN =
 struct
 
   structure P = PrintAbsyn
+  structure E = Env
 
   fun go filename =
     let
       val ast = Parse.parse filename
-      val explicitAST = Decorate.decorateProg ast
-      val () = P.print(TextIO.stdOut, explicitAST);
+      val (menv, explicitAST) = Decorate.decorateProg ast
+      val () = print("===== AST =====\n")
+      val () = P.print(TextIO.stdOut, explicitAST)
+      val () = print("===== MENV =====\n")
+      val () = E.print(TextIO.stdOut, menv, Types.toString)
     in
       ()
     end
