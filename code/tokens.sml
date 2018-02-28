@@ -9,7 +9,8 @@ fun locationToString (a: int, b: int) = "(" ^ Int.toString(a) ^ ", " ^ Int.toStr
 
 (******* KEYWORDS *******)
 (* declarations *)
-fun DATATYPE(a, b) = "DATATYPE @" ^ locationToString(a, b)
+fun SDATATYPE(a, b) = "SDATATYPE @" ^ locationToString(a, b)
+fun HDATATYPE(a, b) = "HDATATYPE @" ^ locationToString(a, b)
 fun TYPE(a, b) = "TYPE @" ^ locationToString(a, b)
 fun VAL(a, b) = "VAL @" ^ locationToString(a, b)
 fun REF(a, b) = "REF @" ^ locationToString(a, b)

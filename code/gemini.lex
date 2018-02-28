@@ -50,7 +50,8 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL, COMMENT>\n                           => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <INITIAL, COMMENT>[ \b\r\t]+                   => (continue());
 
-<INITIAL>"datatype"  	                         => (Tokens.DATATYPE(yypos, yypos + 8));
+<INITIAL>"sdatatype"  	                       => (Tokens.SDATATYPE(yypos, yypos + 9));
+<INITIAL>"hdatatype"  	                       => (Tokens.HDATATYPE(yypos, yypos + 9));
 <INITIAL>"type"  	                             => (Tokens.TYPE(yypos, yypos + 4));
 <INITIAL>"val"  	                             => (Tokens.VAL(yypos, yypos + 3));
 <INITIAL>"ref"  	                             => (Tokens.REF(yypos, yypos + 3));

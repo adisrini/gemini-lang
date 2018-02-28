@@ -5,7 +5,8 @@ type token
 
 (******* KEYWORDS *******)
 (* declarations *)
-val DATATYPE: linenum * linenum -> token
+val SDATATYPE: linenum * linenum -> token
+val HDATATYPE: linenum * linenum -> token
 val TYPE:  linenum * linenum -> token
 val VAL:  linenum * linenum -> token
 val REF: linenum * linenum -> token

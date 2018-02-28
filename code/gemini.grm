@@ -17,7 +17,8 @@ fun extractValDecList (A.ValDec list) = SOME(list)
 fun extractStructSigList (A.StructsSigsExp list) = SOME(list)
   | extractStructSigList _ = NONE
 
-fun extractDatatypeDecList (A.DatatypeDec list) = SOME(list)
+fun extractDatatypeDecList (A.SWDatatypeDec list) = SOME(list)
+  | extractDatatypeDecList (A.HWDatatypeDec list) = SOME(list)
   | extractDatatypeDecList _ = NONE
 
 fun extractSWFields (A.SWRecordExp{fields, pos}) = SOME(fields)
@@ -52,7 +53,7 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
 %%
 %term
     EOF
-  | DATATYPE | TYPE | VAL | REF | FUN | MODULE | STRUCTURE | STRUCT | SIGNATURE | SIG | LIST | SW
+  | SDATATYPE | HDATATYPE | TYPE | VAL | REF | FUN | MODULE | STRUCTURE | STRUCT | SIGNATURE | SIG | LIST | SW
   | LET | IN | END | IF | THEN | ELSE
   | ORELSE | ANDALSO | NOT
   | NIL | WITH | OF | OP | CASE
@@ -110,7 +111,8 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
                             | ty_field_tail of A.field list
                         | with_type of A.opdef list
                             | with_type_tail of A.opdef list
-                    | dataty_dec of A.dec
+                    | sdataty_dec of A.dec
+                    | hdataty_dec of A.dec
                         | dataty_tail of A.datacon list
                     | module_dec of A.dec
                         | module_dec_no_type of A.moddec
@@ -118,7 +120,8 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
                     | non_val_dec of A.dec list
                     | non_fun_dec of A.dec list
                     | non_ty_dec of A.dec list
-                    | non_dataty_dec of A.dec list
+                    | non_sdataty_dec of A.dec list
+                    | non_hdataty_dec of A.dec list
                     | non_module_dec of A.dec list
             | exp_seq of A.exp
             | assign of A.exp
@@ -150,7 +153,7 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
 
 %name Gemini
 
-%keyword DATATYPE TYPE VAL REF FUN MODULE STRUCTURE STRUCT SIGNATURE SIG
+%keyword SDATATYPE HDATATYPE TYPE VAL REF FUN MODULE STRUCTURE STRUCT SIGNATURE SIG
   LET IN END IF THEN ELSE
   ORELSE ANDALSO NOT
   NIL WITH OF OP
@@ -179,7 +182,8 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
       | SEMICOLON VAL -> VAL
       | SEMICOLON TYPE -> TYPE
       | SEMICOLON FUN -> FUN
-      | SEMICOLON DATATYPE -> DATATYPE
+      | SEMICOLON SDATATYPE -> SDATATYPE
+      | SEMICOLON HDATATYPE -> HDATATYPE
       | SEMICOLON MODULE -> MODULE
       | SEMICOLON END -> END
       | SEMICOLON IN -> IN
@@ -330,38 +334,51 @@ let_block     : LET decs IN exp END                                         (A.L
 decs          : val_dec non_val_dec                                         (val_dec::non_val_dec)
               | fun_dec non_fun_dec                                         (fun_dec::non_fun_dec)
               | ty_dec non_ty_dec                                           (ty_dec::non_ty_dec)
-              | dataty_dec non_dataty_dec                                   (dataty_dec::non_dataty_dec)
+              | sdataty_dec non_sdataty_dec                                 (sdataty_dec::non_sdataty_dec)
+              | hdataty_dec non_hdataty_dec                                 (hdataty_dec::non_hdataty_dec)
               | module_dec non_module_dec                                   (module_dec::non_module_dec)
               | epsilon                                                     ([])
 
 non_val_dec   : fun_dec non_fun_dec                                         (fun_dec::non_fun_dec)
               | ty_dec non_ty_dec                                           (ty_dec::non_ty_dec)
-              | dataty_dec non_dataty_dec                                   (dataty_dec::non_dataty_dec)
+              | sdataty_dec non_sdataty_dec                                 (sdataty_dec::non_sdataty_dec)
+              | hdataty_dec non_hdataty_dec                                 (hdataty_dec::non_hdataty_dec)
               | module_dec non_module_dec                                   (module_dec::non_module_dec)
               | epsilon                                                     ([])
 
 non_fun_dec   : val_dec non_val_dec                                         (val_dec::non_val_dec)
               | ty_dec non_ty_dec                                           (ty_dec::non_ty_dec)
-              | dataty_dec non_dataty_dec                                   (dataty_dec::non_dataty_dec)
+              | sdataty_dec non_sdataty_dec                                 (sdataty_dec::non_sdataty_dec)
+              | hdataty_dec non_hdataty_dec                                 (hdataty_dec::non_hdataty_dec)
               | module_dec non_module_dec                                   (module_dec::non_module_dec)
               | epsilon                                                     ([])
 
 non_ty_dec    : val_dec non_val_dec                                         (val_dec::non_val_dec)
               | fun_dec non_fun_dec                                         (fun_dec::non_fun_dec)
-              | dataty_dec non_dataty_dec                                   (dataty_dec::non_dataty_dec)
+              | sdataty_dec non_sdataty_dec                                 (sdataty_dec::non_sdataty_dec)
+              | hdataty_dec non_hdataty_dec                                 (hdataty_dec::non_hdataty_dec)
               | module_dec non_module_dec                                   (module_dec::non_module_dec)
               | epsilon                                                     ([])
 
-non_dataty_dec: val_dec non_val_dec                                         (val_dec::non_val_dec)
+non_sdataty_dec: val_dec non_val_dec                                        (val_dec::non_val_dec)
               | ty_dec non_ty_dec                                           (ty_dec::non_ty_dec)
               | fun_dec non_fun_dec                                         (fun_dec::non_fun_dec)
+              | hdataty_dec non_hdataty_dec                                 (hdataty_dec::non_hdataty_dec)
+              | module_dec non_module_dec                                   (module_dec::non_module_dec)
+              | epsilon                                                     ([])
+
+non_hdataty_dec: val_dec non_val_dec                                        (val_dec::non_val_dec)
+              | ty_dec non_ty_dec                                           (ty_dec::non_ty_dec)
+              | fun_dec non_fun_dec                                         (fun_dec::non_fun_dec)
+              | sdataty_dec non_sdataty_dec                                 (sdataty_dec::non_sdataty_dec)
               | module_dec non_module_dec                                   (module_dec::non_module_dec)
               | epsilon                                                     ([])
 
 non_module_dec: val_dec non_val_dec                                         (val_dec::non_val_dec)
               | fun_dec non_fun_dec                                         (fun_dec::non_fun_dec)
               | ty_dec non_ty_dec                                           (ty_dec::non_ty_dec)
-              | dataty_dec non_dataty_dec                                   (dataty_dec::non_dataty_dec)
+              | sdataty_dec non_sdataty_dec                                  (sdataty_dec::non_sdataty_dec)
+              | hdataty_dec non_hdataty_dec                                  (hdataty_dec::non_hdataty_dec)
               | epsilon                                                     ([])
 
 val_dec       : VAL ID EQ exp                                               (A.ValDec[{name = Symbol.symbol(ID), escape = ref true, ty = (A.PlaceholderTy(ref ()), IDleft), init = exp1, pos = VALleft}])
@@ -430,14 +447,23 @@ with_type     : WITH OP EQ LPAREN ID COMMA ID RPAREN EQ exp with_type_tail  ([{o
 with_type_tail: AND with_type                                               (with_type)
               | epsilon                                                     ([])
 
-dataty_dec    : DATATYPE TID ID EQ ID dataty_tail                           (A.DatatypeDec([{name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}]))
-              | DATATYPE TID ID EQ ID dataty_tail dataty_dec                (A.DatatypeDec({name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(dataty_dec))))
-              | DATATYPE TID ID EQ ID OF ty dataty_tail                     (A.DatatypeDec([{name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
-              | DATATYPE TID ID EQ ID OF ty dataty_tail dataty_dec          (A.DatatypeDec({name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(dataty_dec))))
-              | DATATYPE ID EQ ID dataty_tail                               (A.DatatypeDec([{name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}]))
-              | DATATYPE ID EQ ID dataty_tail dataty_dec                    (A.DatatypeDec({name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(dataty_dec))))
-              | DATATYPE ID EQ ID OF ty dataty_tail                         (A.DatatypeDec([{name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
-              | DATATYPE ID EQ ID OF ty dataty_tail dataty_dec              (A.DatatypeDec({name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(dataty_dec))))
+sdataty_dec   : SDATATYPE TID ID EQ ID dataty_tail                          (A.SWDatatypeDec([{name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}]))
+              | SDATATYPE TID ID EQ ID dataty_tail sdataty_dec              (A.SWDatatypeDec({name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(sdataty_dec))))
+              | SDATATYPE TID ID EQ ID OF ty dataty_tail                    (A.SWDatatypeDec([{name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
+              | SDATATYPE TID ID EQ ID OF ty dataty_tail sdataty_dec        (A.SWDatatypeDec({name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(sdataty_dec))))
+              | SDATATYPE ID EQ ID dataty_tail                              (A.SWDatatypeDec([{name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}]))
+              | SDATATYPE ID EQ ID dataty_tail sdataty_dec                  (A.SWDatatypeDec({name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(sdataty_dec))))
+              | SDATATYPE ID EQ ID OF ty dataty_tail                        (A.SWDatatypeDec([{name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
+              | SDATATYPE ID EQ ID OF ty dataty_tail sdataty_dec            (A.SWDatatypeDec({name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(sdataty_dec))))
+
+hdataty_dec   : HDATATYPE TID ID EQ ID dataty_tail                          (A.HWDatatypeDec([{name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}]))
+              | HDATATYPE TID ID EQ ID dataty_tail hdataty_dec              (A.HWDatatypeDec({name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(hdataty_dec))))
+              | HDATATYPE TID ID EQ ID OF ty dataty_tail                    (A.HWDatatypeDec([{name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
+              | HDATATYPE TID ID EQ ID OF ty dataty_tail hdataty_dec        (A.HWDatatypeDec({name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(hdataty_dec))))
+              | HDATATYPE ID EQ ID dataty_tail                              (A.HWDatatypeDec([{name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}]))
+              | HDATATYPE ID EQ ID dataty_tail hdataty_dec                  (A.HWDatatypeDec({name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(hdataty_dec))))
+              | HDATATYPE ID EQ ID OF ty dataty_tail                        (A.HWDatatypeDec([{name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
+              | HDATATYPE ID EQ ID OF ty dataty_tail hdataty_dec            (A.HWDatatypeDec({name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(hdataty_dec))))
 
 dataty_tail   : PIPE_EQUALS ID OF ty dataty_tail                            ({datacon = Symbol.symbol(ID), ty = ty, pos = IDleft}::dataty_tail)
               | PIPE_EQUALS ID dataty_tail                                  ({datacon = Symbol.symbol(ID), ty = A.NoTy, pos = IDleft}::dataty_tail)

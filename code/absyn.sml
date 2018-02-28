@@ -47,7 +47,8 @@ struct
   and dec = FunctionDec of fundec list
          | TypeDec of tydec list
          | ModuleDec of moddec list
-         | DatatypeDec of datatydec list
+         | SWDatatypeDec of datatydec list
+         | HWDatatypeDec of datatydec list
          | ValDec of {name: symbol,
                       escape: bool ref,
                       ty: ty * pos,

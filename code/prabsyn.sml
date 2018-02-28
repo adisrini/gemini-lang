@@ -99,7 +99,7 @@ fun print (outstream, e0) =
     | def(A.TypeDef{name, pos}, d) = (indent d; say "TypeDef("; say(Symbol.name name); say ")")
     | def(A.ModuleDef{name, input_ty, output_ty, pos}, d) = (indent d; sayln "ModuleDef("; indent (d + 1); say(Symbol.name name); sayln ","; ty(input_ty, d + 1); sayln " -> "; ty(output_ty, d + 1); say ")")
 
-  and dec(A.DatatypeDec(datatydecs), d) =
+  and dec(A.SWDatatypeDec(datatydecs), d) =
       let
           fun print_datacon({datacon, ty = t, pos}, d) =
             (indent d; sayln "Datacon(";
@@ -114,8 +114,25 @@ fun print (outstream, e0) =
              dolist d print_datacon datacons; sayln "";
              indent d; say ")")
       in
-          indent d; say "DatatyDec["; dolist d print_dataty datatydecs; say "]"
+          indent d; say "SWDatatyDec["; dolist d print_dataty datatydecs; say "]"
       end
+    | dec(A.HWDatatypeDec(datatydecs), d) =
+        let
+            fun print_datacon({datacon, ty = t, pos}, d) =
+              (indent d; sayln "Datacon(";
+               indent (d + 1); say (Symbol.name datacon); sayln ",";
+               ty(t, d + 1); sayln "";
+               indent d; say ")")
+            fun print_dataty({name, tyvar, datacons}, d) =
+              (indent d; say(Symbol.name name); say "(";
+               case tyvar of
+                    SOME(x) => (sayln ""; indent (d + 1); say "TYVAR("; say(Symbol.name x); say "),")
+                  | NONE => ();
+               dolist d print_datacon datacons; sayln "";
+               indent d; say ")")
+        in
+            indent d; say "HWDatatyDec["; dolist d print_dataty datatydecs; say "]"
+        end
     | dec(A.ModuleDec(moddecs), d) =
       let
           fun print_mod({name, arg, result = (t, p), body, pos}, d) =
@@ -190,7 +207,8 @@ fun print (outstream, e0) =
   and realTy(t, d) =
     let
       fun sfield((tyv, s), d) = (indent d; say (Symbol.name(tyv)); say ": "; sty(s, 0))
-      and tycon((tyv, s_opt), d) = (indent d; say (Symbol.name(tyv)); (case s_opt of SOME(s) => (say ": "; sty(s, 0)) | NONE => ()))
+      and stycon((tyv, s_opt), d) = (indent d; say (Symbol.name(tyv)); (case s_opt of SOME(s) => (say ": "; sty(s, 0)) | NONE => ()))
+      and htycon((tyv, h_opt), d) = (indent d; say (Symbol.name(tyv)); (case h_opt of SOME(h) => (say ": "; hty(h, 0)) | NONE => ()))
       and sty(T.INT, d) = (indent d; say "INT")
         | sty(T.STRING, d) = (indent d; say "STRING")
         | sty(T.REAL, d) = (indent d; say "REAL")
@@ -200,7 +218,7 @@ fun print (outstream, e0) =
         | sty(T.SW_M(m), d) = (indent d; sayln "SW_M("; mty(m, d + 1); sayln ""; indent d; say ")")
         | sty(T.S_RECORD(fields), d) = (indent d; say "S_RECORD(["; dolist (d + 1) sfield fields; say "])")
         | sty(T.REF(s), d) = (indent d; sayln "REF("; sty(s, d + 1); sayln ""; indent d; say ")")
-        | sty(T.DATATYPE(tycons, u), d) = (indent d; sayln "DATATYPE(["; dolist (d + 1) tycon tycons; say "])")
+        | sty(T.S_DATATYPE(tycons, u), d) = (indent d; sayln "S_DATATYPE(["; dolist (d + 1) stycon tycons; say "])")
         | sty(T.S_META(tyv), d) = (indent d; say "S_META("; say (Symbol.name(tyv)); say ")")
         | sty(T.S_TOP, d) = (indent d; say "S_TOP")
         | sty(T.S_BOTTOM, d) = (indent d; say "S_BOTTOM")
@@ -210,6 +228,7 @@ fun print (outstream, e0) =
         | hty(T.ARRAY{ty, size}, d) = (indent d; sayln "ARRAY("; hty(ty, d + 1); sayln ","; indent (d + 1); say (Int.toString(!size)); sayln ""; indent d; say ")")
         | hty(T.H_RECORD(fields), d) = (indent d; sayln "S_RECORD(["; dolist (d + 1) hfield fields; say "])")
         | hty(T.TEMPORAL{ty, time}, d) = (indent d; sayln "TEMPORAL("; hty(ty, d + 1); sayln ","; indent (d + 1); say (Int.toString(!time)); sayln ""; indent d; say ")")
+        | hty(T.H_DATATYPE(tycons, u), d) = (indent d; sayln "H_DATATYPE(["; dolist (d + 1) htycon tycons; say "])")
         | hty(T.H_META(tyv), d) = (indent d; say "H_META("; say (Symbol.name(tyv)); say ")")
         | hty(T.H_TOP, d) = (indent d; say "H_TOP")
         | hty(T.H_BOTTOM, d) = (indent d; say "H_BOTTOM")

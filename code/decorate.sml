@@ -428,7 +428,7 @@ struct
         end
         (* dataty: {name: symbol, tyvar: symbol option, datacons: datacon list} *)
         (* datacon: {datacon: symbol, ty: ty, pos: pos} *)
-        | decodec(A.DatatypeDec(datatydecs)) =
+        | decodec(A.SWDatatypeDec(datatydecs)) =
         (*
 
           datatype ilist = EMPTY | LIST of int * ilist
@@ -466,14 +466,61 @@ struct
                                                                                             | T.EMPTY => NONE
                                                                                             | _ => SOME(T.S_TOP)))
                   | mapDataconForType(_) = raise Match
-                val menv'' = Symbol.enter(menv, tempMeta, T.S_TY(T.DATATYPE(map mapDataconForType datacons', ref ())))
+                val menv'' = Symbol.enter(menv, tempMeta, T.S_TY(T.S_DATATYPE(map mapDataconForType datacons', ref ())))
               in
                 {menv = menv'', tenv = tenv', datatydecs = datatydec'::datatydecs}
               end
             val {menv = menv', tenv = tenv', datatydecs = datatydecs'} = foldl processDatatype {menv = menv, tenv = tenv, datatydecs = []} datatydecs
           in
             (* other declarations should see the new type and meta environments *)
-            {menv = menv', tenv = tenv', dec = A.DatatypeDec(List.rev(datatydecs'))}
+            {menv = menv', tenv = tenv', dec = A.SWDatatypeDec(List.rev(datatydecs'))}
+          end
+        | decodec(A.HWDatatypeDec(datatydecs)) =
+        (*
+
+          datatype ilist = EMPTY | LIST of int * ilist
+
+          first in tenv, do ilist -> m42
+          then after processing tycons, do m42 -> DATATYPE(...)
+
+        *)
+          let
+            (* menv is altered if tyvar and passed only to body of dec *)
+            (* tenv is altered to point to temp meta *)
+            (* menv is altered to point from temp meta to real type *)
+            (* both tenv and menv are passed on *)
+            fun processDatatype({name, tyvar, datacons}, {menv, tenv, datatydecs}) =
+              let
+                (* if tyvar, add to menv *)
+                val menv' = case tyvar of
+                                 SOME(tyv) => Symbol.enter(menv, tyv, T.META(E.newMeta()))
+                               | _ => menv
+                (* add datatype as META in tenv *)
+                val tempMeta = E.newMeta()
+                val tenv' = Symbol.enter(tenv, name, T.META(tempMeta))
+                (* map datacons to explicit types *)
+                fun mapDatacon({datacon, ty, pos}) =
+                  let
+                    val realTy = decorateTy(menv', tenv', ty)
+                  in
+                    {datacon = datacon, ty = A.ExplicitTy(realTy), pos = pos}
+                  end
+                val datacons' = map mapDatacon datacons
+                val datatydec' = {name = name, tyvar = tyvar, datacons = datacons'}
+                (* map from meta to computed datatype type *)
+                fun mapDataconForType({datacon, ty = A.ExplicitTy(t), pos}) = (datacon, (case t of
+                                                                                              T.H_TY(s) => SOME(s)
+                                                                                            | T.EMPTY => NONE
+                                                                                            | _ => SOME(T.H_TOP)))
+                  | mapDataconForType(_) = raise Match
+                val menv'' = Symbol.enter(menv, tempMeta, T.H_TY(T.H_DATATYPE(map mapDataconForType datacons', ref ())))
+              in
+                {menv = menv'', tenv = tenv', datatydecs = datatydec'::datatydecs}
+              end
+            val {menv = menv', tenv = tenv', datatydecs = datatydecs'} = foldl processDatatype {menv = menv, tenv = tenv, datatydecs = []} datatydecs
+          in
+            (* other declarations should see the new type and meta environments *)
+            {menv = menv', tenv = tenv', dec = A.HWDatatypeDec(List.rev(datatydecs'))}
           end
         | decodec(A.ValDec(valdecs)) =
           let
