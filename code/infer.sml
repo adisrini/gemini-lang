@@ -1,8 +1,8 @@
 signature INFER =
 sig
 
-  val inferProg :                      Env.menv * Absyn.exp -> Env.smap              (* returns substitution mapping *)
-  (* val inferExp  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.exp -> Env.smap * Types.ty   (* returns mapping and expression type *) *)
+  val inferProg :                                  Env.menv * Absyn.exp -> Env.smap              (* returns substitution mapping *)
+  val inferExp  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.exp -> Env.smap * Types.ty   (* returns mapping and expression type *)
   (* val inferTy   : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.ty  -> Types.ty          (* returns explicit type *) *)
   (* val inferDec  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.dec -> { menv: Env.menv,     (* returns augmented environments *)
                                                              venv: Env.venv,
@@ -29,43 +29,43 @@ struct
 
   fun inferProg(menv, e) =
     let
-      (* val (smap, {exp, ty}) = inferExp(E.base_menv, E.base_tenv, E.base_venv, E.base_smap, e) *)
+      val (smap, ty) = inferExp(E.base_menv, E.base_tenv, E.base_venv, E.base_smap, e)
     in
-      E.base_smap
+      smap
     end
 
-  (* and inferExp(menv, tenv, venv, smap, exp) =
-    let fun infexp(A.StructsSigsExp(structsigs)) =
-          | infexp(A.VarExp(sym, pos)) =
-          | infexp(A.IntExp(num, pos)) =
-          | infexp(A.StringExp(str, pos)) =
-          | infexp(A.RealExp(num, pos)) =
-          | infexp(A.BitExp(bit, pos)) =
-          | infexp(A.ApplyExp(e1, e2, pos)) =
-          | infexp(A.NilExp(pos)) = {exp = A.NilExp(pos), ty = T.S_TY(T.LIST(T.S_META))}
-          | infexp(A.BinOpExp({left, oper, right, pos})) =
-          | infexp(A.UnOpExp({exp, oper, pos})) =
-          | infexp(A.LetExp({decs, body, pos})) =
-          | infexp(A.AssignExp({lhs, rhs, pos})) =
-          | infexp(A.SeqExp(exps)) =
-          | infexp(A.IfExp({test, then', else', pos})) =
-          | infexp(A.ListExp(exps)) =
-          | infexp(A.ArrayExp(exps)) =
-          | infexp(A.RefExp(exp, pos)) =
-          | infexp(A.SWRecordExp({fields, pos})) =
-          | infexp(A.HWRecordExp({fields, pos})) =
-          | infexp(A.SWExp(exp, pos)) =
-          | infexp(A.WithExp({exp, fields, pos})) =
-          | infexp(A.DerefExp({exp, pos})) =
-          | infexp(A.StructAccExp({name, field, pos})) =
-          | infexp(A.RecordAccExp({exp, field, pos})) =
-          | infexp(A.ArrayAccExp({exp, index, pos})) =
-          | infexp(A.PatternMatchExp({exp, cases, pos})) =
-          | infexp(A.BitArrayExp({size, result, spec})) =
+  and inferExp(menv, tenv, venv, smap, exp) =
+    let fun infexp(A.StructsSigsExp(structsigs)) = (smap, T.EMPTY)
+          | infexp(A.VarExp(sym, pos)) = (smap, T.EMPTY)
+          | infexp(A.IntExp(num, pos)) = (smap, T.EMPTY)
+          | infexp(A.StringExp(str, pos)) = (smap, T.EMPTY)
+          | infexp(A.RealExp(num, pos)) = (smap, T.EMPTY)
+          | infexp(A.BitExp(bit, pos)) = (smap, T.EMPTY)
+          | infexp(A.ApplyExp(e1, e2, pos)) = (smap, T.EMPTY)
+          | infexp(A.BinOpExp({left, oper, right, pos})) = (smap, T.EMPTY)
+          | infexp(A.UnOpExp({exp, oper, pos})) = (smap, T.EMPTY)
+          | infexp(A.LetExp({decs, body, pos})) = (smap, T.EMPTY)
+          | infexp(A.AssignExp({lhs, rhs, pos})) = (smap, T.EMPTY)
+          | infexp(A.SeqExp(exps)) = (smap, T.EMPTY)
+          | infexp(A.IfExp({test, then', else', pos})) = (smap, T.EMPTY)
+          | infexp(A.ListExp(exps)) = (smap, T.EMPTY)
+          | infexp(A.ArrayExp(exps)) = (smap, T.EMPTY)
+          | infexp(A.RefExp(exp, pos)) = (smap, T.EMPTY)
+          | infexp(A.SWRecordExp({fields, pos})) = (smap, T.EMPTY)
+          | infexp(A.HWRecordExp({fields, pos})) = (smap, T.EMPTY)
+          | infexp(A.SWExp(exp, pos)) = (smap, T.EMPTY)
+          | infexp(A.WithExp({exp, fields, pos})) = (smap, T.EMPTY)
+          | infexp(A.DerefExp({exp, pos})) = (smap, T.EMPTY)
+          | infexp(A.StructAccExp({name, field, pos})) = (smap, T.EMPTY)
+          | infexp(A.RecordAccExp({exp, field, pos})) = (smap, T.EMPTY)
+          | infexp(A.ArrayAccExp({exp, index, pos})) = (smap, T.EMPTY)
+          | infexp(A.PatternMatchExp({exp, cases, pos})) = (smap, T.EMPTY)
+          | infexp(A.BitArrayExp({size, result, spec})) = (smap, T.EMPTY)
     in
       infexp(exp)
     end
 
+  (*
   and inferTy(menv, tenv, venv, smap, ty) =
     let fun infty(A.NameTy(sym, pos)) = getTypeFromEnv(tenv, sym)
           | infty(A.TyVar(sym, pos)) = getTypeFromEnv(menv, sym)
