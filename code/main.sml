@@ -8,6 +8,7 @@ struct
 
   structure P = PrintAbsyn
   structure E = Env
+  structure S = Symbol
 
   fun go filename =
     let
@@ -16,7 +17,10 @@ struct
       val () = print("===== AST =====\n")
       val () = P.print(TextIO.stdOut, explicitAST)
       val () = print("===== MENV =====\n")
-      val () = E.print(TextIO.stdOut, menv, Types.toString)
+      val () = S.print(TextIO.stdOut, menv, Types.toString)
+      val smap = Infer.inferProg (menv, explicitAST)
+      val () = print("===== SMAP =====\n")
+      val () = S.print(TextIO.stdOut, smap, Types.toString)
     in
       ()
     end

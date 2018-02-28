@@ -16,8 +16,8 @@ let
   type 'a twin = ('a * 'a)
 
   (* datatype dec *)
-  datatype intoption = SOME of int
-                    |: NONE
+  datatype intoption = ISOME of int
+                    |: INONE
 
   (* datatype dec with tyvar *)
   datatype 'a option = SOME of 'a
@@ -30,7 +30,7 @@ let
   (* module dec *)
   module isZero (x: bit) = x ^ 'b:1
 
-  val x : intoption = NONE
+  val x : intoption = INONE
 in
   0
 end

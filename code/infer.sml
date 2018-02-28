@@ -1,30 +1,14 @@
 signature INFER =
 sig
 
-  type menv
-  type tenv
-  type venv
-
-  type expty
-
-
-  val inferProg :                      Absyn.exp -> Absyn.exp     (* returns explicit poly tree *)
-  val inferExp  : menv * tenv * venv * Absyn.exp -> expty         (* returns expression and its type *)
-  val inferTy   : menv * tenv * venv * Absyn.ty  -> Types.ty      (* returns explicit type *)
-  val inferDec  : menv * tenv * venv * Absyn.dec -> { menv: menv, (* returns augmented environments and *)
-                                                      tenv: tenv, (* Absyn.dec with explicit types      *)
-                                                      venv: venv,
-                                                      dec: Absyn.dec }
+  val inferProg :                      Env.menv * Absyn.exp -> Env.smap              (* returns substitution mapping *)
+  (* val inferExp  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.exp -> Env.smap * Types.ty   (* returns mapping and expression type *) *)
+  (* val inferTy   : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.ty  -> Types.ty          (* returns explicit type *) *)
+  (* val inferDec  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.dec -> { menv: Env.menv,     (* returns augmented environments *)
+                                                             venv: Env.venv,
+                                                             smap: Env.smap } *)
 
 end
-
-(* rename this to decorate
-
-- should keep track of a substitution mapping
-- after this is done, should go through once more and do substitutions
-
-
-*)
 
 (* UNIFY
 
@@ -43,25 +27,14 @@ struct
   structure T = Types
   structure E = Env
 
-  type menv = T.ty Symbol.table
-  type tenv = T.ty Symbol.table
-  type venv = E.enventry Symbol.table
-
-  type expty = { exp: A.exp, ty: T.ty }
-
-  fun getTypeFromEnv(env, sym) =
-    case Symbol.look(env, sym) of
-         SOME(t) => t
-       | NONE => T.TOP (* TODO: error message (symbol not found) *)
-
-  fun inferProg(e) =
+  fun inferProg(menv, e) =
     let
-      val {exp, ty} = inferExp(E.base_menv, E.base_tenv, E.base_venv, e)
+      (* val (smap, {exp, ty}) = inferExp(E.base_menv, E.base_tenv, E.base_venv, E.base_smap, e) *)
     in
-      exp
+      E.base_smap
     end
 
-  and inferExp(menv, tenv, venv, exp) =
+  (* and inferExp(menv, tenv, venv, smap, exp) =
     let fun infexp(A.StructsSigsExp(structsigs)) =
           | infexp(A.VarExp(sym, pos)) =
           | infexp(A.IntExp(num, pos)) =
@@ -93,7 +66,7 @@ struct
       infexp(exp)
     end
 
-  and inferTy(menv, tenv, venv, ty) =
+  and inferTy(menv, tenv, venv, smap, ty) =
     let fun infty(A.NameTy(sym, pos)) = getTypeFromEnv(tenv, sym)
           | infty(A.TyVar(sym, pos)) = getTypeFromEnv(menv, sym)
           | infty(A.SWRecordTy(fields, pos)) =
@@ -226,6 +199,6 @@ struct
           | infty(A.ExplicitTy(t)) = t
     in
       infty(ty)
-    end
+    end *)
 
 end

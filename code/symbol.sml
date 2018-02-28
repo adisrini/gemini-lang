@@ -8,6 +8,7 @@ sig
   val enter : 'a table * symbol * 'a -> 'a table
   val look  : 'a table * symbol -> 'a option
   val list  : 'a table -> (symbol * 'a) list
+  val print : TextIO.outstream * 'a table * ('a -> string) -> unit
 end
 
 structure Symbol :> SYMBOL =
@@ -53,5 +54,13 @@ struct
               | NONE => mapItems(xs))
     in
       mapItems (Table.list(x))
+    end
+
+  fun print(outstream, env, str) =
+    let
+      val items = list(env)
+      fun pr(k, v) = TextIO.output(outstream, name(k) ^ ": " ^ (str(v)) ^ "\n")
+    in
+      app pr items
     end
 end
