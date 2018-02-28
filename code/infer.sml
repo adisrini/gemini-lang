@@ -36,11 +36,13 @@ struct
 
   and inferExp(menv, tenv, venv, smap, exp) =
     let fun infexp(A.StructsSigsExp(structsigs)) = (smap, T.EMPTY)
-          | infexp(A.VarExp(sym, pos)) = (smap, T.EMPTY)
-          | infexp(A.IntExp(num, pos)) = (smap, T.EMPTY)
-          | infexp(A.StringExp(str, pos)) = (smap, T.EMPTY)
-          | infexp(A.RealExp(num, pos)) = (smap, T.EMPTY)
-          | infexp(A.BitExp(bit, pos)) = (smap, T.EMPTY)
+          | infexp(A.VarExp(sym, pos)) = (smap, case Symbol.find(venv, sym) of
+                                                     SOME(t) => t
+                                                   | _ => T.BOTTOM (* error *))
+          | infexp(A.IntExp(num, pos)) = (smap, T.S_TY(T.INT))
+          | infexp(A.StringExp(str, pos)) = (smap, T.S_TY(T.STRING))
+          | infexp(A.RealExp(num, pos)) = (smap, T.S_TY(T.REAL))
+          | infexp(A.BitExp(bit, pos)) = (smap, T.H_TY(T.BIT))
           | infexp(A.ApplyExp(e1, e2, pos)) = (smap, T.EMPTY)
           | infexp(A.BinOpExp({left, oper, right, pos})) = (smap, T.EMPTY)
           | infexp(A.UnOpExp({exp, oper, pos})) = (smap, T.EMPTY)
