@@ -1,6 +1,10 @@
 signature INFER =
 sig
 
+  type sub
+
+  val unify     : Types.ty * Types.ty -> sub option
+
   val inferProg :                                  Env.menv * Absyn.exp -> Env.smap              (* returns substitution mapping *)
   val inferExp  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.exp -> Env.smap * Types.ty   (* returns mapping and expression type *)
   (* val inferTy   : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.ty  -> Types.ty          (* returns explicit type *) *)
@@ -27,6 +31,26 @@ struct
   structure T = Types
   structure E = Env
 
+  type sub = (Symbol.symbol * T.ty)
+
+  fun unify(ty1, ty2) = case ty1 of
+                             T.META(m) => SOME(m, ty2)
+                           | T.H_TY(T.H_META(hm)) => SOME(hm, ty2)
+                           | T.S_TY(T.S_META(sm)) => SOME(sm, ty2)
+                           | _ => case ty2 of
+                                       T.META(m) => SOME(m, ty1)
+                                     | T.H_TY(T.H_META(hm)) => SOME(hm, ty1)
+                                     | T.S_TY(T.S_META(sm)) => SOME(sm, ty1)
+                                     | _ => case (ty1, ty2) of
+                                                 (T.H_TY(h1), T.H_TY(h2)) => unifyHty(h1, h2)
+                                               | (T.S_TY(s1), T.S_TY(s2)) => unifySty(s1, s2)
+                                               | (T.M_TY(m1), T.M_TY(m2)) => unifyMty(m1, m2)
+                                               | _ => NONE
+
+  and unifyHty(hty1, hty2) = NONE
+  and unifySty(sty1, sty2) = NONE
+  and unifyMty(mty1, mty2) = NONE
+
   fun inferProg(menv, e) =
     let
       val (smap, ty) = inferExp(E.base_menv, E.base_tenv, E.base_venv, E.base_smap, e)
@@ -36,7 +60,7 @@ struct
 
   and inferExp(menv, tenv, venv, smap, exp) =
     let fun infexp(A.StructsSigsExp(structsigs)) = (smap, T.EMPTY)
-          | infexp(A.VarExp(sym, pos)) = (smap, case Symbol.find(venv, sym) of
+          | infexp(A.VarExp(sym, pos)) = (smap, case Symbol.look(venv, sym) of
                                                      SOME(t) => t
                                                    | _ => T.BOTTOM (* error *))
           | infexp(A.IntExp(num, pos)) = (smap, T.S_TY(T.INT))
@@ -44,7 +68,12 @@ struct
           | infexp(A.RealExp(num, pos)) = (smap, T.S_TY(T.REAL))
           | infexp(A.BitExp(bit, pos)) = (smap, T.H_TY(T.BIT))
           | infexp(A.ApplyExp(e1, e2, pos)) = (smap, T.EMPTY)
-          | infexp(A.BinOpExp({left, oper, right, pos})) = (smap, T.EMPTY)
+          | infexp(A.BinOpExp({left, oper, right, pos})) =
+            let
+
+            in
+              (smap, T.EMPTY)
+            end
           | infexp(A.UnOpExp({exp, oper, pos})) = (smap, T.EMPTY)
           | infexp(A.LetExp({decs, body, pos})) = (smap, T.EMPTY)
           | infexp(A.AssignExp({lhs, rhs, pos})) = (smap, T.EMPTY)
