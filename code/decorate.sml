@@ -446,11 +446,11 @@ struct
               let
                 (* if tyvar, add to menv *)
                 val menv' = case tyvar of
-                                 SOME(tyv) => Symbol.enter(menv, tyv, T.META(E.newMeta()))
+                                 SOME(tyv) => Symbol.enter(menv, tyv, T.S_TY(T.S_META(E.newMeta())))
                                | _ => menv
                 (* add datatype as META in tenv *)
                 val tempMeta = E.newMeta()
-                val tenv' = Symbol.enter(tenv, name, T.META(tempMeta))
+                val tenv' = Symbol.enter(tenv, name, T.S_TY(T.S_META(tempMeta)))
                 (* map datacons to explicit types *)
                 fun mapDatacon({datacon, ty, pos}) =
                   let
@@ -493,11 +493,11 @@ struct
               let
                 (* if tyvar, add to menv *)
                 val menv' = case tyvar of
-                                 SOME(tyv) => Symbol.enter(menv, tyv, T.META(E.newMeta()))
+                                 SOME(tyv) => Symbol.enter(menv, tyv, T.H_TY(T.H_META(E.newMeta())))
                                | _ => menv
                 (* add datatype as META in tenv *)
                 val tempMeta = E.newMeta()
-                val tenv' = Symbol.enter(tenv, name, T.META(tempMeta))
+                val tenv' = Symbol.enter(tenv, name, T.H_TY(T.H_META(tempMeta)))
                 (* map datacons to explicit types *)
                 fun mapDatacon({datacon, ty, pos}) =
                   let

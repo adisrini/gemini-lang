@@ -3,7 +3,7 @@ sig
 
   type sub
 
-  val unify     : Types.ty * Types.ty -> sub option
+  val unify     : Types.ty * Types.ty -> sub list
 
   val inferProg :                                  Env.menv * Absyn.exp -> Env.smap              (* returns substitution mapping *)
   val inferExp  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.exp -> Env.smap * Types.ty   (* returns mapping and expression type *)
@@ -31,25 +31,31 @@ struct
   structure T = Types
   structure E = Env
 
-  type sub = (Symbol.symbol * T.ty)
+  datatype sub = SUB of (Symbol.symbol * T.ty)
+               | EMPTY
+               | ERROR
 
-  fun unify(ty1, ty2) = case ty1 of
-                             T.META(m) => SOME(m, ty2)
-                           | T.H_TY(T.H_META(hm)) => SOME(hm, ty2)
-                           | T.S_TY(T.S_META(sm)) => SOME(sm, ty2)
-                           | _ => case ty2 of
-                                       T.META(m) => SOME(m, ty1)
-                                     | T.H_TY(T.H_META(hm)) => SOME(hm, ty1)
-                                     | T.S_TY(T.S_META(sm)) => SOME(sm, ty1)
-                                     | _ => case (ty1, ty2) of
-                                                 (T.H_TY(h1), T.H_TY(h2)) => unifyHty(h1, h2)
-                                               | (T.S_TY(s1), T.S_TY(s2)) => unifySty(s1, s2)
-                                               | (T.M_TY(m1), T.M_TY(m2)) => unifyMty(m1, m2)
-                                               | _ => NONE
+  fun apply(sub, ty1, ty2)
 
-  and unifyHty(hty1, hty2) = NONE
-  and unifySty(sty1, sty2) = NONE
-  and unifyMty(mty1, mty2) = NONE
+  fun unify(smap, ty1, ty2) = case ty1 of
+                                   T.META(m) => [SOME(m, ty2)]
+                                 | T.H_TY(T.H_META(hm)) => [SOME(hm, ty2)]
+                                 | T.S_TY(T.S_META(sm)) => [SOME(sm, ty2)]
+                                 | _ => case ty2 of
+                                             T.META(m) => [SOME(m, ty1)]
+                                           | T.H_TY(T.H_META(hm)) => [SOME(hm, ty1)]
+                                           | T.S_TY(T.S_META(sm)) => [SOME(sm, ty1)]
+                                           | _ => case (ty1, ty2) of
+                                                       (T.H_TY(h1), T.H_TY(h2)) => unifyHty(h1, h2)
+                                                     | (T.S_TY(s1), T.S_TY(s2)) => unifySty(s1, s2)
+                                                     | (T.M_TY(m1), T.M_TY(m2)) => unifyMty(m1, m2)
+                                                     | _ => [NONE]
+
+  and unifyHty(hty1, hty2) = case (hty1, hty2) of
+                                  (T.ARRAY{ty = ty1, size}, T.ARRAY{ty = ty2, size}) => unifyHty(ty1, ty2)
+                                | (T.H_RECORD(recs1), T.H_RECORD(recs2)) = let
+  and unifySty(sty1, sty2) = [NONE]
+  and unifyMty(mty1, mty2) = [NONE]
 
   fun inferProg(menv, e) =
     let
