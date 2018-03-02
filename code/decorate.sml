@@ -259,6 +259,15 @@ struct
         fun decoty(A.NameTy(sym, pos)) = (case Symbol.look(tenv, sym) of
                                                SOME(t) => t
                                              | NONE => T.TOP) (* NOTE: error? *)
+          | decoty(A.ParameterizedTy(ty, typarams)) =
+            let
+              val mainTy = decoty(ty)
+            in
+              case mainTy of
+                   T.S_TY(s) => T.S_TY(T.S_UNPOLY(s, map getSWTy (map decoty typarams)))
+                 | T.H_TY(h) => T.H_TY(T.H_UNPOLY(h, map getHWTy (map decoty typarams)))
+                 | _ => T.BOTTOM (* NOTE: error? *)
+            end
           | decoty(A.TyVar(sym, pos)) = (case Symbol.look(menv, sym) of
                                               SOME(t) => t
                                             | NONE => T.META(E.newMeta()))
@@ -366,11 +375,11 @@ struct
           let
             (* menv is only altered in context of type body *)
             (* tenv is altered and passed on to future decs *)
-            fun processTyDec({name, ty, tyvar, opdef, pos}, {menv, tenv, tydecs}) =
+            fun processTyDec({name, ty, tyvars, opdef, pos}, {menv, tenv, tydecs}) =
               let
-                val menv' = case tyvar of
-                                 SOME(tyv) => Symbol.enter(menv, tyv, T.META(E.newMeta()))
-                               | _ => menv
+                fun foldMenv(tyv, menv) = Symbol.enter(menv, tyv, T.META(E.newMeta()))
+                val menv' = case tyvars of SOME(tyvs) => foldl foldMenv menv tyvs
+                                         | _ => menv
                 val realTy = decorateTy(menv', tenv, ty)
                 val tenv' = Symbol.enter(tenv, name, realTy)
                 fun foldDef({oper, param_a, param_b, body, pos}, {menv, defs}) =
@@ -386,7 +395,7 @@ struct
                 val opdef' = case opdef of
                                   SOME(_) => SOME(defs')
                                 | NONE => NONE
-                val tydec' = {name = name, ty = A.ExplicitTy(realTy), tyvar = tyvar, opdef = opdef', pos = pos}
+                val tydec' = {name = name, ty = A.ExplicitTy(realTy), tyvars = tyvars, opdef = opdef', pos = pos}
               in
                  {menv = menv'',
                   tenv = tenv',
@@ -442,11 +451,12 @@ struct
             (* tenv is altered to point to temp meta *)
             (* menv is altered to point from temp meta to real type *)
             (* both tenv and menv are passed on *)
-            fun processDatatype({name, tyvar, datacons}, {menv, tenv, datatydecs}) =
+            fun processDatatype({name, tyvars, datacons}, {menv, tenv, datatydecs}) =
               let
+                fun foldMenv(tyvar, menv) = Symbol.enter(menv, tyvar, T.S_TY(T.S_META(E.newMeta())))
                 (* if tyvar, add to menv *)
-                val menv' = case tyvar of
-                                 SOME(tyv) => Symbol.enter(menv, tyv, T.S_TY(T.S_META(E.newMeta())))
+                val menv' = case tyvars of
+                                 SOME(tyvs) => foldl foldMenv menv tyvs
                                | _ => menv
                 (* add datatype as META in tenv *)
                 val tempMeta = E.newMeta()
@@ -459,7 +469,7 @@ struct
                     {datacon = datacon, ty = A.ExplicitTy(realTy), pos = pos}
                   end
                 val datacons' = map mapDatacon datacons
-                val datatydec' = {name = name, tyvar = tyvar, datacons = datacons'}
+                val datatydec' = {name = name, tyvars = tyvars, datacons = datacons'}
                 (* map from meta to computed datatype type *)
                 fun mapDataconForType({datacon, ty = A.ExplicitTy(t), pos}) = (datacon, (case t of
                                                                                               T.S_TY(s) => SOME(s)
@@ -489,11 +499,12 @@ struct
             (* tenv is altered to point to temp meta *)
             (* menv is altered to point from temp meta to real type *)
             (* both tenv and menv are passed on *)
-            fun processDatatype({name, tyvar, datacons}, {menv, tenv, datatydecs}) =
+            fun processDatatype({name, tyvars, datacons}, {menv, tenv, datatydecs}) =
               let
+                fun foldMenv(tyvar, menv) = Symbol.enter(menv, tyvar, T.H_TY(T.H_META(E.newMeta())))
                 (* if tyvar, add to menv *)
-                val menv' = case tyvar of
-                                 SOME(tyv) => Symbol.enter(menv, tyv, T.H_TY(T.H_META(E.newMeta())))
+                val menv' = case tyvars of
+                                 SOME(tyvs) => foldl foldMenv menv tyvs
                                | _ => menv
                 (* add datatype as META in tenv *)
                 val tempMeta = E.newMeta()
@@ -506,7 +517,7 @@ struct
                     {datacon = datacon, ty = A.ExplicitTy(realTy), pos = pos}
                   end
                 val datacons' = map mapDatacon datacons
-                val datatydec' = {name = name, tyvar = tyvar, datacons = datacons'}
+                val datatydec' = {name = name, tyvars = tyvars, datacons = datacons'}
                 (* map from meta to computed datatype type *)
                 fun mapDataconForType({datacon, ty = A.ExplicitTy(t), pos}) = (datacon, (case t of
                                                                                               T.H_TY(s) => SOME(s)

@@ -106,11 +106,11 @@ fun print (outstream, e0) =
              indent (d + 1); say (Symbol.name datacon); sayln ",";
              ty(t, d + 1); sayln "";
              indent d; say ")")
-          fun print_dataty({name, tyvar, datacons}, d) =
+          fun print_dataty({name, tyvars, datacons}, d) =
             (indent d; say(Symbol.name name); say "(";
-             case tyvar of
-                  SOME(x) => (sayln ""; indent (d + 1); say "TYVAR("; say(Symbol.name x); say "),")
-                | NONE => ();
+            case tyvars of
+                 SOME(xs) => (sayln ""; indent (d + 1); say "TYVARS["; dolist (d + 1) (fn(s, d) => (indent d; say(Symbol.name(s)))) xs; sayln ""; indent (d + 1); say "],")
+               | NONE => ();
              dolist d print_datacon datacons; sayln "";
              indent d; say ")")
       in
@@ -123,10 +123,10 @@ fun print (outstream, e0) =
                indent (d + 1); say (Symbol.name datacon); sayln ",";
                ty(t, d + 1); sayln "";
                indent d; say ")")
-            fun print_dataty({name, tyvar, datacons}, d) =
+            fun print_dataty({name, tyvars, datacons}, d) =
               (indent d; say(Symbol.name name); say "(";
-               case tyvar of
-                    SOME(x) => (sayln ""; indent (d + 1); say "TYVAR("; say(Symbol.name x); say "),")
+               case tyvars of
+                    SOME(xs) => (sayln ""; indent (d + 1); say "TYVARS["; dolist (d + 1) (fn(s, d) => (indent d; say(Symbol.name(s)))) xs; sayln ""; indent (d + 1); say "],")
                   | NONE => ();
                dolist d print_datacon datacons; sayln "";
                indent d; say ")")
@@ -178,10 +178,10 @@ fun print (outstream, e0) =
                indent (d + 1); say(Symbol.name param_b); sayln ",";
                exp(body, d + 1); sayln "";
                indent d; say ")")
-          fun tdec({name, ty = t, tyvar, opdef, pos}, d) =
+          fun tdec({name, ty = t, tyvars, opdef, pos}, d) =
               (indent d; say(Symbol.name name); sayln "(";
-              case tyvar of NONE => ()
-                          | SOME(tyv) => (indent (d + 1); say "TYVAR("; say(Symbol.name tyv); sayln "),");
+              case tyvars of NONE => ()
+                           | SOME(tyvs) => (indent (d + 1); say "TYVARS["; dolist (d + 1) (fn(s, d) => (indent d; say(Symbol.name(s)))) tyvs; sayln ""; indent (d + 1); sayln "],");
 					     ty(t, d + 1); sayln ",";
                case opdef of NONE => ()
                            | SOME(opds) => (indent (d + 1); say "["; dolist d opd opds; sayln "]");
@@ -191,6 +191,7 @@ fun print (outstream, e0) =
       end
 
   and ty(A.NameTy(s, p), d) = (indent d; say "NameTy("; say(Symbol.name s); say ")")
+    | ty(A.ParameterizedTy(t, tys), d) = (indent d; sayln "ParameterizedTy("; ty(t, d + 1); sayln ",";  dolist (d + 1) ty tys; sayln ""; indent d; say ")")
     | ty(A.TyVar(s, p), d) = (indent d; say "TyVar("; say(Symbol.name s); say ")")
     | ty(A.SWRecordTy(fields, p), d) = (indent d; say "SWRecordTy["; dolist d print_field fields; sayln ""; indent d; say "]")
     | ty(A.HWRecordTy(fields, p), d) = (indent d; say "HWRecordTy["; dolist d print_field fields; sayln ""; indent d; say "]")

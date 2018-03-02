@@ -106,6 +106,10 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
                             | fun_param of A.param
                     | ty_dec of A.dec
                         | ty of A.ty
+                          | typarams of A.ty list
+                          | typarams_tail of A.ty list
+                          | tids of Symbol.symbol list
+                          | tids_tail of Symbol.symbol list
                             | no_ty_fields of A.field list
                             | ty_fields of A.field list
                             | ty_field_tail of A.field list
@@ -377,8 +381,8 @@ non_hdataty_dec: val_dec non_val_dec                                        (val
 non_module_dec: val_dec non_val_dec                                         (val_dec::non_val_dec)
               | fun_dec non_fun_dec                                         (fun_dec::non_fun_dec)
               | ty_dec non_ty_dec                                           (ty_dec::non_ty_dec)
-              | sdataty_dec non_sdataty_dec                                  (sdataty_dec::non_sdataty_dec)
-              | hdataty_dec non_hdataty_dec                                  (hdataty_dec::non_hdataty_dec)
+              | sdataty_dec non_sdataty_dec                                 (sdataty_dec::non_sdataty_dec)
+              | hdataty_dec non_hdataty_dec                                 (hdataty_dec::non_hdataty_dec)
               | epsilon                                                     ([])
 
 val_dec       : VAL ID EQ exp                                               (A.ValDec[{name = Symbol.symbol(ID), escape = ref true, ty = (A.PlaceholderTy(ref ()), IDleft), init = exp1, pos = VALleft}])
@@ -405,16 +409,17 @@ fun_param     : ID                                                          (A.S
               | LPAREN no_ty_fields RPAREN                                  (param(no_ty_fields))
               | LPAREN ty_fields RPAREN                                     (param(ty_fields))
 
-ty_dec        : TYPE TID ID EQ ty                                           (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvar = SOME(Symbol.symbol(TID1)), opdef = NONE, pos = TYPEleft}])
-              | TYPE TID ID EQ ty ty_dec                                    (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvar = SOME(Symbol.symbol(TID1)), opdef = NONE, pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
-              | TYPE TID ID EQ ty with_type                                 (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvar = SOME(Symbol.symbol(TID1)), opdef = SOME(with_type), pos = TYPEleft}])
-              | TYPE TID ID EQ ty with_type ty_dec                          (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvar = SOME(Symbol.symbol(TID1)), opdef = SOME(with_type), pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
-              | TYPE ID EQ ty                                               (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvar = NONE, opdef = NONE, pos = TYPEleft}])
-              | TYPE ID EQ ty ty_dec                                        (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvar = NONE, opdef = NONE, pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
-              | TYPE ID EQ ty with_type                                     (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvar = NONE, opdef = SOME(with_type), pos = TYPEleft}])
-              | TYPE ID EQ ty with_type ty_dec                              (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvar = NONE, opdef = SOME(with_type), pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
+ty_dec        : TYPE tids ID EQ ty                                          (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvars = SOME(tids), opdef = NONE, pos = TYPEleft}])
+              | TYPE tids ID EQ ty ty_dec                                   (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvars = SOME(tids), opdef = NONE, pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
+              | TYPE tids ID EQ ty with_type                                (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvars = SOME(tids), opdef = SOME(with_type), pos = TYPEleft}])
+              | TYPE tids ID EQ ty with_type ty_dec                         (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvars = SOME(tids), opdef = SOME(with_type), pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
+              | TYPE ID EQ ty                                               (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvars = NONE, opdef = NONE, pos = TYPEleft}])
+              | TYPE ID EQ ty ty_dec                                        (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvars = NONE, opdef = NONE, pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
+              | TYPE ID EQ ty with_type                                     (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvars = NONE, opdef = SOME(with_type), pos = TYPEleft}])
+              | TYPE ID EQ ty with_type ty_dec                              (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvars = NONE, opdef = SOME(with_type), pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
 
 ty            : TID                                                         (A.TyVar(Symbol.symbol(TID), TIDleft))
+              | typarams ty                                                 (A.ParameterizedTy(ty1, typarams))
               | ID                                                          (A.NameTy(Symbol.symbol(ID), IDleft))
               | ty INT_TIMES ty                                             (sw_coalesce((ty1, ty1left), (ty2, ty2left)))
               | ty POUND_TIMES ty                                           (hw_coalesce((ty1, ty1left), (ty2, ty2left)))
@@ -427,6 +432,18 @@ ty            : TID                                                         (A.T
               | ty SW                                                       (A.SWTy(ty1, ty1left))
               | ty THIN_ARROW ty                                            (A.FunTy(ty1, ty2, ty1left))
               | LPAREN ty RPAREN                                            (ty)
+
+typarams      : ty                                                          ([ty])
+              | LPAREN ty typarams_tail RPAREN                              (ty::typarams_tail)
+
+typarams_tail : COMMA ty typarams_tail                                      (ty::typarams_tail)
+              | epsilon                                                     ([])
+
+tids          : TID                                                         ([Symbol.symbol(TID)])
+              | LPAREN TID tids_tail RPAREN                                 (Symbol.symbol(TID)::tids_tail)
+
+tids_tail     : COMMA TID tids_tail                                         (Symbol.symbol(TID)::tids_tail)
+              | epsilon                                                     ([])
 
 no_ty_fields  : ID                                                          ([{name = Symbol.symbol(ID), ty = A.PlaceholderTy(ref ()), escape = ref true, pos = IDleft}])
               | no_ty_fields COMMA ID                                       (no_ty_fields1 @ [{name = Symbol.symbol(ID), ty = A.PlaceholderTy(ref ()), escape = ref true, pos = no_ty_fields1left}])
@@ -447,23 +464,23 @@ with_type     : WITH OP EQ LPAREN ID COMMA ID RPAREN EQ exp with_type_tail  ([{o
 with_type_tail: AND with_type                                               (with_type)
               | epsilon                                                     ([])
 
-sdataty_dec   : SDATATYPE TID ID EQ ID dataty_tail                          (A.SWDatatypeDec([{name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}]))
-              | SDATATYPE TID ID EQ ID dataty_tail sdataty_dec              (A.SWDatatypeDec({name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(sdataty_dec))))
-              | SDATATYPE TID ID EQ ID OF ty dataty_tail                    (A.SWDatatypeDec([{name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
-              | SDATATYPE TID ID EQ ID OF ty dataty_tail sdataty_dec        (A.SWDatatypeDec({name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(sdataty_dec))))
-              | SDATATYPE ID EQ ID dataty_tail                              (A.SWDatatypeDec([{name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}]))
-              | SDATATYPE ID EQ ID dataty_tail sdataty_dec                  (A.SWDatatypeDec({name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(sdataty_dec))))
-              | SDATATYPE ID EQ ID OF ty dataty_tail                        (A.SWDatatypeDec([{name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
-              | SDATATYPE ID EQ ID OF ty dataty_tail sdataty_dec            (A.SWDatatypeDec({name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(sdataty_dec))))
+sdataty_dec   : SDATATYPE tids ID EQ ID dataty_tail                         (A.SWDatatypeDec([{name = Symbol.symbol(ID1), tyvars = SOME(tids), datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}]))
+              | SDATATYPE tids ID EQ ID dataty_tail sdataty_dec             (A.SWDatatypeDec({name = Symbol.symbol(ID1), tyvars = SOME(tids), datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(sdataty_dec))))
+              | SDATATYPE tids ID EQ ID OF ty dataty_tail                   (A.SWDatatypeDec([{name = Symbol.symbol(ID1), tyvars = SOME(tids), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
+              | SDATATYPE tids ID EQ ID OF ty dataty_tail sdataty_dec       (A.SWDatatypeDec({name = Symbol.symbol(ID1), tyvars = SOME(tids), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(sdataty_dec))))
+              | SDATATYPE ID EQ ID dataty_tail                              (A.SWDatatypeDec([{name = Symbol.symbol(ID1), tyvars = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}]))
+              | SDATATYPE ID EQ ID dataty_tail sdataty_dec                  (A.SWDatatypeDec({name = Symbol.symbol(ID1), tyvars = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(sdataty_dec))))
+              | SDATATYPE ID EQ ID OF ty dataty_tail                        (A.SWDatatypeDec([{name = Symbol.symbol(ID1), tyvars = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
+              | SDATATYPE ID EQ ID OF ty dataty_tail sdataty_dec            (A.SWDatatypeDec({name = Symbol.symbol(ID1), tyvars = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(sdataty_dec))))
 
-hdataty_dec   : HDATATYPE TID ID EQ ID dataty_tail                          (A.HWDatatypeDec([{name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}]))
-              | HDATATYPE TID ID EQ ID dataty_tail hdataty_dec              (A.HWDatatypeDec({name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(hdataty_dec))))
-              | HDATATYPE TID ID EQ ID OF ty dataty_tail                    (A.HWDatatypeDec([{name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
-              | HDATATYPE TID ID EQ ID OF ty dataty_tail hdataty_dec        (A.HWDatatypeDec({name = Symbol.symbol(ID1), tyvar = SOME(Symbol.symbol(TID1)), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(hdataty_dec))))
-              | HDATATYPE ID EQ ID dataty_tail                              (A.HWDatatypeDec([{name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}]))
-              | HDATATYPE ID EQ ID dataty_tail hdataty_dec                  (A.HWDatatypeDec({name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(hdataty_dec))))
-              | HDATATYPE ID EQ ID OF ty dataty_tail                        (A.HWDatatypeDec([{name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
-              | HDATATYPE ID EQ ID OF ty dataty_tail hdataty_dec            (A.HWDatatypeDec({name = Symbol.symbol(ID1), tyvar = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(hdataty_dec))))
+hdataty_dec   : HDATATYPE tids ID EQ ID dataty_tail                         (A.HWDatatypeDec([{name = Symbol.symbol(ID1), tyvars = SOME(tids), datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}]))
+              | HDATATYPE tids ID EQ ID dataty_tail hdataty_dec             (A.HWDatatypeDec({name = Symbol.symbol(ID1), tyvars = SOME(tids), datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(hdataty_dec))))
+              | HDATATYPE tids ID EQ ID OF ty dataty_tail                   (A.HWDatatypeDec([{name = Symbol.symbol(ID1), tyvars = SOME(tids), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
+              | HDATATYPE tids ID EQ ID OF ty dataty_tail hdataty_dec       (A.HWDatatypeDec({name = Symbol.symbol(ID1), tyvars = SOME(tids), datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(hdataty_dec))))
+              | HDATATYPE ID EQ ID dataty_tail                              (A.HWDatatypeDec([{name = Symbol.symbol(ID1), tyvars = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}]))
+              | HDATATYPE ID EQ ID dataty_tail hdataty_dec                  (A.HWDatatypeDec({name = Symbol.symbol(ID1), tyvars = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = A.NoTy, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(hdataty_dec))))
+              | HDATATYPE ID EQ ID OF ty dataty_tail                        (A.HWDatatypeDec([{name = Symbol.symbol(ID1), tyvars = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}]))
+              | HDATATYPE ID EQ ID OF ty dataty_tail hdataty_dec            (A.HWDatatypeDec({name = Symbol.symbol(ID1), tyvars = NONE, datacons = {datacon = Symbol.symbol(ID2), ty = ty, pos = ID2left}::dataty_tail}::valOf(extractDatatypeDecList(hdataty_dec))))
 
 dataty_tail   : PIPE_EQUALS ID OF ty dataty_tail                            ({datacon = Symbol.symbol(ID), ty = ty, pos = IDleft}::dataty_tail)
               | PIPE_EQUALS ID dataty_tail                                  ({datacon = Symbol.symbol(ID), ty = A.NoTy, pos = IDleft}::dataty_tail)

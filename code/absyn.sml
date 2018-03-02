@@ -60,6 +60,7 @@ struct
           | ModuleDef of {name: symbol, input_ty: ty, output_ty: ty, pos: pos}
 
   and ty = NameTy of symbol * pos
+         | ParameterizedTy of ty * (ty list)
          | TyVar of symbol * pos
          | SWRecordTy of field list * pos
          | HWRecordTy of field list * pos
@@ -83,13 +84,13 @@ struct
 
   and opdef = {oper: oper, param_a: symbol, param_b: symbol, body: exp, pos: pos}
 
-  and tydec = {name: symbol, ty: ty, tyvar: symbol option, opdef: (opdef list) option, pos: pos}
+  and tydec = {name: symbol, ty: ty, tyvars: (symbol list) option, opdef: (opdef list) option, pos: pos}
 
   and moddec = {name: symbol, arg: param, result: ty * pos, body: exp, pos: pos}
 
   and datacon = {datacon: symbol, ty: ty, pos: pos}
 
-  and datatydec = {name: symbol, tyvar: symbol option, datacons: datacon list}
+  and datatydec = {name: symbol, tyvars: (symbol list) option, datacons: datacon list}
 
   and match = {match: exp, result: exp, pos: pos}
 
