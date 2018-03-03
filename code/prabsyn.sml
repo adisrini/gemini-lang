@@ -208,6 +208,7 @@ fun print (outstream, e0) =
   and realTy(t, d) =
     let
       fun sfield((tyv, s), d) = (indent d; say (Symbol.name(tyv)); say ": "; sty(s, 0))
+      and saytyvar(tyv, d) = (indent d; say (Symbol.name(tyv)))
       and stycon((tyv, s_opt), d) = (indent d; say (Symbol.name(tyv)); (case s_opt of SOME(s) => (say ": "; sty(s, 0)) | NONE => ()))
       and htycon((tyv, h_opt), d) = (indent d; say (Symbol.name(tyv)); (case h_opt of SOME(h) => (say ": "; hty(h, 0)) | NONE => ()))
       and sty(T.INT, d) = (indent d; say "INT")
@@ -223,7 +224,8 @@ fun print (outstream, e0) =
         | sty(T.S_META(tyv), d) = (indent d; say "S_META("; say (Symbol.name(tyv)); say ")")
         | sty(T.S_TOP, d) = (indent d; say "S_TOP")
         | sty(T.S_BOTTOM, d) = (indent d; say "S_BOTTOM")
-        | sty(_, d) = (indent d; say "UNIMPLEMENTED!")  (* poly, unpoly, var *)
+        | sty(T.S_POLY(tyvars, s), d) = (indent d; say "S_POLY(["; dolist (d + 1) saytyvar tyvars; sayln "],"; sty(s, d + 1); sayln ""; indent d; say ")")
+        | sty(T.S_UNPOLY(s, args), d) = (indent d; say "S_UNPOLY(["; dolist (d + 1) sty args; sayln "],"; sty(s, d + 1); sayln ""; indent d; say ")")
       and hfield((tyv, h), d) = (indent d; say (Symbol.name(tyv)); say ": "; hty(h, 0))
       and hty(T.BIT, d) = (indent d; say "BIT")
         | hty(T.ARRAY{ty, size}, d) = (indent d; sayln "ARRAY("; hty(ty, d + 1); sayln ","; indent (d + 1); say (Int.toString(!size)); sayln ""; indent d; say ")")

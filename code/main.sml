@@ -13,11 +13,13 @@ struct
   fun go filename =
     let
       val ast = Parse.parse filename
-      val (menv, explicitAST) = Decorate.decorateProg ast
+      val (smap, explicitAST) = Decorate.decorateProg ast
       val () = print("===== AST =====\n")
+      val () = P.print(TextIO.stdOut, ast)
+      val () = print("===== EXPLICIT AST =====\n")
       val () = P.print(TextIO.stdOut, explicitAST)
-      val () = print("===== MENV =====\n")
-      val () = S.print(TextIO.stdOut, menv, Types.toString)
+      val () = print("===== SMAP =====\n")
+      val () = S.print(TextIO.stdOut, smap, Types.toString)
       (* val smap = Infer.inferProg (menv, explicitAST)
       val () = print("===== SMAP =====\n")
       val () = S.print(TextIO.stdOut, smap, Types.toString) *)

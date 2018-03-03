@@ -395,7 +395,13 @@ struct
                 val opdef' = case opdef of
                                   SOME(_) => SOME(defs')
                                 | NONE => NONE
-                val tydec' = {name = name, ty = A.ExplicitTy(realTy), tyvars = tyvars, opdef = opdef', pos = pos}
+                val retTy = case tyvars of
+                                 SOME(tyvs) => (case realTy of
+                                                     T.S_TY(sty) => T.S_TY(T.S_POLY(tyvs, sty))
+                                                   | T.H_TY(hty) => T.H_TY(T.H_POLY(tyvs, hty))
+                                                   | _ => realTy)
+                               | _ => realTy
+                val tydec' = {name = name, ty = A.ExplicitTy(retTy), tyvars = tyvars, opdef = opdef', pos = pos}
               in
                  {menv = menv'',
                   tenv = tenv',
@@ -476,7 +482,12 @@ struct
                                                                                             | T.EMPTY => NONE
                                                                                             | _ => SOME(T.S_TOP)))
                   | mapDataconForType(_) = raise Match
-                val menv'' = Symbol.enter(menv, tempMeta, T.S_TY(T.S_DATATYPE(map mapDataconForType datacons', ref ())))
+
+                val sty = T.S_DATATYPE(map mapDataconForType datacons', ref ())
+                val retTy = case tyvars of
+                                 SOME(tyvs) => T.S_POLY(tyvs, sty)
+                               | _ => sty
+                val menv'' = Symbol.enter(menv, tempMeta, T.S_TY(sty))
               in
                 {menv = menv'', tenv = tenv', datatydecs = datatydec'::datatydecs}
               end
@@ -524,7 +535,11 @@ struct
                                                                                             | T.EMPTY => NONE
                                                                                             | _ => SOME(T.H_TOP)))
                   | mapDataconForType(_) = raise Match
-                val menv'' = Symbol.enter(menv, tempMeta, T.H_TY(T.H_DATATYPE(map mapDataconForType datacons', ref ())))
+                val hty = T.H_DATATYPE(map mapDataconForType datacons', ref ())
+                val retTy = case tyvars of
+                                 SOME(tyvs) => T.H_POLY(tyvs, hty)
+                               | _ => hty
+                val menv'' = Symbol.enter(menv, tempMeta, T.H_TY(hty))
               in
                 {menv = menv'', tenv = tenv', datatydecs = datatydec'::datatydecs}
               end
