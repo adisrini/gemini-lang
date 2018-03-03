@@ -347,7 +347,16 @@ struct
           (* NOTE: tenv is never altered *)
           fun foldFunDec({name, params, result = (ty, typos), body, pos}, {menv, fdecs}) =
             let
-              fun mapField({name, ty, escape, pos}) = {name = name, ty = A.ExplicitTy(decorateTy(menv, tenv, ty)), escape = escape, pos = pos}
+              fun mapField({name, ty, escape, pos}) =
+                let
+                  val ty' = decorateTy(menv, tenv, ty)
+                  val ty'' = case ty' of
+                                  T.S_TY(x) => ty'
+                                | T.META(x) => T.S_TY(T.S_META(x))
+                                | _ => T.S_TY(T.S_BOTTOM)
+                in
+                  {name = name, ty = A.ExplicitTy(ty''), escape = escape, pos = pos}
+                end
 
               fun mapParam(A.NoParam) = A.NoParam
                 | mapParam(A.SingleParam(f)) = A.SingleParam(mapField(f))

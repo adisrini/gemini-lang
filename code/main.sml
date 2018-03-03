@@ -20,9 +20,9 @@ struct
       val () = P.print(TextIO.stdOut, explicitAST)
       val () = print("===== SMAP =====\n")
       val () = S.print(TextIO.stdOut, smap, Types.toString)
-      (* val smap = Infer.inferProg (menv, explicitAST)
-      val () = print("===== SMAP =====\n")
-      val () = S.print(TextIO.stdOut, smap, Types.toString) *)
+      val smap' = Infer.inferProg (smap, explicitAST)
+      val () = print("===== SMAP POST-INFERENCE =====\n")
+      val () = S.print(TextIO.stdOut, smap', Types.toString)
     in
       ()
     end

@@ -5,12 +5,13 @@ sig
 
   val unify     : Types.ty * Types.ty -> sub
 
-  val inferProg :                                  Env.menv * Absyn.exp -> Env.smap              (* returns substitution mapping *)
+  val inferProg :                                  Env.smap * Absyn.exp -> Env.smap              (* returns substitution mapping *)
   val inferExp  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.exp -> Env.smap * Types.ty   (* returns mapping and expression type *)
   (* val inferTy   : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.ty  -> Types.ty          (* returns explicit type *) *)
-  (* val inferDec  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.dec -> { menv: Env.menv,     (* returns augmented environments *)
-                                                             venv: Env.venv,
-                                                             smap: Env.smap } *)
+  val inferDec  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.dec -> { menv: Env.menv,     (* returns augmented environments *)
+                                                                             tenv: Env.tenv,
+                                                                             venv: Env.venv,
+                                                                             smap: Env.smap }
 
 end
 
@@ -34,6 +35,9 @@ struct
   datatype sub = SUB of (Symbol.symbol * T.ty) option
                | ERROR of string
 
+  fun getExplicitType(A.ExplicitTy(ty), _) = ty
+    | getExplicitType(_, default) = default
+
   fun unify(ty1, ty2) = case ty1 of
                                    T.META(m) => SUB(SOME(m, ty2))
                                  | T.H_TY(T.H_META(hm)) => SUB(SOME(hm, ty2))
@@ -53,20 +57,40 @@ struct
                                 | (T.H_RECORD(recs1), T.H_RECORD(recs2)) =>
                                   let
                                     fun foldSubs(((_, h_ty1), (_, h_ty2)), subs) = unifyHty(h_ty1, h_ty2)::subs
-                                    val subs = List.rev(foldl foldSubs [] ListPair.zipEq(recs1, recs2))
+                                    val subs = List.rev(foldl foldSubs [] (ListPair.zipEq(recs1, recs2)))
                                   in
                                     SUB(NONE)
                                   end
-  and unifySty(sty1, sty2) = SUB(NONE)
-  and unifyMty(mty1, mty2) = SUB(NONE)
+                                | _ => SUB(NONE) (* TODO *)
+  and unifySty(sty1, sty2) = case (sty1, sty2) of
+                                  (T.INT, T.INT) => SUB(NONE)
+                                | (T.STRING, T.STRING) => SUB(NONE)
+                                | _ => ERROR("tycon mismatch\n" ^
+                                             "expected:\t" ^ T.toString(T.S_TY(sty2)) ^ "\n" ^
+                                             "received:\t" ^ T.toString(T.S_TY(sty1)) ^ "\n")
+  and unifyMty(mty1, mty2) = SUB(NONE)  (* TODO *)
 
-  and unifyAll(expectedTy, tys)
-
-  fun inferProg(menv, e) =
+  and unifyAll(smap, ty, tys) =
     let
-      val (smap, ty) = inferExp(E.base_menv, E.base_tenv, E.base_venv, E.base_smap, e)
+      fun foldSub(uty, smap) =
+        let
+          val sub = unify(uty, ty)
+        in
+          case sub of
+               SUB(sub_opt) => (case sub_opt of
+                                     SOME((sym, nty)) => Symbol.enter(smap, sym, nty)
+                                   | _ => smap)
+             | ERROR(m) => (print(m); smap)
+        end
     in
-      smap
+      foldl foldSub smap tys
+    end
+
+  fun inferProg(smap, e) =
+    let
+      val (smap', ty) = inferExp(E.base_menv, E.base_tenv, E.base_venv, smap, e)
+    in
+      smap'
     end
 
   and inferExp(menv, tenv, venv, smap, exp) =
@@ -83,38 +107,46 @@ struct
             let
               val (smap', leftTy) = inferExp(menv, tenv, venv, smap, left)
               val (smap'', rightTy) = inferExp(menv, tenv, venv, smap', right)
-              val () = case oper of
-                            IntPlusOp => unifyAll(T.S_TY(T.INT)), [leftTy, rightTy])
-                          | IntMinusOp => unifyAll(T.S_TY(T.INT)), [leftTy, rightTy])
-                          | IntTimesOp => unifyAll(T.S_TY(T.INT)), [leftTy, rightTy])
-                          | IntDivideOp => unifyAll(T.S_TY(T.INT)), [leftTy, rightTy])
-                          | IntModOp => unifyAll(T.S_TY(T.INT)), [leftTy, rightTy])
-                          | RealPlusOp => unifyAll(T.S_TY(T.REAL)), [leftTy, rightTy])
-                          | RealMinusOp => unifyAll(T.S_TY(T.REAL)), [leftTy, rightTy])
-                          | RealTimesOp => unifyAll(T.S_TY(T.REAL)), [leftTy, rightTy])
-                          | RealDivideOp => unifyAll(T.S_TY(T.REAL)), [leftTy, rightTy])
-                          | BitAndOp =>
-                          | BitOrOp =>
-                          | BitXorOp =>
-                          | BitSLLOp =>
-                          | BitSRLOp =>
-                          | BitSRAOp =>
-                          | BitDoubleAndOp =>
-                          | BitDoubleOrOp =>
-                          | BitDoubleXorOp =>
-                          | EqOp =>
-                          | NeqOp =>
-                          | LtOp =>
-                          | GtOp =>
-                          | LeOp =>
-                          | GeOp =>
-                          | ConsOp =>
-                          | _ => raise Match
+              val (smap''',
+                   retTy) = case oper of
+                                 IntTimesOp => (unifyAll(smap'', T.S_TY(T.INT), [leftTy, rightTy]), T.S_TY(T.INT))
+                              (* IntPlusOp => unifyAll(T.S_TY(T.INT), [leftTy, rightTy])
+                            | IntMinusOp => unifyAll(T.S_TY(T.INT), [leftTy, rightTy])
+                            | IntTimesOp => unifyAll(T.S_TY(T.INT), [leftTy, rightTy])
+                            | IntDivideOp => unifyAll(T.S_TY(T.INT), [leftTy, rightTy])
+                            | IntModOp => unifyAll(T.S_TY(T.INT), [leftTy, rightTy])
+                            | RealPlusOp => unifyAll(T.S_TY(T.REAL), [leftTy, rightTy])
+                            | RealMinusOp => unifyAll(T.S_TY(T.REAL), [leftTy, rightTy])
+                            | RealTimesOp => unifyAll(T.S_TY(T.REAL), [leftTy, rightTy])
+                            | RealDivideOp => unifyAll(T.S_TY(T.REAL), [leftTy, rightTy])
+                            | BitAndOp => unifyAll(leftTy, [leftTy, rightTy])
+                            | BitOrOp => unifyAll(leftTy, [leftTy, rightTy])
+                            | BitXorOp => unifyAll(leftTy, [leftTy, rightTy])
+                            | BitSLLOp => unifyAll(leftTy, [leftTy, rightTy])
+                            | BitSRLOp => unifyAll(leftTy, [leftTy, rightTy])
+                            | BitSRAOp =>
+                            | BitDoubleAndOp =>
+                            | BitDoubleOrOp =>
+                            | BitDoubleXorOp =>
+                            | EqOp =>
+                            | NeqOp =>
+                            | LtOp =>
+                            | GtOp =>
+                            | LeOp =>
+                            | GeOp =>
+                            | ConsOp =>
+                            | _ => raise Match *)
             in
-              (smap'', )
+              (smap''', retTy)
             end
           | infexp(A.UnOpExp({exp, oper, pos})) = (smap, T.EMPTY)
-          | infexp(A.LetExp({decs, body, pos})) = (smap, T.EMPTY)
+          | infexp(A.LetExp({decs, body, pos})) =
+            let
+              fun foldDec(dec, {menv, tenv, venv, smap}) = inferDec(menv, tenv, venv, smap, dec)
+              val {menv = menv', tenv = tenv', venv = venv', smap = smap'} = foldl foldDec {menv = menv, tenv = tenv, venv = venv, smap = smap} decs
+            in
+              inferExp(menv', tenv', venv', smap', body)
+            end
           | infexp(A.AssignExp({lhs, rhs, pos})) = (smap, T.EMPTY)
           | infexp(A.SeqExp(exps)) = (smap, T.EMPTY)
           | infexp(A.IfExp({test, then', else', pos})) = (smap, T.EMPTY)
@@ -133,6 +165,34 @@ struct
           | infexp(A.BitArrayExp({size, result, spec})) = (smap, T.EMPTY)
     in
       infexp(exp)
+    end
+
+  and inferDec(menv, tenv, venv, smap, dec) =
+    let
+      fun infdec(A.FunctionDec(fundecs)) =
+        let
+          fun foldFunDec({name, params, result = (resultTy, resultPos), body, pos}, {menv, tenv, venv, smap}) =
+            let
+              (* enter params into venv *)
+              fun foldParam(A.NoParam, venv) = venv
+                | foldParam(A.SingleParam{name, ty, escape, pos}, venv) = Symbol.enter(venv, name, getExplicitType(ty, T.S_TY(T.S_BOTTOM)))
+                | foldParam(A.MultiParams(fs), venv) = foldl (fn({name, ty, escape, pos}, v) => Symbol.enter(v, name, getExplicitType(ty, T.S_TY(T.S_BOTTOM)))) venv fs
+              val venv' = foldl foldParam venv params
+              (* process body with augmented venv' *)
+              val (smap', bodyTy) = inferExp(menv, tenv, venv', smap, body)
+              (* add function to tenv *)
+            in
+              {menv = menv,
+               tenv = tenv,
+               venv = venv',
+               smap = smap'}
+            end
+        in
+          foldl foldFunDec {menv = menv, tenv = tenv, venv = venv, smap = smap} fundecs
+        end
+        | infdec(_) = {menv = menv, tenv = tenv, venv = venv, smap = smap}
+    in
+      infdec(dec)
     end
 
   (*

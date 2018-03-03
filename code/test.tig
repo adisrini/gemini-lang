@@ -1,0 +1,5 @@
+let
+	fun add (x : string) y = x + y
+in
+	0
+end

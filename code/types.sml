@@ -71,9 +71,31 @@ struct
         | sty(S_META(tyv)) = "S_META(" ^ Symbol.name(tyv) ^ ")"
         | sty(S_TOP) = "S_TOP"
         | sty(S_BOTTOM) = "S_BOTTOM"
-        | sty(_) = "STY: UNIMPLEMENTED FOR NOW"
+        | sty(S_POLY(tyvars, s)) = "S_POLY([" ^ (String.concat(map (fn(tyv) => Symbol.name(tyv) ^ ", ") tyvars)) ^ "], " ^ sty(s) ^ ")"
+        | sty(S_UNPOLY(s, args)) = "S_UNPOLY(" ^ sty(s) ^ ", [" ^ (String.concat(map (fn(si) => sty(si) ^ ", ") args)) ^ "])"
 
-      and hty(h) = "HTY: UNIMPLEMENTED FOR NOW"
+      and hty(BIT) = "BIT"
+        | hty(ARRAY{ty, size}) = "ARRAY(" ^ hty(ty) ^ ", " ^ Int.toString(!size) ^ ")"
+        | hty(H_RECORD(fs)) = "H_RECORD(" ^ (String.concat(map (fn(tyv, h) => Symbol.name(tyv) ^ ": " ^ hty(h) ^ ", ") fs)) ^ ")"
+        | hty(TEMPORAL{ty, time}) = "TEMPORAL(" ^ hty(ty) ^ ", " ^ Int.toString(!time) ^ ")"
+        | hty(H_DATATYPE(fs, _)) =
+          let
+            fun stringify(tyv, h_opt) =
+              let
+                val tyvStr = Symbol.name(tyv)
+                val h_optStr = case h_opt of SOME(h) => "SOME(" ^ hty(h) ^ ")" | NONE => "NONE"
+              in
+                tyvStr ^ ": " ^ h_optStr ^ ", "
+              end
+          in
+            "H_DATATYPE(" ^ (String.concat(map stringify fs)) ^ ")"
+          end
+        | hty(H_POLY(tyvars, h)) = "H_POLY([" ^ (String.concat(map (fn(tyv) => Symbol.name(tyv) ^ ", ") tyvars)) ^ "], " ^ hty(h) ^ ")"
+        | hty(H_UNPOLY(h, args)) = "H_UNPOLY(" ^ hty(h) ^ ", [" ^ (String.concat(map (fn(hi) => hty(hi) ^ ", ") args)) ^ "])"
+        | hty(H_META(tyv)) = "H_META(" ^ Symbol.name(tyv) ^ ")"
+        | hty(H_TOP) = "H_TOP"
+        | hty(H_BOTTOM) = "H_BOTTOM"
+
       and mty(m) = "MTY: UNIMPLEMENTED FOR NOW"
     in
       case t of
