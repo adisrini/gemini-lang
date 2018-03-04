@@ -1,7 +1,11 @@
 let
 	fun add x y = ((x + y)/(x - y))*((x - y)/(x % y))
 
-	fun concat a r = a::[1, 2, 3]
+	fun concat a r = a::r
+
+	fun isEqual s t = (s = t)
+
+	fun isNotEqual b c = (b <> c)
 in
 	add 1 2
 end

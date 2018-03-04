@@ -72,4 +72,6 @@ struct
                                         (sub2, T.S_TY(T.S_BOTTOM))
                                       end
 
+   and unifyEqualityType(ty1, ty2, pos) = (unify(ty1, ty2, pos), T.S_TY(T.INT))
+
 end

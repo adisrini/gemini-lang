@@ -1,0 +1,16 @@
+let
+  fun foo x = x + 2
+  sdatatype 'a soption = SSOME of 'a
+                      |: SNONE
+  hdatatype 'a hoption = HSOME of 'a
+                      |: HNONE
+  sdatatype intlist = LIST of intlist
+                  |:  ELEM of int
+  type ('a, 'b) pair = ('a * 'b)
+
+  val x : (int, string) pair = (1, "a")
+
+  val y = 0
+in
+  foo 10
+end

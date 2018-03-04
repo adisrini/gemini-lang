@@ -89,10 +89,26 @@ struct
                             | A.BitSRAOp =>
                             | A.BitDoubleAndOp =>
                             | A.BitDoubleOrOp =>
-                            | A.BitDoubleXorOp =>
+                            | A.BitDoubleXorOp => *)
                             | A.EqOp =>
+                              let
+                                val (sub, retTy) = U.unifyEqualityType(leftTy, rightTy, pos)
+                                val smap' = case sub of
+                                                 S.SUB(SOME((sym, ty))) => Symbol.enter(smap, sym, ty)
+                                               | _ => smap
+                              in
+                                ((smap', [sub]), retTy)
+                              end
                             | A.NeqOp =>
-                            | A.LtOp =>
+                              let
+                                val (sub, retTy) = U.unifyEqualityType(leftTy, rightTy, pos)
+                                val smap' = case sub of
+                                                 S.SUB(SOME((sym, ty))) => Symbol.enter(smap, sym, ty)
+                                               | _ => smap
+                              in
+                                ((smap', [sub]), retTy)
+                              end
+                            (* | A.LtOp =>
                             | A.GtOp =>
                             | A.LeOp =>
                             | A.GeOp => *)
