@@ -17,10 +17,12 @@ gemini.grm
 infer.sml
 parse.sml
 prabsyn.sml
+substitute.sml
 symbol.sml
 table.sig
 table.sml
 types.sml
+unify.sml
 
 (* base *)
 $/ml-yacc-lib.cm

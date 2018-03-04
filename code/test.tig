@@ -1,5 +1,7 @@
 let
-	fun add (x : string) y = x + y
+	fun add x y = ((x + y)/(x - y))*((x - y)/(x % y))
+
+	fun concat a r = a::[1, 2, 3]
 in
-	0
+	add 1 2
 end

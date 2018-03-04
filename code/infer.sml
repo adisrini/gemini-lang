@@ -1,10 +1,6 @@
 signature INFER =
 sig
 
-  type sub
-
-  val unify     : Types.ty * Types.ty -> sub
-
   val inferProg :                                  Env.smap * Absyn.exp -> Env.smap              (* returns substitution mapping *)
   val inferExp  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.exp -> Env.smap * Types.ty   (* returns mapping and expression type *)
   (* val inferTy   : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.ty  -> Types.ty          (* returns explicit type *) *)
@@ -31,60 +27,28 @@ struct
   structure A = Absyn
   structure T = Types
   structure E = Env
+  structure U = Unify
+  structure S = Substitute
 
-  datatype sub = SUB of (Symbol.symbol * T.ty) option
-               | ERROR of string
+  (* unifies all types in list with given type and substitues into smap *)
+  fun unifyAndSubstitute(smap, ty, typos_list) =
+    let
+      fun foldSub((uty, pos), (smap, subs)) =
+        let
+          val sub = U.unify(ty, uty, pos)
+        in
+          (case sub of
+                S.SUB(SOME((sym, nty))) => Symbol.enter(smap, sym, nty)
+              | _ => (smap),
+           sub::subs)
+        end
+      val (smap', subs') = foldl foldSub (smap, []) typos_list
+    in
+      (smap', List.rev(subs'))
+    end
 
   fun getExplicitType(A.ExplicitTy(ty), _) = ty
     | getExplicitType(_, default) = default
-
-  fun unify(ty1, ty2) = case ty1 of
-                                   T.META(m) => SUB(SOME(m, ty2))
-                                 | T.H_TY(T.H_META(hm)) => SUB(SOME(hm, ty2))
-                                 | T.S_TY(T.S_META(sm)) => SUB(SOME(sm, ty2))
-                                 | _ => case ty2 of
-                                             T.META(m) => SUB(SOME(m, ty1))
-                                           | T.H_TY(T.H_META(hm)) => SUB(SOME(hm, ty1))
-                                           | T.S_TY(T.S_META(sm)) => SUB(SOME(sm, ty1))
-                                           | _ => case (ty1, ty2) of
-                                                       (T.H_TY(h1), T.H_TY(h2)) => unifyHty(h1, h2)
-                                                     | (T.S_TY(s1), T.S_TY(s2)) => unifySty(s1, s2)
-                                                     | (T.M_TY(m1), T.M_TY(m2)) => unifyMty(m1, m2)
-                                                     | _ => SUB(NONE) (* TODO: error *)
-
-  and unifyHty(hty1, hty2) = case (hty1, hty2) of
-                                  (T.ARRAY{ty = ty1, size = _}, T.ARRAY{ty = ty2, size = _}) => unifyHty(ty1, ty2)
-                                | (T.H_RECORD(recs1), T.H_RECORD(recs2)) =>
-                                  let
-                                    fun foldSubs(((_, h_ty1), (_, h_ty2)), subs) = unifyHty(h_ty1, h_ty2)::subs
-                                    val subs = List.rev(foldl foldSubs [] (ListPair.zipEq(recs1, recs2)))
-                                  in
-                                    SUB(NONE)
-                                  end
-                                | _ => SUB(NONE) (* TODO *)
-  and unifySty(sty1, sty2) = case (sty1, sty2) of
-                                  (T.INT, T.INT) => SUB(NONE)
-                                | (T.STRING, T.STRING) => SUB(NONE)
-                                | _ => ERROR("tycon mismatch\n" ^
-                                             "expected:\t" ^ T.toString(T.S_TY(sty2)) ^ "\n" ^
-                                             "received:\t" ^ T.toString(T.S_TY(sty1)) ^ "\n")
-  and unifyMty(mty1, mty2) = SUB(NONE)  (* TODO *)
-
-  and unifyAll(smap, ty, tys) =
-    let
-      fun foldSub(uty, smap) =
-        let
-          val sub = unify(uty, ty)
-        in
-          case sub of
-               SUB(sub_opt) => (case sub_opt of
-                                     SOME((sym, nty)) => Symbol.enter(smap, sym, nty)
-                                   | _ => smap)
-             | ERROR(m) => (print(m); smap)
-        end
-    in
-      foldl foldSub smap tys
-    end
 
   fun inferProg(smap, e) =
     let
@@ -107,35 +71,41 @@ struct
             let
               val (smap', leftTy) = inferExp(menv, tenv, venv, smap, left)
               val (smap'', rightTy) = inferExp(menv, tenv, venv, smap', right)
-              val (smap''',
-                   retTy) = case oper of
-                                 IntTimesOp => (unifyAll(smap'', T.S_TY(T.INT), [leftTy, rightTy]), T.S_TY(T.INT))
-                              (* IntPlusOp => unifyAll(T.S_TY(T.INT), [leftTy, rightTy])
-                            | IntMinusOp => unifyAll(T.S_TY(T.INT), [leftTy, rightTy])
-                            | IntTimesOp => unifyAll(T.S_TY(T.INT), [leftTy, rightTy])
-                            | IntDivideOp => unifyAll(T.S_TY(T.INT), [leftTy, rightTy])
-                            | IntModOp => unifyAll(T.S_TY(T.INT), [leftTy, rightTy])
-                            | RealPlusOp => unifyAll(T.S_TY(T.REAL), [leftTy, rightTy])
-                            | RealMinusOp => unifyAll(T.S_TY(T.REAL), [leftTy, rightTy])
-                            | RealTimesOp => unifyAll(T.S_TY(T.REAL), [leftTy, rightTy])
-                            | RealDivideOp => unifyAll(T.S_TY(T.REAL), [leftTy, rightTy])
-                            | BitAndOp => unifyAll(leftTy, [leftTy, rightTy])
-                            | BitOrOp => unifyAll(leftTy, [leftTy, rightTy])
-                            | BitXorOp => unifyAll(leftTy, [leftTy, rightTy])
-                            | BitSLLOp => unifyAll(leftTy, [leftTy, rightTy])
-                            | BitSRLOp => unifyAll(leftTy, [leftTy, rightTy])
-                            | BitSRAOp =>
-                            | BitDoubleAndOp =>
-                            | BitDoubleOrOp =>
-                            | BitDoubleXorOp =>
-                            | EqOp =>
-                            | NeqOp =>
-                            | LtOp =>
-                            | GtOp =>
-                            | LeOp =>
-                            | GeOp =>
-                            | ConsOp =>
-                            | _ => raise Match *)
+              val ((smap''', subs), retTy) = case oper of
+                              A.IntPlusOp => (unifyAndSubstitute(smap'', T.S_TY(T.INT), [(leftTy, pos), (rightTy, pos)]), T.S_TY(T.INT))
+                            | A.IntMinusOp => (unifyAndSubstitute(smap'', T.S_TY(T.INT), [(leftTy, pos), (rightTy, pos)]), T.S_TY(T.INT))
+                            | A.IntTimesOp => (unifyAndSubstitute(smap'', T.S_TY(T.INT), [(leftTy, pos), (rightTy, pos)]), T.S_TY(T.INT))
+                            | A.IntDivideOp => (unifyAndSubstitute(smap'', T.S_TY(T.INT), [(leftTy, pos), (rightTy, pos)]), T.S_TY(T.INT))
+                            | A.IntModOp => (unifyAndSubstitute(smap'', T.S_TY(T.INT), [(leftTy, pos), (rightTy, pos)]), T.S_TY(T.INT))
+                            | A.RealPlusOp => (unifyAndSubstitute(smap'', T.S_TY(T.REAL), [(leftTy, pos), (rightTy, pos)]), T.S_TY(T.REAL))
+                            | A.RealMinusOp => (unifyAndSubstitute(smap'', T.S_TY(T.REAL), [(leftTy, pos), (rightTy, pos)]), T.S_TY(T.REAL))
+                            | A.RealTimesOp => (unifyAndSubstitute(smap'', T.S_TY(T.REAL), [(leftTy, pos), (rightTy, pos)]), T.S_TY(T.REAL))
+                            | A.RealDivideOp => (unifyAndSubstitute(smap'', T.S_TY(T.REAL), [(leftTy, pos), (rightTy, pos)]), T.S_TY(T.REAL))
+                            (* | A.BitAndOp =>
+                            | A.BitOrOp =>
+                            | A.BitXorOp =>
+                            | A.BitSLLOp =>
+                            | A.BitSRLOp =>
+                            | A.BitSRAOp =>
+                            | A.BitDoubleAndOp =>
+                            | A.BitDoubleOrOp =>
+                            | A.BitDoubleXorOp =>
+                            | A.EqOp =>
+                            | A.NeqOp =>
+                            | A.LtOp =>
+                            | A.GtOp =>
+                            | A.LeOp =>
+                            | A.GeOp => *)
+                            | A.ConsOp =>
+                              let
+                                val (sub, retTy) = U.unifyList(leftTy, rightTy, pos)
+                                val smap' = case sub of
+                                                 S.SUB(SOME((sym, ty))) => Symbol.enter(smap, sym, ty)
+                                               | _ => smap
+                              in
+                                ((smap', [sub]), retTy)
+                              end
+                            | _ => raise Match
             in
               (smap''', retTy)
             end
@@ -149,8 +119,23 @@ struct
             end
           | infexp(A.AssignExp({lhs, rhs, pos})) = (smap, T.EMPTY)
           | infexp(A.SeqExp(exps)) = (smap, T.EMPTY)
-          | infexp(A.IfExp({test, then', else', pos})) = (smap, T.EMPTY)
-          | infexp(A.ListExp(exps)) = (smap, T.EMPTY)
+          | infexp(A.IfExp({test, then', else', pos})) =
+            let
+              val (smap', thenTy) = inferExp(menv, tenv, venv, smap, then')
+              val (smap'', elseTy) = case else' of
+                                          SOME(elseExp) => inferExp(menv, tenv, venv, smap', elseExp)
+                                        | _ => (smap', case thenTy of
+                                                     T.S_TY(_) => T.S_TY(T.S_RECORD([]))
+                                                   | T.H_TY(_) => T.H_TY(T.H_RECORD([]))
+                                                   | _ => T.BOTTOM)
+              val sub = U.unify(thenTy, elseTy, pos)
+              val retTy = case sub of
+                               S.SUB(x) => thenTy
+                             | S.ERROR(m) => T.BOTTOM
+            in
+              (smap'', retTy)
+            end
+          | infexp(A.ListExp(exps)) = (smap, T.S_TY(T.LIST(T.INT))) (* TODO *)
           | infexp(A.ArrayExp(exps)) = (smap, T.EMPTY)
           | infexp(A.RefExp(exp, pos)) = (smap, T.EMPTY)
           | infexp(A.SWRecordExp({fields, pos})) = (smap, T.EMPTY)
