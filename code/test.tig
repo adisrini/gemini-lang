@@ -1,11 +1,39 @@
 let
-	fun add x y = ((x + y)/(x - y))*((x - y)/(x % y))
 
-	fun concat a r = a::r
+	(*
 
-	fun isEqual s t = (s = t)
+	fun testArith x y = ((x + y)/(x - y))*((x - y)/(x % y))
 
-	fun isNotEqual b c = (b <> c)
+	fun testCons a r = a::r
+
+	fun testEqual s t = (s = t)
+
+	fun testNotEqual b c = (b <> c)
+
+	fun testInequality a b = a > (b + 1)
+
+	fun testIfElse x y z = if x > y then y else z
+
+	(* fun testIf x y = if x > (y + 1) then y (* should error *) *)
+
+	fun testAssign (m : int ref) n = (m := n)
+
+	fun testRef (r : int ref ref, x) = (r := ref x)
+
+	fun testDeref x y = (y := $x)
+
+	fun testFunParams1 () = 0
+
+	fun testFunParams2 a = a
+
+	fun testFunParams3 (x, y, z) = x + y
+
+	fun testFunParams4 {x, y, z} = x + y
+
+	fun testSeq (a) (b, c) = (a + b; c = a)
+
+	*)
+
 in
-	add 1 2
+	()
 end

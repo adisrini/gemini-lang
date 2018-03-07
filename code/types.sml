@@ -47,15 +47,29 @@ struct
 
   fun toString(t) =
     let
-      fun sty(INT) = "INT"
-        | sty(REAL) = "REAL"
-        | sty(STRING) = "STRING"
-        | sty(ARROW(s1, s2)) = "ARROW(" ^ sty(s1) ^ " -> " ^ sty(s2) ^ ")"
-        | sty(LIST(s)) = "LIST(" ^ sty(s) ^ ")"
-        | sty(SW_H(h)) = "SW_H(" ^ hty(h) ^ ")"
-        | sty(SW_M(m)) = "SW_M(" ^ mty(m) ^ ")"
-        | sty(S_RECORD(fs)) = "S_RECORD(" ^ (String.concat(map (fn(tyv, s) => Symbol.name(tyv) ^ ": " ^ sty(s) ^ ", ") fs)) ^ ")"
-        | sty(REF(s)) = "REF(" ^ sty(s) ^ ")"
+      fun dolist(f, [a], _, str) = str ^ (f(a))
+        | dolist(f, (a::r), sep, str) = dolist(f, r, sep, (str ^ (f(a)) ^ sep))
+        | dolist(_, nil, _, str) = str
+      and toRecordString(fs) =
+        let
+          fun isTuple(_, false) = false
+            | isTuple([], b) = b
+            | isTuple((sym, _)::fs, true) = isTuple(fs, isSome(Int.fromString(Symbol.name(sym))))
+        in
+          if isTuple(fs, true)
+          then dolist((fn(_, ty) => sty(ty)), fs, " * ", "")
+          else "{" ^ (dolist((fn(sym, ty) => Symbol.name(sym) ^ ": " ^ sty(ty)), fs, ", ", "")) ^ "}"
+        end
+      and sty(INT) = "int"
+        | sty(REAL) = "real"
+        | sty(STRING) = "string"
+        | sty(ARROW(s1, s2)) = sty(s1) ^ " -> " ^ sty(s2)
+        | sty(LIST(s)) = sty(s) ^ " list"
+        | sty(SW_H(h)) = hty(h) ^ " sw"
+        | sty(SW_M(m)) = mty(m) ^ " sw"
+        | sty(S_RECORD([])) = "unit"
+        | sty(S_RECORD(fs)) = toRecordString(fs)
+        | sty(REF(s)) = sty(s) ^ " ref"
         | sty(S_DATATYPE(fs, _)) =
           let
             fun stringify(tyv, s_opt) =
@@ -68,14 +82,14 @@ struct
           in
             "S_DATATYPE(" ^ (String.concat(map stringify fs)) ^ ")"
           end
-        | sty(S_META(tyv)) = "S_META(" ^ Symbol.name(tyv) ^ ")"
-        | sty(S_TOP) = "S_TOP"
-        | sty(S_BOTTOM) = "S_BOTTOM"
+        | sty(S_META(tyv)) = "'sw" ^ Symbol.name(tyv)
+        | sty(S_TOP) = "sw_top"
+        | sty(S_BOTTOM) = "sw_bottom"
         | sty(S_POLY(tyvars, s)) = "S_POLY([" ^ (String.concat(map (fn(tyv) => Symbol.name(tyv) ^ ", ") tyvars)) ^ "], " ^ sty(s) ^ ")"
         | sty(S_UNPOLY(s, args)) = "S_UNPOLY(" ^ sty(s) ^ ", [" ^ (String.concat(map (fn(si) => sty(si) ^ ", ") args)) ^ "])"
 
-      and hty(BIT) = "BIT"
-        | hty(ARRAY{ty, size}) = "ARRAY(" ^ hty(ty) ^ ", " ^ Int.toString(!size) ^ ")"
+      and hty(BIT) = "bit"
+        | hty(ARRAY{ty, size}) = hty(ty) ^ "[" ^ Int.toString(!size) ^ "]"
         | hty(H_RECORD(fs)) = "H_RECORD(" ^ (String.concat(map (fn(tyv, h) => Symbol.name(tyv) ^ ": " ^ hty(h) ^ ", ") fs)) ^ ")"
         | hty(TEMPORAL{ty, time}) = "TEMPORAL(" ^ hty(ty) ^ ", " ^ Int.toString(!time) ^ ")"
         | hty(H_DATATYPE(fs, _)) =
@@ -92,20 +106,20 @@ struct
           end
         | hty(H_POLY(tyvars, h)) = "H_POLY([" ^ (String.concat(map (fn(tyv) => Symbol.name(tyv) ^ ", ") tyvars)) ^ "], " ^ hty(h) ^ ")"
         | hty(H_UNPOLY(h, args)) = "H_UNPOLY(" ^ hty(h) ^ ", [" ^ (String.concat(map (fn(hi) => hty(hi) ^ ", ") args)) ^ "])"
-        | hty(H_META(tyv)) = "H_META(" ^ Symbol.name(tyv) ^ ")"
-        | hty(H_TOP) = "H_TOP"
-        | hty(H_BOTTOM) = "H_BOTTOM"
+        | hty(H_META(tyv)) = "'hwm" ^ Symbol.name(tyv)
+        | hty(H_TOP) = "hw_top"
+        | hty(H_BOTTOM) = "h_bottom"
 
       and mty(m) = "MTY: UNIMPLEMENTED FOR NOW"
     in
       case t of
-           S_TY(s) => "S_TY(" ^ sty(s) ^ ")"
-         | H_TY(h) => "H_TY(" ^ hty(h) ^ ")"
-         | M_TY(m) => "M_TY(" ^ mty(m) ^ ")"
-         | META(tv) => "META(" ^ Symbol.name(tv) ^ ")"
-         | EMPTY => "EMPTY"
-         | TOP => "TOP"
-         | BOTTOM => "BOTTOM"
+           S_TY(s) => sty(s)
+         | H_TY(h) => hty(h)
+         | M_TY(m) => mty(m)
+         | META(tv) => Symbol.name(tv)
+         | EMPTY => "empty"
+         | TOP => "top"
+         | BOTTOM => "bottom"
     end
 
 end

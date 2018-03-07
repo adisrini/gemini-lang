@@ -360,7 +360,8 @@ struct
 
               fun mapParam(A.NoParam) = A.NoParam
                 | mapParam(A.SingleParam(f)) = A.SingleParam(mapField(f))
-                | mapParam(A.MultiParams(fs)) = A.MultiParams(map mapField fs)
+                | mapParam(A.TupleParams(fs)) = A.TupleParams(map mapField fs)
+                | mapParam(A.RecordParams(fs)) = A.RecordParams(map mapField fs)
 
               val params' = map mapParam params
 
@@ -430,7 +431,8 @@ struct
 
               fun mapArg(A.NoParam) = A.NoParam
                 | mapArg(A.SingleParam(f)) = A.SingleParam(mapField(f))
-                | mapArg(A.MultiParams(fs)) = A.MultiParams(map mapField fs)
+                | mapArg(A.TupleParams(fs)) = A.TupleParams(map mapField fs)
+                | mapArg(A.RecordParams(fs)) = A.RecordParams(map mapField fs)
 
               val arg' = mapArg arg
 

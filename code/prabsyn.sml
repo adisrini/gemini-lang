@@ -59,7 +59,8 @@ fun print (outstream, e0) =
 
   and print_param(A.NoParam, d) = (indent d; say "NoParam")
     | print_param(A.SingleParam(fld), d) = (indent d; sayln "SingleParam("; print_field(fld, d + 1); sayln ""; indent d; say ")")
-    | print_param(A.MultiParams(flds), d) = (indent d; say "MultiParams["; dolist d print_field flds; sayln "]")
+    | print_param(A.TupleParams(flds), d) = (indent d; say "TupleParams["; dolist d print_field flds; sayln "]")
+    | print_param(A.RecordParams(flds), d) = (indent d; say "RecordParams["; dolist d print_field flds; sayln "]")
 
   and m({match, result, pos}, d) = (indent d; sayln "("; exp(match, d + 1); sayln "=>"; exp(result, d + 1); sayln ""; indent d; say ")")
 

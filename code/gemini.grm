@@ -27,9 +27,10 @@ fun extractSWFields (A.SWRecordExp{fields, pos}) = SOME(fields)
 fun extractHWFields (A.HWRecordExp{fields, pos}) = SOME(fields)
   | extractHWFields _ = NONE
 
-fun param [] = A.NoParam
-  | param [f] = A.SingleParam(f)
-  | param fields = A.MultiParams(fields)
+fun param([], _) = A.NoParam
+  | param([f], _) = A.SingleParam(f)
+  | param(fields, 0)  = A.TupleParams(fields)
+  | param(fields, _) = A.RecordParams(fields)
 
 fun numberedExpFields lst = #2 (foldl (fn((expr, posn), (idx, acc)) => (idx + 1, acc @ [(Symbol.symbol(Int.toString(idx)), expr, posn)])) (1, []) lst)
 
@@ -110,7 +111,8 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
                           | typarams_tail of A.ty list
                           | tids of Symbol.symbol list
                           | tids_tail of Symbol.symbol list
-                            | no_ty_fields of A.field list
+                            | opt_ty_fields of A.field list
+                            | opt_ty_field_tail of A.field list
                             | ty_fields of A.field list
                             | ty_field_tail of A.field list
                         | with_type of A.opdef list
@@ -405,8 +407,9 @@ fun_params    : fun_params fun_param                                        (fun
               | fun_param                                                   ([fun_param1])
 
 fun_param     : ID                                                          (A.SingleParam{name = Symbol.symbol(ID), ty = A.PlaceholderTy(ref ()), escape = ref true, pos = IDleft})
-              | LPAREN no_ty_fields RPAREN                                  (param(no_ty_fields))
-              | LPAREN ty_fields RPAREN                                     (param(ty_fields))
+              | LPAREN RPAREN                                               (param([], 0))
+              | LPAREN opt_ty_fields RPAREN                                 (param(opt_ty_fields, 0))
+              | LBRACE opt_ty_fields RBRACE                                 (param(opt_ty_fields, 1))
 
 ty_dec        : TYPE tids ID EQ ty                                          (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvars = SOME(tids), opdef = NONE, pos = TYPEleft}])
               | TYPE tids ID EQ ty ty_dec                                   (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvars = SOME(tids), opdef = NONE, pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
@@ -444,8 +447,14 @@ tids          : TID                                                         ([Sy
 tids_tail     : COMMA TID tids_tail                                         (Symbol.symbol(TID)::tids_tail)
               | epsilon                                                     ([])
 
-no_ty_fields  : ID                                                          ([{name = Symbol.symbol(ID), ty = A.PlaceholderTy(ref ()), escape = ref true, pos = IDleft}])
-              | no_ty_fields COMMA ID                                       (no_ty_fields1 @ [{name = Symbol.symbol(ID), ty = A.PlaceholderTy(ref ()), escape = ref true, pos = no_ty_fields1left}])
+opt_ty_fields : opt_ty_field_tail                                           (opt_ty_field_tail)
+              | epsilon                                                     ([])
+
+opt_ty_field_tail:
+                ID                                                          ([{name = Symbol.symbol(ID), ty = A.PlaceholderTy(ref ()), escape = ref true, pos = IDleft}])
+              | ID COLON ty                                                 ([{name = Symbol.symbol(ID), ty = ty1, escape = ref true, pos = IDleft}])
+              | opt_ty_field_tail COMMA ID                                  (opt_ty_field_tail @ [{name = Symbol.symbol(ID), ty = A.PlaceholderTy(ref ()), escape = ref true, pos = opt_ty_field_tailleft}])
+              | opt_ty_field_tail COMMA ID COLON ty                         (opt_ty_field_tail @ [{name = Symbol.symbol(ID), ty = ty1, escape = ref true, pos = opt_ty_field_tailleft}])
 
 ty_fields     : ty_field_tail                                               (ty_field_tail)
               | epsilon                                                     ([])

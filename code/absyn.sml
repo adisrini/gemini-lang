@@ -76,7 +76,8 @@ struct
 
   and param = NoParam
             | SingleParam of field
-            | MultiParams of field list
+            | TupleParams of field list
+            | RecordParams of field list
 
   withtype field = {name: symbol, ty: ty, escape: bool ref, pos: pos}
 

@@ -4,6 +4,17 @@ struct
   structure S = Substitute
   structure T = Types
 
+
+  (* UNIFY
+
+  take in two types and try to UNIFY
+  if variable and something, substitute (v -> s)
+  if something and variable, substitute (v -> s)
+  otherwise, check outermost tycon and if match, recurse (do left first, then apply substitution to right and do right)
+  if not match, report error
+
+   *)
+
   fun error(ty1, ty2, pos) = (ErrorMsg.error pos ("type mismatch!\n" ^
                               "expected:\t" ^ T.toString(ty1) ^ "\n" ^
                               "received:\t" ^ T.toString(ty2) ^ "\n");
@@ -50,6 +61,7 @@ struct
                                 | (T.INT, T.INT) => S.SUB(NONE)
                                 | (T.STRING, T.STRING) => S.SUB(NONE)
                                 | (T.LIST(listTy1), T.LIST(listTy2)) => unifySty(listTy1, listTy2, pos)
+                                | (T.REF(refTy1), T.REF(refTy2)) => unifySty(refTy1, refTy2, pos)
                                 | _ => error(T.S_TY(sty1), T.S_TY(sty2), pos)
   and unifyMty(mty1, mty2, pos) = S.SUB(NONE)  (* TODO *)
 
@@ -58,20 +70,43 @@ struct
                                                                    val sub = unifySty(T.LIST(sty1), sty2, pos)
                                                                  in
                                                                    (sub, case sub of
-                                                                              S.SUB(_) => ty2
+                                                                              S.SUB(SOME(sym, retTy)) => retTy
+                                                                            | S.SUB(NONE) => ty2
                                                                             | S.ERROR(_) => T.S_TY(T.S_BOTTOM))
                                                                  end
                                | _ => let
                                         val sub1 = case ty1 of
-                                                        T.S_TY(_) => errorSW("SW", ty1, pos)
-                                                      | _ => S.SUB(NONE)
+                                                        T.S_TY(_) => S.SUB(NONE)
+                                                      | _ => errorSW("'sw", ty1, pos)
                                         val sub2 = case ty2 of
-                                                        T.S_TY(_) => errorSW("SW list", ty2, pos)
-                                                      | _ => S.SUB(NONE)
+                                                        T.S_TY(_) => S.SUB(NONE)
+                                                      | _ => errorSW("'sw list", ty2, pos)
                                       in
                                         (sub2, T.S_TY(T.S_BOTTOM))
                                       end
 
+   (* TODO: check type being compared? *)
    and unifyEqualityType(ty1, ty2, pos) = (unify(ty1, ty2, pos), T.S_TY(T.INT))
+
+   (* TODO: check type being compared? *)
+   and unifyInequalityType(ty1, ty2, pos) = (unify(ty1, ty2, pos), T.S_TY(T.INT))
+
+   and unifyAssign(ty1, ty2, pos) = case (ty1, ty2) of
+                                         (T.S_TY(sty1), T.S_TY(sty2)) => let
+                                                                           val sub = unifySty(sty1, T.REF(sty2), pos)
+                                                                         in
+                                                                           (sub, T.S_TY(T.S_RECORD([])))
+                                                                         end
+                                       | _ => let
+                                                val sub1 = case ty1 of
+                                                                T.S_TY(_) => errorSW("'sw", ty1, pos)
+                                                              | _ => S.SUB(NONE)
+                                                val sub2 = case ty2 of
+                                                                T.S_TY(_) => errorSW("'sw ref", ty2, pos)
+                                                              | _ => S.SUB(NONE)
+                                              in
+                                                (sub2, T.S_TY(T.S_RECORD([])))
+                                              end
+
 
 end
