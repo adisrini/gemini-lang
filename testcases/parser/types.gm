@@ -2,9 +2,9 @@ let
   type x = int
   type y = x -> string
 
-  datatype intoption = NONE |: SOME of int
+  sdatatype intoption = NONE |: SOME of int
 
-  datatype 'a option = NONE |: SOME of 'a
+  sdatatype 'a option = NONE |: SOME of 'a
 
   type 'a mylist = ('a * int) list
 in

@@ -67,7 +67,7 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
   | RBRACE | LBRACE | RBRACK | LBRACK | RPAREN | LPAREN
   | DOT | SEMICOLON | COLON | COMMA | POUND | AT | ASSIGN | BANG | CONS | POUND_TIMES | AND
   | ID of string | TID of string | INT of int | STRING of string | REAL of real | BIT of GeminiBit.bit
-  | APPLY | REC_ACC | DEREF
+  | APPLY | RECORD_ACC | ARRAY_ACC | MATCH_TAIL | MATCH | BIT_ARRAY_INST | EPSILON
 
 %nonterm
       program of A.exp
@@ -107,7 +107,7 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
                             | fun_param of A.param
                     | ty_dec of A.dec
                         | ty of A.ty
-                          | typarams of A.ty list
+                          | typarams of A.ty
                           | typarams_tail of A.ty list
                           | tids of Symbol.symbol list
                           | tids_tail of Symbol.symbol list
@@ -194,35 +194,48 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
       | SEMICOLON END -> END
       | SEMICOLON IN -> IN
 
-%nonassoc INT STRING REAL BIT ID TID
+%nonassoc EPSILON
+%nonassoc MATCH_TAIL
+%nonassoc MATCH
+%nonassoc PIPE_EQUALS
+%nonassoc INT STRING REAL BIT ID TID NIL
 %nonassoc OF
+%nonassoc LET
 %nonassoc THEN
 %nonassoc ELSE
-%nonassoc LBRACK RBRACK
+%nonassoc IF
 
 %right ASSIGN
 %right WITH
 %right THIN_ARROW
 
-%right CONS
 %left ORELSE
 %left ANDALSO
 %left BIT_SLL BIT_SRA BIT_SRL
 
 %left EQ NEQ
 %left GT LT GE LE
+%right CONS
 %left BIT_DOUBLE_OR BIT_DOUBLE_XOR
 %left BIT_DOUBLE_AND
 %left REAL_MINUS REAL_PLUS INT_MINUS INT_PLUS BIT_XOR BIT_OR POUND_TIMES
 %left REAL_DIVIDE REAL_TIMES INT_DIVIDE INT_TIMES BIT_AND INT_MOD
 
-%right DEREF
-%right REC_ACC
+%nonassoc CASE
 %left AT
 %left LIST SW REF
 
-%left UMINUS BIT_NOT BIT_OR_REDUCE BIT_AND_REDUCE BIT_XOR_REDUCE
 %left APPLY
+
+%nonassoc ARRAY_ACC LBRACK RBRACK
+%nonassoc RECORD_ACC POUND
+%nonassoc BANG
+%nonassoc BIT_ARRAY_INST
+
+%nonassoc LBRACE RBRACE
+%nonassoc LPAREN RPAREN
+
+%nonassoc UMINUS BIT_NOT BIT_OR_REDUCE BIT_AND_REDUCE BIT_XOR_REDUCE
 
 %%
 
@@ -247,21 +260,15 @@ exp           : exp exp %prec APPLY                                         (A.A
               | LPAREN RPAREN                                               (A.SeqExp[])
 
 structs_or_sigs
-              : structures structs_or_sigs                                  (A.StructsSigsExp(structures @ valOf(extractStructSigList(structs_or_sigs))))
-              | signatures structs_or_sigs                                  (A.StructsSigsExp(signatures @ valOf(extractStructSigList(structs_or_sigs))))
+              : structure_nt structs_or_sigs                                (A.StructsSigsExp(structure_nt::valOf(extractStructSigList(structs_or_sigs))))
+              | signature_nt structs_or_sigs                                (A.StructsSigsExp(signature_nt::valOf(extractStructSigList(structs_or_sigs))))
               | epsilon                                                     (A.StructsSigsExp([]))
-
-structures    : structure_nt structures                                     ([structure_nt] @ structures)
-              | structure_nt                                                ([structure_nt])
 
 structure_nt  : STRUCTURE ID EQ struct_body                                 (A.StructExp{name = Symbol.symbol(ID), signat = NONE, decs = struct_body, pos = STRUCTUREleft})
               | STRUCTURE ID COLON ID EQ struct_body                        (A.StructExp{name = Symbol.symbol(ID1), signat = SOME(A.NamedSigExp(Symbol.symbol(ID2)), ID2left), decs = struct_body, pos = STRUCTUREleft})
               | STRUCTURE ID COLON sig_body EQ struct_body                  (A.StructExp{name = Symbol.symbol(ID), signat = SOME(A.AnonSigExp(sig_body), sig_bodyleft), decs = struct_body, pos = STRUCTUREleft})
 
 struct_body   : STRUCT decs END                                             (decs)
-
-signatures    : signature_nt signatures                                     ([signature_nt] @ signatures)
-              | signature_nt                                                ([signature_nt])
 
 signature_nt  : SIGNATURE ID EQ sig_body                                    (A.SigExp{name = Symbol.symbol(ID), defs = sig_body})
 
@@ -278,15 +285,15 @@ ty_sig        : TYPE ID                                                     (A.T
 
 module_sig    : MODULE ID COLON ty THIN_ARROW ty                            (A.ModuleDef{name = Symbol.symbol(ID), input_ty = ty1, output_ty = ty2, pos = MODULEleft})
 
-array_access  : exp LBRACK exp RBRACK                                       (A.ArrayAccExp{exp = exp1, index = exp2, pos = exp1left})
+array_access  : exp LBRACK exp RBRACK %prec ARRAY_ACC                       (A.ArrayAccExp{exp = exp1, index = exp2, pos = exp1left})
 
 struct_access : ID DOT ID                                                   (A.StructAccExp{name = Symbol.symbol(ID1), field = Symbol.symbol(ID2), pos = ID1left})
 
-tuple_access  : POUND INT exp %prec REC_ACC                                 (A.RecordAccExp{exp = exp, field = Symbol.symbol(Int.toString(INT)), pos = POUNDleft})
+tuple_access  : POUND INT exp %prec RECORD_ACC                              (A.RecordAccExp{exp = exp, field = Symbol.symbol(Int.toString(INT)), pos = POUNDleft})
 
-record_access : POUND ID exp %prec REC_ACC                                  (A.RecordAccExp{exp = exp, field = Symbol.symbol(ID), pos = POUNDleft})
+record_access : POUND ID exp                                                (A.RecordAccExp{exp = exp, field = Symbol.symbol(ID), pos = POUNDleft})
 
-deref         : BANG exp %prec DEREF                                        (A.DerefExp{exp = exp, pos = BANGleft})
+deref         : BANG exp                                                    (A.DerefExp{exp = exp, pos = BANGleft})
 
 access        : array_access                                                (array_access)
               | struct_access                                               (struct_access)
@@ -421,7 +428,7 @@ ty_dec        : TYPE tids ID EQ ty                                          (A.T
               | TYPE ID EQ ty with_type ty_dec                              (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvars = NONE, opdef = SOME(with_type), pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
 
 ty            : TID                                                         (A.TyVar(Symbol.symbol(TID), TIDleft))
-              | typarams ty                                                 (A.ParameterizedTy(ty1, typarams))
+              | typarams                                                    (typarams)
               | ID                                                          (A.NameTy(Symbol.symbol(ID), IDleft))
               | ty INT_TIMES ty                                             (sw_coalesce((ty1, ty1left), (ty2, ty2left)))
               | ty POUND_TIMES ty                                           (hw_coalesce((ty1, ty1left), (ty2, ty2left)))
@@ -435,8 +442,8 @@ ty            : TID                                                         (A.T
               | ty THIN_ARROW ty                                            (A.FunTy(ty1, ty2, ty1left))
               | LPAREN ty RPAREN                                            (ty)
 
-typarams      : ty                                                          ([ty])
-              | LPAREN ty typarams_tail RPAREN                              (ty::typarams_tail)
+typarams      : ty ID                                                       (A.ParameterizedTy(A.NameTy(Symbol.symbol(ID), IDleft), [ty]))
+              | LPAREN ty typarams_tail RPAREN ID                           (A.ParameterizedTy(A.NameTy(Symbol.symbol(ID), IDleft), ty::typarams_tail))
 
 typarams_tail : COMMA ty typarams_tail                                      (ty::typarams_tail)
               | epsilon                                                     ([])
@@ -556,15 +563,13 @@ hw_tuple_inst : POUND LPAREN list_elements RPAREN                           (A.H
 
 sw_inst       : SW exp                                                      (A.SWExp(exp, SWleft))
 
-bit_array_inst: exp TID COLON exp                                           (A.BitArrayExp{size = exp1, result = exp2, spec = SOME(TID)})
+bit_array_inst: exp TID COLON exp %prec BIT_ARRAY_INST                      (A.BitArrayExp{size = exp1, result = exp2, spec = SOME(TID)})
 
 with_value    : exp WITH rec_inst                                           (A.WithExp{exp = exp, fields = valOf(extractSWFields(rec_inst)), pos = expleft})
 
-pattern_match : CASE exp OF matches                                         (A.PatternMatchExp{exp = exp, cases = matches, pos = CASEleft})
+pattern_match : CASE exp OF exp FAT_ARROW exp matches_tail %prec MATCH      (A.PatternMatchExp{exp = exp, cases = ([{match = exp1, result = exp2, pos = exp1left}] @ matches_tail), pos = CASEleft})
 
-matches       : exp FAT_ARROW exp matches_tail                              ([{match = exp1, result = exp2, pos = exp1left}] @ matches_tail)
-
-matches_tail  : matches_tail PIPE_EQUALS exp FAT_ARROW exp                  (matches_tail @ [{match = exp1, result = exp2, pos = exp1left}])
+matches_tail  : matches_tail PIPE_EQUALS exp FAT_ARROW exp %prec MATCH_TAIL (matches_tail @ [{match = exp1, result = exp2, pos = exp1left}])
               | epsilon                                                     ([])
 
-epsilon       :                                                             ()
+epsilon       : %prec EPSILON                                               ()

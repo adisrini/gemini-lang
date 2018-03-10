@@ -78,7 +78,29 @@ struct
           | infexp(A.StringExp(str, pos)) = (smap, T.S_TY(T.STRING))
           | infexp(A.RealExp(num, pos)) = (smap, T.S_TY(T.REAL))
           | infexp(A.BitExp(bit, pos)) = (smap, T.H_TY(T.BIT))
-          | infexp(A.ApplyExp(e1, e2, pos)) = (smap, T.EMPTY)
+          | infexp(A.ApplyExp(e1, e2, pos)) =
+            let
+              val (smap', e1Ty) = inferExp(menv, tenv, venv, smap, e1)
+              val (smap'', e2Ty) = inferExp(menv, tenv, venv, smap', e2)
+            in
+              case e1Ty of
+                   T.S_TY(T.ARROW(sty1, sty2)) =>
+                    let
+                      val sub = U.unify(T.S_TY(sty1), e2Ty, pos)
+                    in
+                      (augmentSmap(smap'', [sub], pos), T.S_TY(sty2))
+                    end
+                 | _ => case e2Ty of
+                             T.S_TY(e2Sty) =>
+                              let
+                                val retTy = T.S_META(E.newMeta())
+                                val sub = U.unify(T.S_TY(T.ARROW(e2Sty, retTy)), e1Ty, pos)
+                              in
+                                (augmentSmap(smap'', [sub], pos), T.S_TY(retTy))
+                              end
+                           | T.BOTTOM => (smap'', T.S_TY(T.S_META(E.newMeta())))
+                           | _ => (ErrorMsg.error pos "cannot apply function to non-sw type"; (smap'', T.S_TY(T.S_META(E.newMeta()))))
+            end
           | infexp(A.BinOpExp({left, oper, right, pos})) =
             let
               val (smap', leftTy) = inferExp(menv, tenv, venv, smap, left)

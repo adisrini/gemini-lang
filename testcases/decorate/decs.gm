@@ -16,21 +16,27 @@ let
   type 'a twin = ('a * 'a)
 
   (* datatype dec *)
-  datatype intoption = ISOME of int
+  sdatatype intoption = ISOME of int
                     |: INONE
 
   (* datatype dec with tyvar *)
-  datatype 'a option = SOME of 'a
+  sdatatype 'a option = SOME of 'a
                     |: NONE
 
   (* recursive datatype *)
-  datatype ilist = EMPTY
+  sdatatype ilist = EMPTY
                 |: LIST of int * ilist
 
   (* module dec *)
   module isZero (x: bit) = x ^ 'b:1
 
   val x : intoption = INONE
+
+  val y : int option = SOME 0
+
+  type ('a, 'b) pair = 'a * 'b
+
+  val z : (int, string) pair = (0, "")
 in
   0
 end

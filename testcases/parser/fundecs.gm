@@ -1,6 +1,6 @@
 let
   fun foo (a) (b, c) (d) = 0
-  fun foo a (b, c) d = 0
+  fun bar a (b, c) d = 0
 in
   0
 end
