@@ -133,7 +133,8 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
             | assign of A.exp
             | conditional of A.exp
             | insts of A.exp
-                | rec_inst of A.exp
+                | sw_rec_inst of A.exp
+                | hw_rec_inst of A.exp
                     | rec_inst_body of (Symbol.symbol * A.exp * int) list
                     | rec_field_comma_tail of (Symbol.symbol * A.exp * int) list
                 | ref_inst of A.exp
@@ -149,6 +150,11 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
             | pattern_match of A.exp
                 | matches of A.match list
                 | matches_tail of A.match list
+                | pattern of A.exp
+                    | opt_patterns of (A.exp * int) list
+                    | opt_patterns_tail of (A.exp * int) list
+                    | rec_patterns of (Symbol.symbol * A.exp * int) list
+                    | rec_patterns_tail of (Symbol.symbol * A.exp * int) list
         | epsilon
 
 %pos int
@@ -528,7 +534,8 @@ conditional   : IF exp THEN exp ELSE exp                                    (A.I
               | exp ANDALSO exp                                             (A.IfExp{test = exp1, then' = exp2, else' = SOME(A.IntExp(0, 0)), pos = exp1left})
               | exp ORELSE exp                                              (A.IfExp{test = exp1, then' = A.IntExp(1, 0), else' = SOME(exp2), pos = exp1left})
 
-insts         : rec_inst                                                    (rec_inst)
+insts         : sw_rec_inst                                                 (sw_rec_inst)
+              | hw_rec_inst                                                 (hw_rec_inst)
               | ref_inst                                                    (ref_inst)
               | array_inst                                                  (array_inst)
               | list_inst                                                   (list_inst)
@@ -536,7 +543,9 @@ insts         : rec_inst                                                    (rec
               | hw_tuple_inst                                               (hw_tuple_inst)
               | sw_inst                                                     (sw_inst)
 
-rec_inst      : LBRACE rec_inst_body RBRACE                                 (A.SWRecordExp{fields = rec_inst_body, pos = LBRACEleft})
+sw_rec_inst   : LBRACE rec_inst_body RBRACE                                 (A.SWRecordExp{fields = rec_inst_body, pos = LBRACEleft})
+
+hw_rec_inst   : POUND LBRACE rec_inst_body RBRACE                           (A.HWRecordExp{fields = rec_inst_body, pos = POUNDleft})
 
 rec_inst_body : ID EQ exp rec_field_comma_tail                              ([(Symbol.symbol(ID), exp, IDleft)] @ rec_field_comma_tail)
               | epsilon                                                     ([])
@@ -565,11 +574,38 @@ sw_inst       : SW exp                                                      (A.S
 
 bit_array_inst: exp TID COLON exp %prec BIT_ARRAY_INST                      (A.BitArrayExp{size = exp1, result = exp2, spec = SOME(TID)})
 
-with_value    : exp WITH rec_inst                                           (A.WithExp{exp = exp, fields = valOf(extractSWFields(rec_inst)), pos = expleft})
+with_value    : exp WITH sw_rec_inst                                        (A.WithExp{exp = exp, fields = valOf(extractSWFields(sw_rec_inst)), pos = expleft})
 
-pattern_match : CASE exp OF exp FAT_ARROW exp matches_tail %prec MATCH      (A.PatternMatchExp{exp = exp, cases = ([{match = exp1, result = exp2, pos = exp1left}] @ matches_tail), pos = CASEleft})
+pattern_match : CASE exp OF pattern FAT_ARROW exp matches_tail %prec MATCH  (A.PatternMatchExp{exp = exp1, cases = ([{match = pattern1, result = exp2, pos = pattern1left}] @ matches_tail), pos = CASEleft})
 
-matches_tail  : matches_tail PIPE_EQUALS exp FAT_ARROW exp %prec MATCH_TAIL (matches_tail @ [{match = exp1, result = exp2, pos = exp1left}])
+matches_tail  : matches_tail PIPE_EQUALS pattern FAT_ARROW exp %prec MATCH_TAIL
+                                                                            (matches_tail @ [{match = pattern1, result = exp1, pos = pattern1left}])
+              | epsilon                                                     ([])
+
+pattern       : INT                                                         (A.IntExp(INT, INTleft))
+              | STRING                                                      (A.StringExp(STRING, STRINGleft))
+              | REAL                                                        (A.RealExp(REAL, REALleft))
+              | BIT                                                         (A.BitExp(BIT, BITleft))
+              | ID                                                          (A.VarExp(Symbol.symbol(ID), IDleft))
+              | ID pattern                                                  (A.ApplyExp(A.VarExp(Symbol.symbol(ID), IDleft), pattern, IDleft))
+              | LPAREN opt_patterns RPAREN                                  (A.SWRecordExp{fields = numberedExpFields(opt_patterns), pos = LPARENleft})
+              | POUND LPAREN opt_patterns RPAREN                            (A.HWRecordExp{fields = numberedExpFields(opt_patterns), pos = POUNDleft})
+              | LBRACK opt_patterns RBRACK                                  (A.ListExp(opt_patterns))
+              | POUND LBRACK opt_patterns RBRACK                            (A.ArrayExp(Vector.fromList(opt_patterns)))
+              | LBRACE rec_patterns RBRACE                                  (A.SWRecordExp{fields = rec_patterns, pos = LBRACEleft})
+              | POUND LBRACE rec_patterns RBRACE                            (A.HWRecordExp{fields = rec_patterns, pos = POUNDleft})
+
+opt_patterns  : pattern opt_patterns_tail                                   ([(pattern, patternleft)] @ opt_patterns_tail)
+              | epsilon                                                     ([])
+
+opt_patterns_tail
+              : COMMA pattern opt_patterns_tail                             ([(pattern, patternleft)] @ opt_patterns_tail)
+              | epsilon                                                     ([])
+
+rec_patterns  : ID EQ pattern rec_patterns_tail                             ([(Symbol.symbol(ID), pattern, patternleft)] @ rec_patterns_tail)
+
+rec_patterns_tail
+              : COMMA ID EQ pattern rec_patterns_tail                       ([(Symbol.symbol(ID), pattern, patternleft)] @ rec_patterns_tail)
               | epsilon                                                     ([])
 
 epsilon       : %prec EPSILON                                               ()
