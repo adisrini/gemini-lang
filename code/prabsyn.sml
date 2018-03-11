@@ -230,13 +230,15 @@ fun print (outstream, e0) =
       and hfield((tyv, h), d) = (indent d; say (Symbol.name(tyv)); say ": "; hty(h, 0))
       and hty(T.BIT, d) = (indent d; say "BIT")
         | hty(T.ARRAY{ty, size}, d) = (indent d; sayln "ARRAY("; hty(ty, d + 1); sayln ","; indent (d + 1); say (Int.toString(!size)); sayln ""; indent d; say ")")
-        | hty(T.H_RECORD(fields), d) = (indent d; sayln "S_RECORD(["; dolist (d + 1) hfield fields; say "])")
+        | hty(T.H_RECORD(fields), d) = (indent d; sayln "H_RECORD(["; dolist (d + 1) hfield fields; say "])")
         | hty(T.TEMPORAL{ty, time}, d) = (indent d; sayln "TEMPORAL("; hty(ty, d + 1); sayln ","; indent (d + 1); say (Int.toString(!time)); sayln ""; indent d; say ")")
         | hty(T.H_DATATYPE(tycons, u), d) = (indent d; sayln "H_DATATYPE(["; dolist (d + 1) htycon tycons; say "])")
         | hty(T.H_META(tyv), d) = (indent d; say "H_META("; say (Symbol.name(tyv)); say ")")
         | hty(T.H_TOP, d) = (indent d; say "H_TOP")
         | hty(T.H_BOTTOM, d) = (indent d; say "H_BOTTOM")
-        | hty(_, d) = (indent d; say "UNIMPLEMENTED!")  (* poly, unpoly, var *)
+        | hty(T.H_POLY(tyvars, h), d) = (indent d; say "H_POLY(["; dolist (d + 1) saytyvar tyvars; sayln "],"; hty(h, d + 1); sayln ""; indent d; say ")")
+        | hty(T.H_UNPOLY(h, args), d) = (indent d; say "H_UNPOLY(["; dolist (d + 1) hty args; sayln "],"; hty(h, d + 1); sayln ""; indent d; say ")")
+
       and mty(T.MODULE(h1, h2), d) = (indent d; sayln "MODULE("; hty(h1, d + 1); sayln "->"; hty(h2, d + 1); sayln ""; indent d; say ")")
     in
       case t of

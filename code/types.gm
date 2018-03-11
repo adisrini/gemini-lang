@@ -1,7 +1,7 @@
 let
-  type ('a, 'b) pair = 'a * 'b
-  val z : (int, int) pair = (1, 2)
-  fun mult(arg: (int, int) pair) = (#1 arg) * (#2 arg)
+  type ('a, 'b) pair = 'a #* 'b
+  val swx : (int, int) pair = (1, 2)
+  val hwx : (bit, bit) pair = #('b:0, 'b:1)
 in
   0
 end

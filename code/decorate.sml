@@ -415,7 +415,7 @@ struct
                 val realTy = case tyvars of
                                   SOME(tyvs) => (case decorateTy(menv', tenv, ty) of
                                                       T.S_TY(sty) => T.S_TY(T.S_POLY(map (fn(tyv) => valOf(Symbol.look(metamap, tyv))) tyvs, sty))
-                                                    | T.H_TY(hty) => T.H_TY(T.H_POLY(tyvs, hty))
+                                                    | T.H_TY(hty) => T.H_TY(T.H_POLY(map (fn(tyv) => valOf(Symbol.look(metamap, tyv))) tyvs, hty))
                                                     | x => x)
                                 | _ => decorateTy(menv', tenv, ty)
                 val tenv' = Symbol.enter(tenv, name, realTy)

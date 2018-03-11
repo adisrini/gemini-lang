@@ -36,7 +36,8 @@ struct
         | subhty(T.H_META(hm)) = (case Symbol.look(submap, hm) of
                                         SOME(T.H_TY(newty)) => (if (newty <> T.H_META(hm)) then hasChanged := true else (); newty)
                                       | _ => T.H_META(hm))
-        | subhty(hty) = hty (* TODO: datatype, poly, unpoly, bottom, top *)
+        | subhty(T.H_POLY(tyvars, hty)) = T.H_POLY(tyvars, subhty(hty))
+        | subhty(hty) = hty (* TODO: datatype, unpoly, bottom, top *)
       and submty(mty) = mty (* TODO *)
     in
       subty(ty)
