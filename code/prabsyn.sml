@@ -192,7 +192,7 @@ fun print (outstream, e0) =
       end
 
   and ty(A.NameTy(s, p), d) = (indent d; say "NameTy("; say(Symbol.name s); say ")")
-    | ty(A.ParameterizedTy(t, tys), d) = (indent d; sayln "ParameterizedTy("; ty(t, d + 1); sayln ",";  dolist (d + 1) ty tys; sayln ""; indent d; say ")")
+    | ty(A.ParameterizedTy(t, tys, p), d) = (indent d; sayln "ParameterizedTy("; ty(t, d + 1); sayln ",";  dolist (d + 1) ty tys; sayln ""; indent d; say ")")
     | ty(A.TyVar(s, p), d) = (indent d; say "TyVar("; say(Symbol.name s); say ")")
     | ty(A.SWRecordTy(fields, p), d) = (indent d; say "SWRecordTy["; dolist d print_field fields; sayln ""; indent d; say "]")
     | ty(A.HWRecordTy(fields, p), d) = (indent d; say "HWRecordTy["; dolist d print_field fields; sayln ""; indent d; say "]")

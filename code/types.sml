@@ -85,7 +85,7 @@ struct
         | sty(S_META(tyv)) = "'sw" ^ Symbol.name(tyv)
         | sty(S_TOP) = "sw_top"
         | sty(S_BOTTOM) = "sw_bottom"
-        | sty(S_POLY(tyvars, s)) = "S_POLY([" ^ (String.concat(map (fn(tyv) => Symbol.name(tyv) ^ ", ") tyvars)) ^ "], " ^ sty(s) ^ ")"
+        | sty(S_POLY(tyvars, s)) = "S_POLY([" ^ (String.concat(map (fn(tyv) => sty(S_META(tyv)) ^ ", ") tyvars)) ^ "], " ^ sty(s) ^ ")"
         | sty(S_UNPOLY(s, args)) = "S_UNPOLY(" ^ sty(s) ^ ", [" ^ (String.concat(map (fn(si) => sty(si) ^ ", ") args)) ^ "])"
 
       and hty(BIT) = "bit"

@@ -1,0 +1,35 @@
+let
+
+  (* explicitly typed, no POLY *)
+  fun f1 (x : int) : int = x + 1
+
+  (* implicitly typed, but no polymorphism so no POLY *)
+  fun f2 x y = x + y
+
+  (* implicitly typed with polymorphism, should POLY*)
+  fun f3 x y = (x = y)
+
+  (* implicitly typed with polymorphism, calling on instance should UNPOLY *)
+  fun f4 x = x
+  fun g () = f4 10
+
+  (*
+  fun f x = x
+  (* at this stage, should add POLY to venv instead of ARROW *)
+  val y = 0
+  (* at this stage, should UNPOLY *)
+  val x = f y (* should say x is type int! make sure unpolying *)
+
+
+  fun polyTest x =
+     let fun f y = y x   (* f: Poly['c] ('a->'c)->'c' *)
+         val z = x+2		(* substitute int for 'a in the poly *)
+         val a = f g (* if g is some int -> string fn, don't substitute string globally in the poly in venv, instead just unpoly *)
+     in
+         (f,z)
+     end
+
+  *)
+in
+  0
+end

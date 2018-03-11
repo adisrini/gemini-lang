@@ -60,7 +60,7 @@ struct
           | ModuleDef of {name: symbol, input_ty: ty, output_ty: ty, pos: pos}
 
   and ty = NameTy of symbol * pos
-         | ParameterizedTy of ty * (ty list)
+         | ParameterizedTy of ty * (ty list) * pos
          | TyVar of symbol * pos
          | SWRecordTy of field list * pos
          | HWRecordTy of field list * pos

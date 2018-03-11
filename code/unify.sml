@@ -62,6 +62,8 @@ struct
                                 | (T.STRING, T.STRING) => S.SUB(NONE)
                                 | (T.LIST(listTy1), T.LIST(listTy2)) => unifySty(listTy1, listTy2, pos)
                                 | (T.REF(refTy1), T.REF(refTy2)) => unifySty(refTy1, refTy2, pos)
+                                | (T.S_POLY(_, polySty), _) => unifySty(polySty, sty2, pos)
+                                | (_, T.S_POLY(_, polySty)) => unifySty(polySty, sty1, pos)
                                 | _ => error(T.S_TY(sty1), T.S_TY(sty2), pos)
   and unifyMty(mty1, mty2, pos) = S.SUB(NONE)  (* TODO *)
 

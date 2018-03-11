@@ -448,8 +448,8 @@ ty            : TID                                                         (A.T
               | ty THIN_ARROW ty                                            (A.FunTy(ty1, ty2, ty1left))
               | LPAREN ty RPAREN                                            (ty)
 
-typarams      : ty ID                                                       (A.ParameterizedTy(A.NameTy(Symbol.symbol(ID), IDleft), [ty]))
-              | LPAREN ty typarams_tail RPAREN ID                           (A.ParameterizedTy(A.NameTy(Symbol.symbol(ID), IDleft), ty::typarams_tail))
+typarams      : ty ID                                                       (A.ParameterizedTy(A.NameTy(Symbol.symbol(ID), IDleft), [ty], tyleft))
+              | LPAREN ty typarams_tail RPAREN ID                           (A.ParameterizedTy(A.NameTy(Symbol.symbol(ID), IDleft), ty::typarams_tail, LPARENleft))
 
 typarams_tail : COMMA ty typarams_tail                                      (ty::typarams_tail)
               | epsilon                                                     ([])

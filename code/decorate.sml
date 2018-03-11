@@ -16,6 +16,7 @@ struct
   structure A = Absyn
   structure T = Types
   structure E = Env
+  structure S = Substitute
 
   (* attach information/context to TOP in order to make warnings/errors more clearn
   potentially number warnings and refer to others based on whether error is propagated *)
@@ -256,16 +257,31 @@ struct
                                T.H_TY(x) => x
                              | T.META(x) => T.H_META(x)
                              | _ => T.H_TOP)  (* NOTE: error? *)
+        fun substitute(tyvars, tyargs, ty) =
+          let
+            fun makeMap((tyvar, tyarg), varmap) = Symbol.enter(varmap, tyvar, tyarg)
+            val varmap = foldl makeMap Symbol.empty (ListPair.zipEq(tyvars, tyargs))
+          in
+            S.substituteType(ty, varmap, ref false)
+          end
+        fun unpoly(tyvars, tyargs, ty, name_opt, pos) =
+          let
+            val defaultTy = case ty of T.S_TY(_) => T.S_TY(T.S_BOTTOM) | T.H_TY(_) => T.H_TY(T.H_BOTTOM) | _ => T.BOTTOM
+          in
+            if length(tyvars) <> length(tyargs)
+            then (ErrorMsg.error pos ("type constructor " ^ (case name_opt of SOME(s) => ("\"" ^ s ^ "\" ") | _ => "") ^ "given " ^ Int.toString(length(tyargs)) ^ " arguments, wants " ^ Int.toString(length(tyvars))); defaultTy)
+            else substitute(tyvars, tyargs, ty)
+          end
         fun decoty(A.NameTy(sym, pos)) = (case Symbol.look(tenv, sym) of
                                                SOME(t) => t
                                              | NONE => T.TOP) (* NOTE: error? *)
-          | decoty(A.ParameterizedTy(ty, typarams)) =
+          | decoty(A.ParameterizedTy(ty, typarams, pos)) =
             let
               val mainTy = decoty(ty)
             in
               case mainTy of
-                   T.S_TY(s) => T.S_TY(T.S_UNPOLY(s, map getSWTy (map decoty typarams)))
-                 | T.H_TY(h) => T.H_TY(T.H_UNPOLY(h, map getHWTy (map decoty typarams)))
+                   T.S_TY(T.S_POLY(tyvars, sty)) => unpoly(tyvars, map decoty typarams, T.S_TY(sty), case ty of A.NameTy(sym, _) => SOME(Symbol.name(sym)) | _ => NONE, pos)
+                 | T.H_TY(T.H_POLY(tyvars, hty)) => unpoly(tyvars, map decoty typarams, T.H_TY(hty), case ty of A.NameTy(sym, _) => SOME(Symbol.name(sym)) | _ => NONE, pos)
                  | _ => T.BOTTOM (* NOTE: error? *)
             end
           | decoty(A.TyVar(sym, pos)) = (case Symbol.look(menv, sym) of
@@ -387,10 +403,21 @@ struct
             (* tenv is altered and passed on to future decs *)
             fun processTyDec({name, ty, tyvars, opdef, pos}, {menv, tenv, tydecs}) =
               let
-                fun foldMenv(tyv, menv) = Symbol.enter(menv, tyv, T.META(E.newMeta()))
-                val menv' = case tyvars of SOME(tyvs) => foldl foldMenv menv tyvs
-                                         | _ => menv
-                val realTy = decorateTy(menv', tenv, ty)
+                fun foldMenv(tyv, (menv, metamap)) =
+                  let
+                    val newMeta = E.newMeta()
+                  in
+                    (Symbol.enter(menv, tyv, T.META(newMeta)),
+                     Symbol.enter(metamap, tyv, newMeta))
+                  end
+                val (menv', metamap) = case tyvars of SOME(tyvs) => foldl foldMenv (menv, Symbol.empty) tyvs
+                                                    | _ => (menv, Symbol.empty)
+                val realTy = case tyvars of
+                                  SOME(tyvs) => (case decorateTy(menv', tenv, ty) of
+                                                      T.S_TY(sty) => T.S_TY(T.S_POLY(map (fn(tyv) => valOf(Symbol.look(metamap, tyv))) tyvs, sty))
+                                                    | T.H_TY(hty) => T.H_TY(T.H_POLY(tyvs, hty))
+                                                    | x => x)
+                                | _ => decorateTy(menv', tenv, ty)
                 val tenv' = Symbol.enter(tenv, name, realTy)
                 fun foldDef({oper, param_a, param_b, body, pos}, {menv, defs}) =
                   let
@@ -405,13 +432,7 @@ struct
                 val opdef' = case opdef of
                                   SOME(_) => SOME(defs')
                                 | NONE => NONE
-                val retTy = case tyvars of
-                                 SOME(tyvs) => (case realTy of
-                                                     T.S_TY(sty) => T.S_TY(T.S_POLY(tyvs, sty))
-                                                   | T.H_TY(hty) => T.H_TY(T.H_POLY(tyvs, hty))
-                                                   | _ => realTy)
-                               | _ => realTy
-                val tydec' = {name = name, ty = A.ExplicitTy(retTy), tyvars = tyvars, opdef = opdef', pos = pos}
+                val tydec' = {name = name, ty = A.ExplicitTy(realTy), tyvars = tyvars, opdef = opdef', pos = pos}
               in
                  {menv = menv'',
                   tenv = tenv',

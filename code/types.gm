@@ -1,0 +1,7 @@
+let
+  type ('a, 'b) pair = 'a * 'b
+  val z : (int, int) pair = (1, 2)
+  fun mult(arg: (int, int) pair) = (#1 arg) * (#2 arg)
+in
+  0
+end

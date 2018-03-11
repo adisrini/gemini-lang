@@ -73,7 +73,7 @@ struct
     let fun infexp(A.StructsSigsExp(structsigs)) = (smap, T.EMPTY)
           | infexp(A.VarExp(sym, pos)) = (smap, case Symbol.look(venv, sym) of
                                                      SOME(t) => t
-                                                   | _ => T.BOTTOM (* TODO: error *))
+                                                   | _ => (ErrorMsg.error pos ("unbound variable or constructor: " ^ Symbol.name(sym)); T.BOTTOM))
           | infexp(A.IntExp(num, pos)) = (smap, T.S_TY(T.INT))
           | infexp(A.StringExp(str, pos)) = (smap, T.S_TY(T.STRING))
           | infexp(A.RealExp(num, pos)) = (smap, T.S_TY(T.REAL))
@@ -90,6 +90,12 @@ struct
                     in
                       (augmentSmap(smap'', [sub], pos), T.S_TY(sty2))
                     end
+                 (* | T.S_TY(T.S_POLY(tyvars, T.ARROW(sty1, sty2))) =>
+                    let
+                      val (sub, retTy) = U.unifyPolyApp(T.S_TY(sty1), e2Ty, pos)
+                    in
+                      (augmentSmap(smap'', [sub], pos), retTy)
+                    end *)
                  | _ => case e2Ty of
                              T.S_TY(e2Sty) =>
                               let
@@ -186,12 +192,8 @@ struct
               fun foldDec(dec, {menv, tenv, venv, smap}) = inferDec(menv, tenv, venv, smap, dec)
               val {menv = menv', tenv = tenv', venv = venv', smap = smap'} = foldl foldDec {menv = menv, tenv = tenv, venv = venv, smap = smap} decs
 
-              val venv'' = S.substitute(smap', venv')
-              val () = print("===== VENV =====\n")
-              val () = Symbol.print(TextIO.stdOut, venv'', Types.toString)
-
             in
-              inferExp(menv', tenv', venv'', smap', body)
+              inferExp(menv', tenv', venv', smap', body)
             end
           | infexp(A.AssignExp({lhs, rhs, pos})) =
             let
@@ -301,7 +303,7 @@ struct
               val sub = U.unify(getExplicitType(resultTy, T.S_TY(T.S_BOTTOM)), bodyTy, resultPos)
               val smap'' = augmentSmap(smap', [sub], resultPos)
 
-              (* TODO: add function to tenv *)
+              (* add function to venv *)
               fun getParamTy(A.NoParam) = T.S_RECORD([])
                 | getParamTy(A.SingleParam({name, ty, escape, pos})) = getExplicitSWType(ty, T.S_BOTTOM)
                 | getParamTy(A.TupleParams(fs)) =
@@ -329,11 +331,32 @@ struct
                 | makeParamTy(_) = raise Match
 
               val paramTy = makeParamTy(params, NONE)
-              val venv'' = Symbol.enter(venv, name, T.S_TY(T.ARROW(paramTy, getSWType(bodyTy))))
+              val funTy = T.ARROW(paramTy, getSWType(bodyTy))
+              val venv'' = Symbol.enter(venv, name, T.S_TY(funTy))
+              val venv''' = S.substitute(smap'', venv'')
+
+              val subbedFunTy = valOf(Symbol.look(venv''', name))
+              (* find metas part of substituted function parameters and POLY based on those *)
+              val params' = case subbedFunTy of
+                                 T.S_TY(T.ARROW(params, _)) => params
+                               | _ => (ErrorMsg.error pos ("unbound function: " ^ Symbol.name(name)); T.S_BOTTOM)
+
+              fun flattenMetas(T.S_META(sm)) = [sm]
+                | flattenMetas(T.S_RECORD(fs)) = foldl (fn((tyv, sty), metas)  => flattenMetas(sty) @ metas) [] fs
+                | flattenMetas(T.ARROW(s1, s2)) = flattenMetas(s1) @ flattenMetas(s2)
+                | flattenMetas(_) = []
+              val paramMetas = flattenMetas params'
+
+              val funTy' = case paramMetas of
+                                [] => subbedFunTy
+                               | _ => T.S_TY(T.S_POLY(paramMetas, getSWType(subbedFunTy)))
+              val venv'''' = Symbol.enter(venv''', name, funTy')
+              val () = print("====== VENV ======\n")
+              val () = Symbol.print(TextIO.stdOut, venv'''', Types.toString)
             in
               {menv = menv,
                tenv = tenv,
-               venv = venv'',
+               venv = venv'''',
                smap = smap''}
             end
         in
