@@ -226,7 +226,6 @@ fun print (outstream, e0) =
         | sty(T.S_TOP, d) = (indent d; say "S_TOP")
         | sty(T.S_BOTTOM, d) = (indent d; say "S_BOTTOM")
         | sty(T.S_POLY(tyvars, s), d) = (indent d; say "S_POLY(["; dolist (d + 1) saytyvar tyvars; sayln "],"; sty(s, d + 1); sayln ""; indent d; say ")")
-        | sty(T.S_UNPOLY(s, args), d) = (indent d; say "S_UNPOLY(["; dolist (d + 1) sty args; sayln "],"; sty(s, d + 1); sayln ""; indent d; say ")")
       and hfield((tyv, h), d) = (indent d; say (Symbol.name(tyv)); say ": "; hty(h, 0))
       and hty(T.BIT, d) = (indent d; say "BIT")
         | hty(T.ARRAY{ty, size}, d) = (indent d; sayln "ARRAY("; hty(ty, d + 1); sayln ","; indent (d + 1); say (Int.toString(!size)); sayln ""; indent d; say ")")
@@ -237,7 +236,6 @@ fun print (outstream, e0) =
         | hty(T.H_TOP, d) = (indent d; say "H_TOP")
         | hty(T.H_BOTTOM, d) = (indent d; say "H_BOTTOM")
         | hty(T.H_POLY(tyvars, h), d) = (indent d; say "H_POLY(["; dolist (d + 1) saytyvar tyvars; sayln "],"; hty(h, d + 1); sayln ""; indent d; say ")")
-        | hty(T.H_UNPOLY(h, args), d) = (indent d; say "H_UNPOLY(["; dolist (d + 1) hty args; sayln "],"; hty(h, d + 1); sayln ""; indent d; say ")")
 
       and mty(T.MODULE(h1, h2), d) = (indent d; sayln "MODULE("; hty(h1, d + 1); sayln "->"; hty(h2, d + 1); sayln ""; indent d; say ")")
     in

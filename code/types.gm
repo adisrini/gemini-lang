@@ -1,7 +1,11 @@
 let
+  (*
   type ('a, 'b) pair = 'a #* 'b
   val swx : (int, int) pair = (1, 2)
   val hwx : (bit, bit) pair = #('b:0, 'b:1)
+  *)
+  type ('a, 'b) pair = 'a * 'b
+  val x : int pair = (1, 2)
 in
   0
 end

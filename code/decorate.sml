@@ -273,20 +273,31 @@ struct
             else substitute(tyvars, tyargs, ty)
           end
         fun decoty(A.NameTy(sym, pos)) = (case Symbol.look(tenv, sym) of
-                                               SOME(t) => t
-                                             | NONE => T.TOP) (* NOTE: error? *)
+                                               SOME(t) => (case t of
+                                                                T.S_TY(T.S_POLY(tyvars, sty)) => (ErrorMsg.error pos ("type constructor " ^ Symbol.name(sym) ^ " given 0 arguments, wants " ^ Int.toString(length(tyvars))); T.S_TY(T.S_BOTTOM))
+                                                              | T.H_TY(T.H_POLY(tyvars, hty)) => (ErrorMsg.error pos ("type constructor " ^ Symbol.name(sym) ^ " given 0 arguments, wants " ^ Int.toString(length(tyvars))); T.H_TY(T.H_BOTTOM))
+                                                              | _ => t)
+                                             | NONE => (ErrorMsg.error pos ("unbound type: " ^ Symbol.name(sym)); T.TOP))
           | decoty(A.ParameterizedTy(ty, typarams, pos)) =
             let
               val mainTy = decoty(ty)
+              val mainTy' = case mainTy of
+                                 T.S_TY(T.S_META(sm)) => (case Symbol.look(menv, sm) of
+                                                               SOME(otherTy) => otherTy
+                                                             | _ => mainTy)
+                               | T.H_TY(T.H_META(hm)) => (case Symbol.look(menv, hm) of
+                                                               SOME(otherTy) => otherTy
+                                                             | _ => mainTy)
+                               | _ => mainTy
             in
-              case mainTy of
+              case mainTy' of
                    T.S_TY(T.S_POLY(tyvars, sty)) => unpoly(tyvars, map decoty typarams, T.S_TY(sty), case ty of A.NameTy(sym, _) => SOME(Symbol.name(sym)) | _ => NONE, pos)
                  | T.H_TY(T.H_POLY(tyvars, hty)) => unpoly(tyvars, map decoty typarams, T.H_TY(hty), case ty of A.NameTy(sym, _) => SOME(Symbol.name(sym)) | _ => NONE, pos)
                  | _ => T.BOTTOM (* NOTE: error? *)
             end
           | decoty(A.TyVar(sym, pos)) = (case Symbol.look(menv, sym) of
                                               SOME(t) => t
-                                            | NONE => T.META(E.newMeta()))
+                                            | NONE => (ErrorMsg.error pos ("unbound type variable: " ^ Symbol.name(sym)); T.TOP))
           | decoty(A.SWRecordTy(fields, pos)) =
             let
               fun mapFields({name, ty, escape, pos}) = (name, getSWTy(decoty(ty)))
@@ -477,12 +488,10 @@ struct
         (* datacon: {datacon: symbol, ty: ty, pos: pos} *)
         | decodec(A.SWDatatypeDec(datatydecs)) =
         (*
-
           datatype ilist = EMPTY | LIST of int * ilist
 
           first in tenv, do ilist -> m42
           then after processing tycons, do m42 -> DATATYPE(...)
-
         *)
           let
             (* menv is altered if tyvar and passed only to body of dec *)
@@ -491,11 +500,17 @@ struct
             (* both tenv and menv are passed on *)
             fun processDatatype({name, tyvars, datacons}, {menv, tenv, datatydecs}) =
               let
-                fun foldMenv(tyvar, menv) = Symbol.enter(menv, tyvar, T.S_TY(T.S_META(E.newMeta())))
+                fun foldMenv(tyvar, (menv, metamap)) =
+                  let
+                    val newmeta = E.newMeta()
+                  in
+                    (Symbol.enter(menv, tyvar, T.S_TY(T.S_META(newmeta))),
+                     Symbol.enter(metamap, tyvar, newmeta))
+                  end
                 (* if tyvar, add to menv *)
-                val menv' = case tyvars of
-                                 SOME(tyvs) => foldl foldMenv menv tyvs
-                               | _ => menv
+                val (menv', metamap) = case tyvars of
+                                            SOME(tyvs) => foldl foldMenv (menv, Symbol.empty) tyvs
+                                          | _ => (menv, Symbol.empty)
                 (* add datatype as META in tenv *)
                 val tempMeta = E.newMeta()
                 val tenv' = Symbol.enter(tenv, name, T.S_TY(T.S_META(tempMeta)))
@@ -517,9 +532,9 @@ struct
 
                 val sty = T.S_DATATYPE(map mapDataconForType datacons', ref ())
                 val retTy = case tyvars of
-                                 SOME(tyvs) => T.S_POLY(tyvs, sty)
-                               | _ => sty
-                val menv'' = Symbol.enter(menv, tempMeta, T.S_TY(sty))
+                                 SOME(tyvs) => T.S_TY(T.S_POLY(map (fn(tyv) => valOf(Symbol.look(metamap, tyv))) tyvs, sty))
+                               | _ => T.S_TY(sty)
+                val menv'' = Symbol.enter(menv, tempMeta, retTy)
               in
                 {menv = menv'', tenv = tenv', datatydecs = datatydec'::datatydecs}
               end
@@ -530,12 +545,10 @@ struct
           end
         | decodec(A.HWDatatypeDec(datatydecs)) =
         (*
-
           datatype ilist = EMPTY | LIST of int * ilist
 
           first in tenv, do ilist -> m42
           then after processing tycons, do m42 -> DATATYPE(...)
-
         *)
           let
             (* menv is altered if tyvar and passed only to body of dec *)
@@ -544,11 +557,17 @@ struct
             (* both tenv and menv are passed on *)
             fun processDatatype({name, tyvars, datacons}, {menv, tenv, datatydecs}) =
               let
-                fun foldMenv(tyvar, menv) = Symbol.enter(menv, tyvar, T.H_TY(T.H_META(E.newMeta())))
+                fun foldMenv(tyvar, (menv, metamap)) =
+                  let
+                    val newmeta = E.newMeta()
+                  in
+                    (Symbol.enter(menv, tyvar, T.H_TY(T.H_META(newmeta))),
+                     Symbol.enter(metamap, tyvar, newmeta))
+                  end
                 (* if tyvar, add to menv *)
-                val menv' = case tyvars of
-                                 SOME(tyvs) => foldl foldMenv menv tyvs
-                               | _ => menv
+                val (menv', metamap) = case tyvars of
+                                            SOME(tyvs) => foldl foldMenv (menv, Symbol.empty) tyvs
+                                          | _ => (menv, Symbol.empty)
                 (* add datatype as META in tenv *)
                 val tempMeta = E.newMeta()
                 val tenv' = Symbol.enter(tenv, name, T.H_TY(T.H_META(tempMeta)))
@@ -563,15 +582,16 @@ struct
                 val datatydec' = {name = name, tyvars = tyvars, datacons = datacons'}
                 (* map from meta to computed datatype type *)
                 fun mapDataconForType({datacon, ty = A.ExplicitTy(t), pos}) = (datacon, (case t of
-                                                                                              T.H_TY(s) => SOME(s)
+                                                                                              T.H_TY(h) => SOME(h)
                                                                                             | T.EMPTY => NONE
                                                                                             | _ => SOME(T.H_TOP)))
                   | mapDataconForType(_) = raise Match
+
                 val hty = T.H_DATATYPE(map mapDataconForType datacons', ref ())
                 val retTy = case tyvars of
-                                 SOME(tyvs) => T.H_POLY(tyvs, hty)
-                               | _ => hty
-                val menv'' = Symbol.enter(menv, tempMeta, T.H_TY(hty))
+                                 SOME(tyvs) => T.H_TY(T.H_POLY(map (fn(tyv) => valOf(Symbol.look(metamap, tyv))) tyvs, hty))
+                               | _ => T.H_TY(hty)
+                val menv'' = Symbol.enter(menv, tempMeta, retTy)
               in
                 {menv = menv'', tenv = tenv', datatydecs = datatydec'::datatydecs}
               end

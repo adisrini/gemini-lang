@@ -28,6 +28,14 @@ struct
                                                                    | _ => hasChanged := true; newty)
                                       | _ => T.S_META(sm))
         | substy(T.S_POLY(tyvars, sty)) = T.S_POLY(tyvars, substy(sty))
+        | substy(T.S_DATATYPE(tycons, u)) =
+          let
+            fun mapTycon(tyvar, sty_opt) = case sty_opt of
+                                                SOME(sty) => (tyvar, SOME(substy(sty)))
+                                              | _ => (tyvar, sty_opt)
+          in
+            T.S_DATATYPE(map mapTycon tycons, u)
+          end
         | substy(sty) = sty (* TODO: datatype, unpoly, bottom, top *)
       and subhty(T.BIT) = T.BIT
         | subhty(T.ARRAY{ty, size}) = T.ARRAY{ty = subhty(ty), size = size}

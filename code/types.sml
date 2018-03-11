@@ -19,7 +19,6 @@ struct
           | TEMPORAL of {ty: h_ty, time: int ref} (* type of time? default to max int/-1 *)
           | H_DATATYPE of (tyvar * h_ty option) list * unit ref
           | H_POLY of tyvar list * h_ty
-          | H_UNPOLY of h_ty * h_ty list
           | H_META of tyvar
           | H_TOP
           | H_BOTTOM
@@ -34,7 +33,6 @@ struct
           | REF of s_ty
           | S_DATATYPE of (tyvar * s_ty option) list * unit ref
           | S_POLY of tyvar list * s_ty
-          | S_UNPOLY of s_ty * s_ty list
           | S_META of tyvar
           | S_TOP
           | S_BOTTOM
@@ -86,7 +84,6 @@ struct
         | sty(S_TOP) = "sw_top"
         | sty(S_BOTTOM) = "sw_bottom"
         | sty(S_POLY(tyvars, s)) = "S_POLY([" ^ (String.concat(map (fn(tyv) => sty(S_META(tyv)) ^ ", ") tyvars)) ^ "], " ^ sty(s) ^ ")"
-        | sty(S_UNPOLY(s, args)) = "S_UNPOLY(" ^ sty(s) ^ ", [" ^ (String.concat(map (fn(si) => sty(si) ^ ", ") args)) ^ "])"
 
       and hty(BIT) = "bit"
         | hty(ARRAY{ty, size}) = hty(ty) ^ "[" ^ Int.toString(!size) ^ "]"
@@ -105,7 +102,6 @@ struct
             "H_DATATYPE(" ^ (String.concat(map stringify fs)) ^ ")"
           end
         | hty(H_POLY(tyvars, h)) = "H_POLY([" ^ (String.concat(map (fn(tyv) => Symbol.name(tyv) ^ ", ") tyvars)) ^ "], " ^ hty(h) ^ ")"
-        | hty(H_UNPOLY(h, args)) = "H_UNPOLY(" ^ hty(h) ^ ", [" ^ (String.concat(map (fn(hi) => hty(hi) ^ ", ") args)) ^ "])"
         | hty(H_META(tyv)) = "'hwm" ^ Symbol.name(tyv)
         | hty(H_TOP) = "hw_top"
         | hty(H_BOTTOM) = "h_bottom"
