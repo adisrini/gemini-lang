@@ -60,6 +60,7 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"signature"  	                       => (Tokens.SIGNATURE(yypos, yypos + 9));
 <INITIAL>"sig"  	                             => (Tokens.SIG(yypos, yypos + 3));
 <INITIAL>"list"                                => (Tokens.LIST(yypos, yypos + 4));
+<INITIAL>"sw"                                  => (Tokens.SW(yypos, yypos + 2));
 
 <INITIAL>"let"  	                             => (Tokens.LET(yypos, yypos + 3));
 <INITIAL>"in"  	                               => (Tokens.IN(yypos, yypos + 2));

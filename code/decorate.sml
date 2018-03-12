@@ -21,6 +21,48 @@ struct
   (* attach information/context to TOP in order to make warnings/errors more clearn
   potentially number warnings and refer to others based on whether error is propagated *)
 
+  fun getSWType(T.S_TY(sty)) = sty
+    | getSWType(T.META(m)) = T.S_META(m)
+    | getSWType(_) = T.S_BOTTOM
+
+  fun getHWType(T.H_TY(hty)) = hty
+    | getHWType(T.META(m)) = T.H_META(m)
+    | getHWType(_) = T.H_BOTTOM
+
+  fun extractMetas(ty) =
+    let
+      fun extractSWMetas(T.S_RECORD(fs)) = foldl (fn((_, sty), metas) => extractSWMetas(sty) @ metas) [] fs
+        | extractSWMetas(T.ARROW(s1, s2)) = extractSWMetas(s1) @ extractSWMetas(s2)
+        | extractSWMetas(T.LIST(s)) = extractSWMetas(s)
+        | extractSWMetas(T.SW_H(h)) = extractHWMetas(h)
+        | extractSWMetas(T.SW_M(m)) = extractMDMetas(m)
+        | extractSWMetas(T.REF(s)) = extractSWMetas(s)
+        | extractSWMetas(T.S_DATATYPE(xs, u)) = foldl (fn((_, sty_opt), metas) => (case sty_opt of SOME(sty) => extractSWMetas(sty) | _ => []) @ metas) [] xs
+        | extractSWMetas(T.S_POLY(tyvars, s)) = extractSWMetas(s)
+        | extractSWMetas(T.S_META(sm)) = [sm]
+        | extractSWMetas(T.INT) = []
+        | extractSWMetas(T.STRING) = []
+        | extractSWMetas(T.REAL) = []
+        | extractSWMetas(T.S_TOP) = []
+        | extractSWMetas(T.S_BOTTOM) = []
+      and extractHWMetas(T.H_META(hm)) = [hm]
+        | extractHWMetas(T.BIT) = []
+        | extractHWMetas(T.ARRAY{ty, size}) = extractHWMetas(ty)
+        | extractHWMetas(T.H_RECORD(xs)) = foldl (fn((_, hty), metas) => extractHWMetas(hty) @ metas) [] xs
+        | extractHWMetas(T.TEMPORAL{ty, time}) = extractHWMetas(ty)
+        | extractHWMetas(T.H_DATATYPE(xs, u)) = foldl (fn((_, hty_opt), metas) => (case hty_opt of SOME(hty) => extractHWMetas(hty) | _ => []) @ metas) [] xs
+        | extractHWMetas(T.H_POLY(tyvars, h)) = extractHWMetas(h)
+        | extractHWMetas(T.H_TOP) = []
+        | extractHWMetas(T.H_BOTTOM) = []
+      and extractMDMetas(T.MODULE(h1, h2)) = extractHWMetas(h1) @ extractHWMetas(h2)
+    in
+      case ty of
+           T.S_TY(s) => extractSWMetas(s)
+         | T.H_TY(h) => extractHWMetas(h)
+         | T.M_TY(m) => extractMDMetas(m)
+         | _ => []
+    end
+
   fun decorateProg(e) = decorateExp(E.base_menv, E.base_tenv, e)
 
   and decorateExp(menv, tenv, exp) =
@@ -284,8 +326,14 @@ struct
                                  SOME(t) => (case t of
                                                   T.S_TY(T.S_POLY(tyvars, sty)) => t
                                                 | T.H_TY(T.H_POLY(tyvars, hty)) => t
-                                                | _ => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), length(typarams), 0); T.TOP))
-                               | NONE => (ErrorMsg.error pos ("unbound type: " ^ Symbol.name(sym)); T.TOP))
+                                                | T.S_TY(T.S_META(sm)) => (case Symbol.look(menv, sm) of
+                                                                                SOME(t') => t'
+                                                                              | _ => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), length(typarams), 0); T.S_TY(T.S_BOTTOM)))
+                                                | T.H_TY(T.H_META(hm)) => (case Symbol.look(menv, hm) of
+                                                                                SOME(t') => t'
+                                                                              | _ => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), length(typarams), 0); T.H_TY(T.H_BOTTOM)))
+                                                | _ => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), length(typarams), 0); T.BOTTOM))
+                               | _ => (ErrorMsg.error pos ("unbound type: " ^ Symbol.name(sym)); T.TOP))
               val mainTy' = case mainTy of
                                  T.S_TY(T.S_META(sm)) => (case Symbol.look(menv, sm) of
                                                                SOME(otherTy) => otherTy
@@ -298,7 +346,7 @@ struct
               case mainTy' of
                    T.S_TY(T.S_POLY(tyvars, sty)) => unpoly(tyvars, map decoty typarams, T.S_TY(sty), sym, pos)
                  | T.H_TY(T.H_POLY(tyvars, hty)) => unpoly(tyvars, map decoty typarams, T.H_TY(hty), sym, pos)
-                 | _ => T.BOTTOM (* NOTE: error? *)
+                 | _ => mainTy' (* NOTE: error? *)
             end
           | decoty(A.TyVar(sym, pos)) = (case Symbol.look(menv, sym) of
                                               SOME(t) => t
@@ -347,6 +395,7 @@ struct
                               | T.M_TY(m) => T.S_TY(T.SW_M(m))
                               | T.META(x) => T.S_TY(T.SW_H(T.H_META(x)))
                               | _ => T.S_TY(T.S_TOP))
+              val () = print(T.toString(exTy) ^ "\n")
             in
               retTy
             end
@@ -509,7 +558,7 @@ struct
                   let
                     val newmeta = E.newMeta()
                   in
-                    (Symbol.enter(menv, tyvar, T.S_TY(T.S_META(newmeta))),
+                    (Symbol.enter(menv, tyvar, T.META(newmeta)),
                      Symbol.enter(metamap, tyvar, newmeta))
                   end
                 (* if tyvar, add to menv *)
@@ -522,7 +571,16 @@ struct
                 (* map datacons to explicit types *)
                 fun mapDatacon({datacon, ty, pos}) =
                   let
-                    val realTy = decorateTy(menv', tenv', ty)
+                    val dataconTy = decorateTy(menv', tenv', ty)
+                    val dataconTyvars = List.rev(extractMetas(dataconTy))
+                    val argTy = case dataconTyvars of
+                                      [] => dataconTy
+                                    | _ => T.S_TY(T.S_POLY(dataconTyvars, getSWType(dataconTy)))
+                    val retTy = T.S_META(tempMeta)
+                    val realTy = case argTy of
+                                      T.S_TY(s) => T.S_TY(T.ARROW(s, retTy))
+                                    | T.EMPTY => T.S_TY(T.ARROW(T.S_DATATYPE([], ref ()), retTy))
+                                    | _ => (print("hereeee\n"); T.S_TY(T.S_TOP))
                   in
                     {datacon = datacon, ty = A.ExplicitTy(realTy), pos = pos}
                   end
@@ -531,8 +589,7 @@ struct
                 (* map from meta to computed datatype type *)
                 fun mapDataconForType({datacon, ty = A.ExplicitTy(t), pos}) = (datacon, (case t of
                                                                                               T.S_TY(s) => SOME(s)
-                                                                                            | T.EMPTY => NONE
-                                                                                            | _ => SOME(T.S_TOP)))
+                                                                                            | _ => raise Match))
                   | mapDataconForType(_) = raise Match
 
                 val sty = T.S_DATATYPE(map mapDataconForType datacons', ref ())
@@ -566,7 +623,7 @@ struct
                   let
                     val newmeta = E.newMeta()
                   in
-                    (Symbol.enter(menv, tyvar, T.H_TY(T.H_META(newmeta))),
+                    (Symbol.enter(menv, tyvar, T.META(newmeta)),
                      Symbol.enter(metamap, tyvar, newmeta))
                   end
                 (* if tyvar, add to menv *)
@@ -579,7 +636,16 @@ struct
                 (* map datacons to explicit types *)
                 fun mapDatacon({datacon, ty, pos}) =
                   let
-                    val realTy = decorateTy(menv', tenv', ty)
+                    val dataconTy = decorateTy(menv', tenv', ty)
+                    val dataconTyvars = List.rev(extractMetas(dataconTy))
+                    val argTy = case dataconTyvars of
+                                      [] => dataconTy
+                                    | _ => T.H_TY(T.H_POLY(dataconTyvars, getHWType(dataconTy)))
+                    val retTy = T.H_META(tempMeta)
+                    val realTy = case argTy of
+                                      T.H_TY(h) => T.M_TY(T.MODULE(h, retTy))
+                                    | T.EMPTY => T.M_TY(T.MODULE(T.H_DATATYPE([], ref ()), retTy))
+                                    | _ => T.H_TY(T.H_TOP)
                   in
                     {datacon = datacon, ty = A.ExplicitTy(realTy), pos = pos}
                   end
@@ -588,8 +654,7 @@ struct
                 (* map from meta to computed datatype type *)
                 fun mapDataconForType({datacon, ty = A.ExplicitTy(t), pos}) = (datacon, (case t of
                                                                                               T.H_TY(h) => SOME(h)
-                                                                                            | T.EMPTY => NONE
-                                                                                            | _ => SOME(T.H_TOP)))
+                                                                                            | _ => raise Match))
                   | mapDataconForType(_) = raise Match
 
                 val hty = T.H_DATATYPE(map mapDataconForType datacons', ref ())
@@ -603,7 +668,7 @@ struct
             val {menv = menv', tenv = tenv', datatydecs = datatydecs'} = foldl processDatatype {menv = menv, tenv = tenv, datatydecs = []} datatydecs
           in
             (* other declarations should see the new type and meta environments *)
-            {menv = menv', tenv = tenv', dec = A.HWDatatypeDec(List.rev(datatydecs'))}
+            {menv = menv', tenv = tenv', dec = A.SWDatatypeDec(List.rev(datatydecs'))}
           end
         | decodec(A.ValDec(valdecs)) =
           let

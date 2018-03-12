@@ -1,9 +1,15 @@
 let
+  (*
   sdatatype ('a, 'b) pair = PAIR of 'a * 'b
                          |: NONE
   sdatatype ('a, 'b) tree = NODE of {data: ('a, 'b) pair, left: ('a, 'b) tree, right: ('a, 'b) tree}
                          |: LEAF of {data: ('a, 'b) pair}
   val x : (int, string) pair = PAIR(10, "20")
+  *)
+  sdatatype 'a option = SOME of 'a sw
+                     |: BAD of 'a #* 'a
+                     |: NONE
+  val o : bit option = NONE
 in
   0
 end
