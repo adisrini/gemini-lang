@@ -6,6 +6,7 @@ sig
     val linePos : int list ref
     val sourceStream : TextIO.instream ref
     val error : int -> string -> unit
+    val typeNumArgsError: (int * string * int * int) -> unit
     exception Error
     val impossible : string -> 'a   (* raises Error *)
     val reset : unit -> unit
@@ -43,6 +44,9 @@ struct
 	  print msg;
 	  print "\n"
       end
+
+  fun typeNumArgsError(pos, name, given, wants) =
+    error pos ("type constructor " ^ (case String.size(name) of 0 => "" | _ => ("\"" ^ name ^ "\" ")) ^ "given " ^ Int.toString(given) ^ " arguments, wants " ^ Int.toString(wants))
 
   fun impossible msg =
       (app print ["Error: Compiler bug: ",msg,"\n"];

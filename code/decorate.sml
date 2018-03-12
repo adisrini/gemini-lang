@@ -264,23 +264,28 @@ struct
           in
             S.substituteType(ty, varmap, ref false)
           end
-        fun unpoly(tyvars, tyargs, ty, name_opt, pos) =
+        fun unpoly(tyvars, tyargs, ty, sym, pos) =
           let
             val defaultTy = case ty of T.S_TY(_) => T.S_TY(T.S_BOTTOM) | T.H_TY(_) => T.H_TY(T.H_BOTTOM) | _ => T.BOTTOM
           in
             if length(tyvars) <> length(tyargs)
-            then (ErrorMsg.error pos ("type constructor " ^ (case name_opt of SOME(s) => ("\"" ^ s ^ "\" ") | _ => "") ^ "given " ^ Int.toString(length(tyargs)) ^ " arguments, wants " ^ Int.toString(length(tyvars))); defaultTy)
+            then (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), length(tyargs), length(tyvars)); defaultTy)
             else substitute(tyvars, tyargs, ty)
           end
         fun decoty(A.NameTy(sym, pos)) = (case Symbol.look(tenv, sym) of
                                                SOME(t) => (case t of
-                                                                T.S_TY(T.S_POLY(tyvars, sty)) => (ErrorMsg.error pos ("type constructor " ^ Symbol.name(sym) ^ " given 0 arguments, wants " ^ Int.toString(length(tyvars))); T.S_TY(T.S_BOTTOM))
-                                                              | T.H_TY(T.H_POLY(tyvars, hty)) => (ErrorMsg.error pos ("type constructor " ^ Symbol.name(sym) ^ " given 0 arguments, wants " ^ Int.toString(length(tyvars))); T.H_TY(T.H_BOTTOM))
+                                                                T.S_TY(T.S_POLY(tyvars, sty)) => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), 0, length(tyvars)); T.S_TY(T.S_BOTTOM))
+                                                              | T.H_TY(T.H_POLY(tyvars, hty)) => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), 0, length(tyvars)); T.H_TY(T.H_BOTTOM))
                                                               | _ => t)
                                              | NONE => (ErrorMsg.error pos ("unbound type: " ^ Symbol.name(sym)); T.TOP))
-          | decoty(A.ParameterizedTy(ty, typarams, pos)) =
+          | decoty(A.ParameterizedTy(sym, typarams, pos)) =
             let
-              val mainTy = decoty(ty)
+              val mainTy = (case Symbol.look(tenv, sym) of
+                                 SOME(t) => (case t of
+                                                  T.S_TY(T.S_POLY(tyvars, sty)) => t
+                                                | T.H_TY(T.H_POLY(tyvars, hty)) => t
+                                                | _ => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), length(typarams), 0); T.TOP))
+                               | NONE => (ErrorMsg.error pos ("unbound type: " ^ Symbol.name(sym)); T.TOP))
               val mainTy' = case mainTy of
                                  T.S_TY(T.S_META(sm)) => (case Symbol.look(menv, sm) of
                                                                SOME(otherTy) => otherTy
@@ -291,8 +296,8 @@ struct
                                | _ => mainTy
             in
               case mainTy' of
-                   T.S_TY(T.S_POLY(tyvars, sty)) => unpoly(tyvars, map decoty typarams, T.S_TY(sty), case ty of A.NameTy(sym, _) => SOME(Symbol.name(sym)) | _ => NONE, pos)
-                 | T.H_TY(T.H_POLY(tyvars, hty)) => unpoly(tyvars, map decoty typarams, T.H_TY(hty), case ty of A.NameTy(sym, _) => SOME(Symbol.name(sym)) | _ => NONE, pos)
+                   T.S_TY(T.S_POLY(tyvars, sty)) => unpoly(tyvars, map decoty typarams, T.S_TY(sty), sym, pos)
+                 | T.H_TY(T.H_POLY(tyvars, hty)) => unpoly(tyvars, map decoty typarams, T.H_TY(hty), sym, pos)
                  | _ => T.BOTTOM (* NOTE: error? *)
             end
           | decoty(A.TyVar(sym, pos)) = (case Symbol.look(menv, sym) of

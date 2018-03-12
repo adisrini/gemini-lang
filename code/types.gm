@@ -5,7 +5,12 @@ let
   val hwx : (bit, bit) pair = #('b:0, 'b:1)
   *)
   type ('a, 'b) pair = 'a * 'b
-  val x : int pair = (1, 2)
+  val a : pair = (0, 0)
+  val b : int pair = (0, 0)
+  val c : (int, string, real) pair = (0, 0)
+  val d : (int, string) pair = (0, "")
+  val x = "
+  hello"
 in
   0
 end

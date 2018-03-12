@@ -34,12 +34,10 @@ fun eof() = let val pos = hd(!linePos) in
   if(!netCommentBalance <> 0) then ErrorMsg.error pos ("SyntaxError: Unclosed comment.")
   else if (!stringLiteralClosed = false) then ErrorMsg.error pos ("SyntaxError: Unclosed string literal.")
   else ();
-  ErrorMsg.lineNum := 1;
   netCommentBalance := 0;
   stringLiteralClosed := true;
   stringStartPosition := 0;
   buffer := "";
-  ErrorMsg.reset();
   Tokens.EOF(pos,pos) end
 
 %%
