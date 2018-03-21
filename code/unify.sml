@@ -31,10 +31,16 @@ struct
                                    T.META(m) => S.SUB([(m, ty2)])
                                  | T.H_TY(T.H_META(hm)) => S.SUB([(hm, ty2)])
                                  | T.S_TY(T.S_META(sm)) => S.SUB([(sm, ty2)])
+                                 | T.TOP => S.SUB([])
+                                 | T.S_TY(T.S_TOP) => S.SUB([])
+                                 | T.H_TY(T.H_TOP) => S.SUB([])
                                  | _ => case ty2 of
                                              T.META(m) => S.SUB([(m, ty1)])
                                            | T.H_TY(T.H_META(hm)) => S.SUB([(hm, ty1)])
                                            | T.S_TY(T.S_META(sm)) => S.SUB([(sm, ty1)])
+                                           | T.BOTTOM => S.SUB([])
+                                           | T.S_TY(T.S_BOTTOM) => S.SUB([])
+                                           | T.H_TY(T.H_BOTTOM) => S.SUB([])
                                            | _ => case (ty1, ty2) of
                                                        (T.H_TY(h1), T.H_TY(h2)) => unifyHty(h1, h2, pos)
                                                      | (T.S_TY(s1), T.S_TY(s2)) => unifySty(s1, s2, pos)
@@ -46,7 +52,22 @@ struct
                                 | (_, T.H_META(hm)) => S.SUB([(hm, T.H_TY(hty1))])
                                 | (T.BIT, T.BIT) => S.SUB([])
                                 | (T.ARRAY{ty = ty1, size = _}, T.ARRAY{ty = ty2, size = _}) => unifyHty(ty1, ty2, pos)
-                                (* TODO: records, temporal, etc. *)
+                                | (T.H_RECORD(recs1), T.H_RECORD(recs2)) => 
+                                  let
+                                    fun foldSubs(((_, hty1), (_, hty2)), sub) =
+                                      let
+                                        val innersub = unifyHty(hty1, hty2, pos)
+                                      in
+                                        case sub of
+                                          S.ERROR(_) => sub
+                                        | S.SUB(subs) => case innersub of
+                                                              S.ERROR(_) => innersub
+                                                            | S.SUB(innersubs) => S.SUB(subs @ innersubs)
+                                      end
+                                  in
+                                    foldl foldSubs (S.SUB([])) (ListPair.zipEq(recs1, recs2))
+                                  end
+                                | (T.TEMPORAL{ty = ty1, time = _}, T.TEMPORAL{ty = ty2, time = _}) => unifyHty(ty1, ty2, pos)
                                 | _ => error(T.H_TY(hty1), T.H_TY(hty2), pos)
 
   and unifySty(sty1, sty2, pos) = case (sty1, sty2) of

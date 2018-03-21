@@ -440,6 +440,18 @@ struct
         in
           foldl foldValDec {menv = menv, tenv = tenv, venv = venv, smap = smap} valdecs
         end
+      | infdec(A.TypeDec(tydecs)) =
+        let
+          fun foldTyDec({name, ty, tyvars, opdef, pos}, {menv, tenv, venv, smap}) =
+            let
+              (* enter in type environment *)
+              val tenv' = Symbol.enter(tenv, name, getExplicitType(ty, T.TOP))
+            in
+              {menv = menv, tenv = tenv', venv = venv, smap = smap}
+            end
+        in
+          foldl foldTyDec {menv = menv, tenv = tenv, venv = venv, smap = smap} tydecs
+        end
       | infdec(_) = {menv = menv, tenv = tenv, venv = venv, smap = smap}
     in
       infdec(dec)

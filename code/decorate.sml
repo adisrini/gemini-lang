@@ -308,7 +308,7 @@ struct
           end
         fun unpoly(tyvars, tyargs, ty, sym, pos) =
           let
-            val defaultTy = case ty of T.S_TY(_) => T.S_TY(T.S_BOTTOM) | T.H_TY(_) => T.H_TY(T.H_BOTTOM) | _ => T.BOTTOM
+            val defaultTy = case ty of T.S_TY(_) => T.S_TY(T.S_TOP) | T.H_TY(_) => T.H_TY(T.H_TOP) | _ => T.TOP
           in
             if length(tyvars) <> length(tyargs)
             then (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), length(tyargs), length(tyvars)); defaultTy)
@@ -316,8 +316,8 @@ struct
           end
         fun decoty(A.NameTy(sym, pos)) = (case Symbol.look(tenv, sym) of
                                                SOME(t) => (case t of
-                                                                T.S_TY(T.S_POLY(tyvars, sty)) => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), 0, length(tyvars)); T.S_TY(T.S_BOTTOM))
-                                                              | T.H_TY(T.H_POLY(tyvars, hty)) => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), 0, length(tyvars)); T.H_TY(T.H_BOTTOM))
+                                                                T.S_TY(T.S_POLY(tyvars, sty)) => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), 0, length(tyvars)); T.S_TY(T.S_TOP))
+                                                              | T.H_TY(T.H_POLY(tyvars, hty)) => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), 0, length(tyvars)); T.H_TY(T.H_TOP))
                                                               | _ => t)
                                              | NONE => (ErrorMsg.error pos ("unbound type: " ^ Symbol.name(sym)); T.TOP))
           | decoty(A.ParameterizedTy(sym, typarams, pos)) =
@@ -328,11 +328,11 @@ struct
                                                 | T.H_TY(T.H_POLY(tyvars, hty)) => t
                                                 | T.S_TY(T.S_META(sm)) => (case Symbol.look(menv, sm) of
                                                                                 SOME(t') => t'
-                                                                              | _ => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), length(typarams), 0); T.S_TY(T.S_BOTTOM)))
+                                                                              | _ => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), length(typarams), 0); T.S_TY(T.S_TOP)))
                                                 | T.H_TY(T.H_META(hm)) => (case Symbol.look(menv, hm) of
                                                                                 SOME(t') => t'
-                                                                              | _ => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), length(typarams), 0); T.H_TY(T.H_BOTTOM)))
-                                                | _ => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), length(typarams), 0); T.BOTTOM))
+                                                                              | _ => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), length(typarams), 0); T.H_TY(T.H_TOP)))
+                                                | _ => (ErrorMsg.typeNumArgsError(pos, Symbol.name(sym), length(typarams), 0); T.TOP))
                                | _ => (ErrorMsg.error pos ("unbound type: " ^ Symbol.name(sym)); T.TOP))
               val mainTy' = case mainTy of
                                  T.S_TY(T.S_META(sm)) => (case Symbol.look(menv, sm) of
