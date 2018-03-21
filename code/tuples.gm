@@ -1,9 +1,12 @@
 let
 
-  fun pairadd(x, y, z) = (x + y; y = z; z :=
+  fun pairadd(x, y, z) = (x + y; y = z; z := 0)
   fun test(a, b, c) = pairadd(a, b, c)
 
   fun foo x = (x = ""; x := 10; x + 1; x)
+
+  fun pairaddrec({x, y, z}) = x + y + z
+  fun testrec(a, b, c) = pairaddrec({x = a, y = b, z = c})
 
 in
   0

@@ -21,17 +21,6 @@ let
   fun f5(x, y) = (y + 10; x)
   fun g2 z = f5(10, z)
 
-  (*
-
-  fun polyTest x =
-     let fun f y = y x   (* f: Poly['c] ('a->'c)->'c' *)
-         val z = x+2		(* substitute int for 'a in the poly *)
-         val a = f g (* if g is some int -> string fn, don't substitute string globally in the poly in venv, instead just unpoly *)
-     in
-         (f,z)
-     end
-
-  *)
 in
   0
 end

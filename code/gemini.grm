@@ -418,11 +418,12 @@ fun_dec_with_type
 
 fun_params    : fun_params fun_param                                        (fun_params1 @ [fun_param1])
               | fun_param                                                   ([fun_param1])
+              | ID                                                          ([A.SingleParam{name = Symbol.symbol(ID), ty = A.PlaceholderTy(ref ()), escape = ref true, pos = IDleft}])
 
-fun_param     : ID                                                          (A.SingleParam{name = Symbol.symbol(ID), ty = A.PlaceholderTy(ref ()), escape = ref true, pos = IDleft})
-              | LPAREN RPAREN                                               (param([], 0))
+fun_param     : LPAREN RPAREN                                               (param([], 0))
               | LPAREN opt_ty_fields RPAREN                                 (param(opt_ty_fields, 0))
               | LBRACE opt_ty_fields RBRACE                                 (param(opt_ty_fields, 1))
+              | LPAREN fun_param RPAREN                                     (fun_param)
 
 ty_dec        : TYPE tids ID EQ ty                                          (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvars = SOME(tids), opdef = NONE, pos = TYPEleft}])
               | TYPE tids ID EQ ty ty_dec                                   (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvars = SOME(tids), opdef = NONE, pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))

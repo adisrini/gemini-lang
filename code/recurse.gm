@@ -1,0 +1,7 @@
+let
+  fun fib n = if n = 0
+              then 0
+              else fib(n - 1) + fib(n - 2)
+in
+  0
+end

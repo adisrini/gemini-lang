@@ -1,0 +1,14 @@
+let
+  val x = 0
+  val y = "hello"
+  val z = 10.50
+
+  val a = 'b:0
+  val b = (1, "abc", 42.4)
+
+  fun f l = l = x
+
+  val c : int = "wrong"
+in
+  0
+end

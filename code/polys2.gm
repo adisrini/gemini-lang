@@ -1,0 +1,14 @@
+let
+  fun polyTest x =
+    let
+       fun f y = y x            (*      f: poly['c] ('a -> 'c) -> 'c              *)
+       val z = x + 2            (*      substitute int for 'a in the poly         *)
+       fun g (p : int) = ""     (*      g: int -> string                          *)
+       val a = f g              (*      don't substitute string in poly in venv   *)
+                                (*      instead just unpoly                       *)
+    in
+       (f, z)
+    end
+in
+  0
+end

@@ -1,10 +1,9 @@
 signature INFER =
 sig
 
-  val inferProg :                                  Env.smap * Absyn.exp -> Env.smap              (* returns substitution mapping *)
-  val inferExp  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.exp -> Env.smap * Env.venv * Types.ty   (* returns mapping, substitute venv and expression type *)
-  (* val inferTy   : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.ty  -> Types.ty          (* returns explicit type *) *)
-  val inferDec  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.dec -> { menv: Env.menv,     (* returns augmented environments *)
+  val inferProg :                                  Env.smap * Absyn.exp -> Env.smap                         (* returns substitution mapping *)
+  val inferExp  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.exp -> Env.smap * Env.venv * Types.ty   (* returns mapping, substituted venv and expression type *)
+  val inferDec  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.dec -> { menv: Env.menv,                (* returns augmented environments *)
                                                                              tenv: Env.tenv,
                                                                              venv: Env.venv,
                                                                              smap: Env.smap }
@@ -190,7 +189,8 @@ struct
             let
               fun foldDec(dec, {menv, tenv, venv, smap}) = inferDec(menv, tenv, venv, smap, dec)
               val {menv = menv', tenv = tenv', venv = venv', smap = smap'} = foldl foldDec {menv = menv, tenv = tenv, venv = venv, smap = smap} decs
-
+              val () = print("====== VENV ======\n")
+              val () = Symbol.print(TextIO.stdOut, venv', Types.toString)
             in
               inferExp(menv', tenv', venv', smap', body)
             end
@@ -376,8 +376,6 @@ struct
                                 [] => subbedFunTy
                                | _ => T.S_TY(T.S_POLY(paramMetas, getSWType(subbedFunTy)))
               val venv'''' = Symbol.enter(venv''', name, funTy')
-              val () = print("====== VENV ======\n")
-              val () = Symbol.print(TextIO.stdOut, venv'''', Types.toString)
             in
               {menv = menv,
                tenv = tenv,
@@ -387,145 +385,33 @@ struct
         in
           foldl foldFunDec {menv = menv, tenv = tenv, venv = venv, smap = smap} fundecs
         end
-        | infdec(_) = {menv = menv, tenv = tenv, venv = venv, smap = smap}
+      | infdec(A.ValDec(valdecs)) =
+        let
+          fun foldValDec({name, escape, ty = (ty, tyPos), init, pos}, {menv, tenv, venv, smap}) =
+            let
+              (* infer type of initializing expression *)
+              val (smap', venv', initTy) = inferExp(menv, tenv, venv, smap, init)
+
+              (* unify initializing expression with value type *)
+              val sub = U.unify(getExplicitType(ty, T.BOTTOM), initTy, tyPos)
+
+              (* add to substitution mapping *)
+              val smap'' = augmentSmap(smap', [sub], tyPos)
+
+              (* add name to variable environment *)
+              val venv'' = Symbol.enter(venv', name, initTy)
+
+              (* perform substitution *)
+              val venv''' = S.substitute(smap'', venv'')
+            in
+              {menv = menv, tenv = tenv, venv = venv''', smap = smap''}
+            end
+        in
+          foldl foldValDec {menv = menv, tenv = tenv, venv = venv, smap = smap} valdecs
+        end
+      | infdec(_) = {menv = menv, tenv = tenv, venv = venv, smap = smap}
     in
       infdec(dec)
     end
-
-  (*
-  and inferTy(menv, tenv, venv, smap, ty) =
-    let fun infty(A.NameTy(sym, pos)) = getTypeFromEnv(tenv, sym)
-          | infty(A.TyVar(sym, pos)) = getTypeFromEnv(menv, sym)
-          | infty(A.SWRecordTy(fields, pos)) =
-            let
-              fun absynToTy({name, ty, escape, pos}) =
-                let
-                  val realTy = case Symbol.look(tenv, name) of
-                                    SOME(t) => t
-                                  | NONE => (case Symbol.look(menv, name) of
-                                                  SOME(t) => t
-                                                | NONE => T.S_TOP) (* TODO: error message (symbol not found) *)
-                  val retTy = case realTy of
-                                   T.S_TY(t) => t
-                                 | _ => T.S_TOP (* TODO: error message (sw type expected) *)
-                in
-                  (name, retTy)
-                end
-              fun processFields fs = foldl (fn(f, l) => l @ [absynToTy(f)]) [] fs
-              fun checkDuplicateFields [] = ()
-                | checkDuplicateFields ({name, ty, escape, pos}::rest) =
-                let
-                  val () = if (List.exists (fn r => (Symbol.name name) = (Symbol.name (#name r))) rest)
-                           then () (* TODO: error message (duplicate field name) *)
-                           else ()
-                in
-                  checkDuplicateFields(rest)
-                end
-              val () = checkDuplicateFields(fields)
-            in
-              T.S_TY(T.S_RECORD(processFields(fields)))
-            end
-          | infty(A.HWRecordTy(fields, pos)) =
-            let
-              fun absynToTy({name, ty, escape, pos}) =
-                let
-                  val realTy = case Symbol.look(tenv, name) of
-                                    SOME(t) => t
-                                  | NONE => (case Symbol.look(menv, name) of
-                                                  SOME(t) => t
-                                                | NONE => T.H_TOP) (* TODO: error message (symbol not found) *)
-                  val retTy = case realTy of
-                                   T.H_TY(t) => t
-                                 | _ => T.H_TOP (* TODO: error message (hw type expected) *)
-                in
-                  (name, retTy)
-                end
-              fun processFields fs = foldl (fn(f, l) => l @ [absynToTy(f)]) [] fs
-              fun checkDuplicateFields [] = ()
-                | checkDuplicateFields ({name, ty, escape, pos}::rest) =
-                let
-                  val () = if (List.exists (fn r => (Symbol.name name) = (Symbol.name (#name r))) rest)
-                           then () (* TODO: error message (duplicate field name) *)
-                           else ()
-                in
-                  checkDuplicateFields(rest)
-                end
-              val () = checkDuplicateFields(fields)
-            in
-              T.H_TY(T.H_RECORD(processFields(fields)))
-            end
-          | infty(A.ArrayTy(ty, size, pos)) =
-            let
-              val realTy = infty(ty)
-              val retTy = case realTy of
-                               T.H_TY(t) => t
-                             | _ => T.H_TOP (* TODO: error message (hw type expected) *)
-              val {exp = sizeExp, ty = sizeTy} = inferExp(menv, tenv, venv, size)
-              val () = case sizeTy of
-                            T.S_TY(T.INT) => ()
-                          | _ => () (* TODO: error message (int type expected) *)
-            in
-              T.H_TY(T.ARRAY({ty = retTy, size = int}))
-            end
-          | infty(A.ListTy(ty, pos)) =
-            let
-              val realTy = infty(ty)
-              val retTy = case realTy of
-                               T.S_TY(t) => t
-                             | _ => T.S_TOP (* TODO: error message (sw type expected) *)
-            in
-              T.S_TY(T.LIST(retTy))
-            end
-          | infty(A.TemporalTy(ty, time, pos)) =
-            let
-              val realTy = infty(ty)
-              val retTy = case realTy of
-                               T.H_TY(t) => t
-                             | _ => T.H_TOP (* TODO: error message (expected hw type) *)
-              val {exp = timeExp, ty = timeTy} = inferExp(menv, tenv, venv, time)
-              val () = case timeTy of
-                            T.S_TY(T.INT) => ()
-                          | _ => () (* TODO: error message (expected int type) *)
-            in
-              T.H_TY(T.TEMPORAL({ty = retTy, time = timeExp}))
-            end
-          | infty(A.RefTy(ty, pos)) =
-            let
-              val realTy = infty(ty)
-              val retTy = case realTy of
-                               T.S_TY(t) => t
-                             | _ => T.S_TOP (* TODO: error message (expected sw type) *)
-            in
-              T.S_TY(T.REF(retTy))
-            end
-          | infty(A.SWTy(ty, pos)) =
-            let
-              val realTy = infty(ty)
-              val ret = case realTy of
-                             T.H_TY(t) => T.S_TY(T.SW_H(t))
-                           | T.M_TY(t) => T.S_TY(T.SW_M(t))
-                           | _ => T.S_TY(T.S_TOP) (* TODO: error message (expected hw/m type ) *)
-            in
-              ret
-            end
-          | infty(A.FunTy(ty1, ty2, pos)) =
-            let
-              val realArgTy = infty(ty1)
-              val realResTy = infty(ty2)
-
-              val retArgTy = case realArgTy of
-                                  T.S_TY(t) => t
-                                | _ => T.S_TOP (* TODO: error message (expected sw type) *)
-              val retResTy = case realResTy of
-                                  T.S_TY(t) => t
-                                | _ => T.S_BOTTOM (* TODO: error message (expected sw type) *)
-            in
-              T.S_TY(T.ARROW(infty(ty1), infty(ty2)))
-            end
-          | infty(A.PlaceholderTy(u)) = T.META(E.newMeta())
-          | infty(A.ExplicitTy(t)) = t
-    in
-      infty(ty)
-    end *)
 
 end
