@@ -208,10 +208,10 @@ fun print (outstream, e0) =
 
   and realTy(t, d) =
     let
-      fun sfield((tyv, s), d) = (indent d; say (Symbol.name(tyv)); say ": "; sty(s, 0))
+      fun sfield((tyv, s), d) = (indent d; say (Symbol.name(tyv)); say ": "; sty(s, d+1))
       and saytyvar(tyv, d) = (indent d; say (Symbol.name(tyv)))
-      and stycon((tyv, s_opt), d) = (indent d; say (Symbol.name(tyv)); (case s_opt of SOME(s) => (say ": "; sty(s, 0)) | NONE => ()))
-      and htycon((tyv, h_opt), d) = (indent d; say (Symbol.name(tyv)); (case h_opt of SOME(h) => (say ": "; hty(h, 0)) | NONE => ()))
+      and stycon((tyv, s_opt), d) = (indent d; say (Symbol.name(tyv)); (case s_opt of SOME(s) => (sayln ": "; sty(s, d+1)) | NONE => ()))
+      and htycon((tyv, h_opt), d) = (indent d; say (Symbol.name(tyv)); (case h_opt of SOME(h) => (sayln ": "; hty(h, d+1)) | NONE => ()))
       and sty(T.INT, d) = (indent d; say "INT")
         | sty(T.STRING, d) = (indent d; say "STRING")
         | sty(T.REAL, d) = (indent d; say "REAL")
@@ -221,7 +221,7 @@ fun print (outstream, e0) =
         | sty(T.SW_M(m), d) = (indent d; sayln "SW_M("; mty(m, d + 1); sayln ""; indent d; say ")")
         | sty(T.S_RECORD(fields), d) = (indent d; say "S_RECORD(["; dolist (d + 1) sfield fields; say "])")
         | sty(T.REF(s), d) = (indent d; sayln "REF("; sty(s, d + 1); sayln ""; indent d; say ")")
-        | sty(T.S_DATATYPE(tycons, u), d) = (indent d; sayln "S_DATATYPE(["; dolist (d + 1) stycon tycons; say "])")
+        | sty(T.S_DATATYPE(tycons, u), d) = (indent d; say "S_DATATYPE(["; dolist (d + 1) stycon tycons; say "])")
         | sty(T.S_META(tyv), d) = (indent d; say "S_META("; say (Symbol.name(tyv)); say ")")
         | sty(T.S_TOP, d) = (indent d; say "S_TOP")
         | sty(T.S_BOTTOM, d) = (indent d; say "S_BOTTOM")

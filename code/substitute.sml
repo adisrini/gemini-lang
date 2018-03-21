@@ -3,8 +3,14 @@ struct
 
   structure T = Types
 
-  datatype sub = SUB of (Symbol.symbol * Types.ty) option
+  datatype sub = SUB of (Symbol.symbol * Types.ty) list
                | ERROR of {expected: Types.ty, received: Types.ty}
+
+  fun toString(SUB(subs)) = "SUB(" ^ (String.concat(map (fn(sym, ty) => Symbol.name(sym) ^ " |-> " ^ T.toString(ty) ^ ",") subs)) ^ ")"
+    | toString(ERROR{expected, received}) = "ERROR({expected: " ^ T.toString(expected) ^ ", received: " ^ T.toString(received) ^ "})"
+
+  fun makeMap(SUB(subs)) = foldl (fn((sym, ty), smap) => Symbol.enter(smap, sym, ty)) Symbol.empty subs 
+    | makeMap(_) = Symbol.empty
 
   fun substituteType(ty, submap, hasChanged) =
     let

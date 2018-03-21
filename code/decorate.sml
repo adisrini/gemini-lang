@@ -580,7 +580,7 @@ struct
                     val realTy = case argTy of
                                       T.S_TY(s) => T.S_TY(T.ARROW(s, retTy))
                                     | T.EMPTY => T.S_TY(T.ARROW(T.S_DATATYPE([], ref ()), retTy))
-                                    | _ => (print("hereeee\n"); T.S_TY(T.S_TOP))
+                                    | _ => (T.S_TY(T.S_TOP))
                   in
                     {datacon = datacon, ty = A.ExplicitTy(realTy), pos = pos}
                   end

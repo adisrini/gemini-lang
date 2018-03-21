@@ -9,17 +9,21 @@ let
   (* implicitly typed with polymorphism, should POLY*)
   fun f3 x y = (x = y)
 
-  (* implicitly typed with polymorphism, calling on instance should UNPOLY *)
+  (* implicitly typed with polymorphism, calling on instance should unpoly *)
+  (* should leave f4: poly(['a], 'a -> 'a) *)
+  (* should make g: unit -> int *)
   fun f4 x = x
-  fun g () = f4 10
+  fun g1 () = f4 10
+
+  (* implicitly typed with polymorphism, calling on instance should unpoly *)
+  (* should leave f5: 'a * int -> 'a *)
+  (* should make g: int -> int *)
+  fun f5(x, y) = (y + 10; x)
+  fun g2 z = f5(10, z)
+
+  (* test partial function application *)
 
   (*
-  fun f x = x
-  (* at this stage, should add POLY to venv instead of ARROW *)
-  val y = 0
-  (* at this stage, should UNPOLY *)
-  val x = f y (* should say x is type int! make sure unpolying *)
-
 
   fun polyTest x =
      let fun f y = y x   (* f: Poly['c] ('a->'c)->'c' *)

@@ -2,7 +2,7 @@ signature INFER =
 sig
 
   val inferProg :                                  Env.smap * Absyn.exp -> Env.smap              (* returns substitution mapping *)
-  val inferExp  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.exp -> Env.smap * Types.ty   (* returns mapping and expression type *)
+  val inferExp  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.exp -> Env.smap * Env.venv * Types.ty   (* returns mapping, substitute venv and expression type *)
   (* val inferTy   : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.ty  -> Types.ty          (* returns explicit type *) *)
   val inferDec  : Env.menv * Env.tenv * Env.venv * Env.smap * Absyn.dec -> { menv: Env.menv,     (* returns augmented environments *)
                                                                              tenv: Env.tenv,
@@ -24,15 +24,14 @@ struct
   fun augmentSmap(smap, subs, pos) =
     let
       fun tryEnter(sub, smap') = case sub of
-                                      S.SUB(SOME(sym, ty)) => let
-                                                                val lookup = Symbol.look(smap', sym)
-                                                              in
-                                                                case lookup of
-                                                                     SOME(existingTy) => (case U.unify(existingTy, ty, pos) of (* try unifying *)
-                                                                                               S.SUB(SOME(_, ty2)) => smap' (* can this case happen? *)
-                                                                                             | _ => smap')
-                                                                   | _ => Symbol.enter(smap', sym, ty) (* if doesn't exist, add as usual *)
-                                                              end
+                                      S.SUB(innersubs) => let
+                                                            fun foldInnersub((sym, ty), smap'') =
+                                                              case Symbol.look(smap'', sym) of
+                                                                   SOME(existingTy) => smap''
+                                                                 | _ => Symbol.enter(smap'', sym, ty) (* if doesn't exist, add as usual *)
+                                                          in
+                                                              foldl foldInnersub smap' innersubs
+                                                          end
                                     | _ => smap'
     in
       foldl tryEnter smap subs
@@ -64,53 +63,54 @@ struct
 
   fun inferProg(smap, e) =
     let
-      val (smap', ty) = inferExp(E.base_menv, E.base_tenv, E.base_venv, smap, e)
+      val (smap', venv', ty) = inferExp(E.base_menv, E.base_tenv, E.base_venv, smap, e)
     in
       smap'
     end
 
   and inferExp(menv, tenv, venv, smap, exp) =
-    let fun infexp(A.StructsSigsExp(structsigs)) = (smap, T.EMPTY)
-          | infexp(A.VarExp(sym, pos)) = (smap, case Symbol.look(venv, sym) of
-                                                     SOME(t) => t
-                                                   | _ => (ErrorMsg.error pos ("unbound variable or constructor: " ^ Symbol.name(sym)); T.BOTTOM))
-          | infexp(A.IntExp(num, pos)) = (smap, T.S_TY(T.INT))
-          | infexp(A.StringExp(str, pos)) = (smap, T.S_TY(T.STRING))
-          | infexp(A.RealExp(num, pos)) = (smap, T.S_TY(T.REAL))
-          | infexp(A.BitExp(bit, pos)) = (smap, T.H_TY(T.BIT))
+    let fun infexp(A.StructsSigsExp(structsigs)) = (smap, venv, T.EMPTY)
+          | infexp(A.VarExp(sym, pos)) = (smap, venv, case Symbol.look(venv, sym) of
+                                                           SOME(t) => t
+                                                         | _ => (ErrorMsg.error pos ("unbound variable or constructor: " ^ Symbol.name(sym)); T.BOTTOM))
+          | infexp(A.IntExp(num, pos)) = (smap, venv, T.S_TY(T.INT))
+          | infexp(A.StringExp(str, pos)) = (smap, venv, T.S_TY(T.STRING))
+          | infexp(A.RealExp(num, pos)) = (smap, venv, T.S_TY(T.REAL))
+          | infexp(A.BitExp(bit, pos)) = (smap, venv, T.H_TY(T.BIT))
           | infexp(A.ApplyExp(e1, e2, pos)) =
             let
-              val (smap', e1Ty) = inferExp(menv, tenv, venv, smap, e1)
-              val (smap'', e2Ty) = inferExp(menv, tenv, venv, smap', e2)
+              val (smap', venv', e1Ty) = inferExp(menv, tenv, venv, smap, e1)
+              val (smap'', venv'', e2Ty) = inferExp(menv, tenv, venv', smap', e2)
             in
               case e1Ty of
                    T.S_TY(T.ARROW(sty1, sty2)) =>
                     let
                       val sub = U.unify(T.S_TY(sty1), e2Ty, pos)
                     in
-                      (augmentSmap(smap'', [sub], pos), T.S_TY(sty2))
+                      (augmentSmap(smap'', [sub], pos), venv'', T.S_TY(sty2))
                     end
-                 (* | T.S_TY(T.S_POLY(tyvars, T.ARROW(sty1, sty2))) =>
+                 | T.S_TY(T.S_POLY(tyvars, T.ARROW(sty1, sty2))) =>
                     let
-                      val (sub, retTy) = U.unifyPolyApp(T.S_TY(sty1), e2Ty, pos)
+                      val sub = U.unifyPolyApp(T.S_TY(sty1), e2Ty, pos)
+                      val () = print(S.toString(sub) ^ "\n")
                     in
-                      (augmentSmap(smap'', [sub], pos), retTy)
-                    end *)
+                      (smap'', venv'', S.substituteType(T.S_TY(sty2), S.makeMap(sub), ref false)) (* return original smap but substitute on return type *)
+                    end
                  | _ => case e2Ty of
                              T.S_TY(e2Sty) =>
                               let
                                 val retTy = T.S_META(E.newMeta())
                                 val sub = U.unify(T.S_TY(T.ARROW(e2Sty, retTy)), e1Ty, pos)
                               in
-                                (augmentSmap(smap'', [sub], pos), T.S_TY(retTy))
+                                (augmentSmap(smap'', [sub], pos), venv'', T.S_TY(retTy))
                               end
-                           | T.BOTTOM => (smap'', T.S_TY(T.S_META(E.newMeta())))
-                           | _ => (ErrorMsg.error pos "cannot apply function to non-sw type"; (smap'', T.S_TY(T.S_META(E.newMeta()))))
+                           | T.BOTTOM => (smap'', venv'', T.S_TY(T.S_META(E.newMeta())))
+                           | _ => (ErrorMsg.error pos "cannot apply function to non-sw type"; (smap'', venv'', T.S_TY(T.S_META(E.newMeta()))))
             end
           | infexp(A.BinOpExp({left, oper, right, pos})) =
             let
-              val (smap', leftTy) = inferExp(menv, tenv, venv, smap, left)
-              val (smap'', rightTy) = inferExp(menv, tenv, venv, smap', right)
+              val (smap', venv', leftTy) = inferExp(menv, tenv, venv, smap, left)
+              val (smap'', venv'', rightTy) = inferExp(menv, tenv, venv', smap', right)
               val ((smap''', subs), retTy) = case oper of
                               A.IntPlusOp => (unifyAndSubstitute(smap'', T.S_TY(T.INT), [(leftTy, pos), (rightTy, pos)]), T.S_TY(T.INT))
                             | A.IntMinusOp => (unifyAndSubstitute(smap'', T.S_TY(T.INT), [(leftTy, pos), (rightTy, pos)]), T.S_TY(T.INT))
@@ -184,9 +184,9 @@ struct
                               end
                             | _ => raise Match
             in
-              (smap''', retTy)
+              (smap''', venv'', retTy)
             end
-          | infexp(A.UnOpExp({exp, oper, pos})) = (smap, T.EMPTY)
+          | infexp(A.UnOpExp({exp, oper, pos})) = (smap, venv, T.EMPTY)
           | infexp(A.LetExp({decs, body, pos})) =
             let
               fun foldDec(dec, {menv, tenv, venv, smap}) = inferDec(menv, tenv, venv, smap, dec)
@@ -197,65 +197,76 @@ struct
             end
           | infexp(A.AssignExp({lhs, rhs, pos})) =
             let
-              val (smap', leftTy) = inferExp(menv, tenv, venv, smap, lhs)
-              val (smap'', rightTy) = inferExp(menv, tenv, venv, smap', rhs)
+              val (smap', venv', leftTy) = inferExp(menv, tenv, venv, smap, lhs)
+              val (smap'', venv'', rightTy) = inferExp(menv, tenv, venv', smap', rhs)
               val (sub, retTy) = U.unifyAssign(leftTy, rightTy, pos)
               val smap''' = augmentSmap(smap'', [sub], pos)
             in
-              (smap''', retTy)
+              (smap''', venv'', retTy)
             end
           | infexp(A.SeqExp(exps)) =
             let
-              fun foldExp((exp, pos), (smap, ty_opt)) =
+              fun foldExp((exp, pos), (smap, venv, ty_opt)) =
                 let
-                  val (smap', expTy) = inferExp(menv, tenv, venv, smap, exp)
+                  val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
                 in
-                  (smap', SOME(expTy))
+                  (smap', S.substitute(smap', venv'), SOME(expTy))
                 end
-              val (smap', retTy_opt) = foldl foldExp (smap, NONE) exps
+              val (smap', venv', retTy_opt) = foldl foldExp (smap, venv, NONE) exps
             in
-              (smap', case retTy_opt of
-                           NONE => T.S_TY(T.S_RECORD([])) (* unit *)
-                         | SOME(retTy) => retTy)
+              (smap', venv', case retTy_opt of
+                                 NONE => T.S_TY(T.S_RECORD([])) (* unit *)
+                               | SOME(retTy) => retTy)
             end
           | infexp(A.IfExp({test, then', else', pos})) =
             let
-              val (smap', testTy) = inferExp(menv, tenv, venv, smap, test)
+              val (smap', venv', testTy) = inferExp(menv, tenv, venv, smap, test)
               val sub1 = U.unify(T.S_TY(T.INT), testTy, pos)
-              val (smap'', thenTy) = inferExp(menv, tenv, venv, smap', then')
-              val (smap''', elseTy) = case else' of
-                                          SOME(elseExp) => inferExp(menv, tenv, venv, smap'', elseExp)
-                                        | _ => (smap'', case thenTy of
-                                                     T.S_TY(_) => T.S_TY(T.S_RECORD([]))
-                                                   | T.H_TY(_) => T.H_TY(T.H_RECORD([]))
-                                                   | _ => T.BOTTOM)
+              val (smap'', venv'', thenTy) = inferExp(menv, tenv, venv', smap', then')
+              val (smap''', venv''', elseTy) = case else' of
+                                                    SOME(elseExp) => inferExp(menv, tenv, venv'', smap'', elseExp)
+                                                  | _ => (smap'', venv'', case thenTy of
+                                                                               T.S_TY(_) => T.S_TY(T.S_RECORD([]))
+                                                                             | T.H_TY(_) => T.H_TY(T.H_RECORD([]))
+                                                                             | _ => T.BOTTOM)
               val sub2 = U.unify(thenTy, elseTy, pos)
               val smap'''' = augmentSmap(smap''', [sub1, sub2], pos)
               val retTy = case sub2 of
-                               S.SUB(x) => thenTy
-                             | S.ERROR(m) => T.BOTTOM
+                               S.SUB(_) => thenTy
+                             | S.ERROR(_) => T.BOTTOM
             in
-              (smap'''', retTy)
+              (smap'''', venv''', retTy)
             end
-          | infexp(A.ListExp(exps)) = (smap, T.S_TY(T.LIST(T.INT))) (* TODO *)
-          | infexp(A.ArrayExp(exps)) = (smap, T.EMPTY)
+          | infexp(A.ListExp(exps)) = (smap, venv, T.S_TY(T.LIST(T.INT))) (* TODO *)
+          | infexp(A.ArrayExp(exps)) = (smap, venv, T.EMPTY)
           | infexp(A.RefExp(exp, pos)) =
             let
-              val (smap', expTy) = inferExp(menv, tenv, venv, smap, exp)
+              val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
               val innerTy = case expTy of
                                  T.S_TY(s) => s
                                | T.META(m) => T.S_META(m)
                                | _ => T.S_BOTTOM
             in
-              (smap', T.S_TY(T.REF(innerTy)))
+              (smap', venv', T.S_TY(T.REF(innerTy)))
             end
-          | infexp(A.SWRecordExp({fields, pos})) = (smap, T.EMPTY)
-          | infexp(A.HWRecordExp({fields, pos})) = (smap, T.EMPTY)
-          | infexp(A.SWExp(exp, pos)) = (smap, T.EMPTY)
-          | infexp(A.WithExp({exp, fields, pos})) = (smap, T.EMPTY)
+          | infexp(A.SWRecordExp({fields, pos})) =
+            let
+              fun foldField((sym, exp, pos), (smap, venv, tyfields)) =
+                let
+                  val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
+                in
+                  (smap', venv', (sym, getSWType(expTy))::tyfields)
+                end
+              val (smap', venv', tyfields) = foldl foldField (smap, venv, []) fields
+            in
+              (smap', venv', T.S_TY(T.S_RECORD(List.rev(tyfields))))
+            end
+          | infexp(A.HWRecordExp({fields, pos})) = (smap, venv, T.EMPTY)
+          | infexp(A.SWExp(exp, pos)) = (smap, venv, T.EMPTY)
+          | infexp(A.WithExp({exp, fields, pos})) = (smap, venv, T.EMPTY)
           | infexp(A.DerefExp({exp, pos})) =
             let
-              val (smap', expTy) = inferExp(menv, tenv, venv, smap, exp)
+              val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
               val innerTy = case expTy of
                                  T.S_TY(T.REF(s)) => s
                                | T.S_TY(T.S_META(m)) => T.S_META(m)
@@ -264,7 +275,7 @@ struct
               val newInnerTy = T.S_META(E.newMeta()) (* NOTE: should be creating new meta here? *)
               val sub = case innerTy of
                              T.S_META(m) => U.unify(expTy, T.S_TY(T.REF(newInnerTy)), pos)
-                           | _ => S.SUB(NONE)
+                           | _ => S.SUB([])
               val smap'' = augmentSmap(smap', [sub], pos)
               val retTy = case sub of
                                S.SUB(x) => (case innerTy of
@@ -272,15 +283,19 @@ struct
                                                | _ => T.S_TY(innerTy))
                              | S.ERROR(m) => T.BOTTOM
             in
-              (smap'', retTy)
+              (smap'', venv', retTy)
             end
-          | infexp(A.StructAccExp({name, field, pos})) = (smap, T.EMPTY)
-          | infexp(A.RecordAccExp({exp, field, pos})) = (smap, T.EMPTY)
-          | infexp(A.ArrayAccExp({exp, index, pos})) = (smap, T.EMPTY)
-          | infexp(A.PatternMatchExp({exp, cases, pos})) = (smap, T.EMPTY)
-          | infexp(A.BitArrayExp({size, result, spec})) = (smap, T.EMPTY)
+          | infexp(A.StructAccExp({name, field, pos})) = (smap, venv, T.EMPTY)
+          | infexp(A.RecordAccExp({exp, field, pos})) = (smap, venv, T.EMPTY)
+          | infexp(A.ArrayAccExp({exp, index, pos})) = (smap, venv, T.EMPTY)
+          | infexp(A.PatternMatchExp({exp, cases, pos})) = (smap, venv, T.EMPTY)
+          | infexp(A.BitArrayExp({size, result, spec})) = (smap, venv, T.EMPTY)
     in
-      infexp(exp)
+      let
+        val (smap', venv', ty) = infexp(exp)
+      in
+        (smap', S.substitute(smap', venv'), ty)
+      end
     end
 
   and inferDec(menv, tenv, venv, smap, dec) =
@@ -297,7 +312,7 @@ struct
               val venv' = foldl foldParam venv params
 
               (* process body with augmented venv' *)
-              val (smap', bodyTy) = inferExp(menv, tenv, venv', smap, body)
+              val (smap', _, bodyTy) = inferExp(menv, tenv, venv', smap, body)
 
               (* unify bodyTy with resultTy *)
               val sub = U.unify(getExplicitType(resultTy, T.S_TY(T.S_BOTTOM)), bodyTy, resultPos)
@@ -342,9 +357,21 @@ struct
                                | _ => (ErrorMsg.error pos ("unbound function: " ^ Symbol.name(name)); T.S_BOTTOM)
 
               fun flattenMetas(T.S_META(sm)) = [sm]
-                | flattenMetas(T.S_RECORD(fs)) = foldl (fn((tyv, sty), metas)  => flattenMetas(sty) @ metas) [] fs
+                | flattenMetas(T.S_RECORD(fs)) = List.rev(foldl (fn((tyv, sty), metas)  => flattenMetas(sty) @ metas) [] fs)
                 | flattenMetas(T.ARROW(s1, s2)) = flattenMetas(s1) @ flattenMetas(s2)
+                | flattenMetas(T.LIST(s)) = flattenMetas(s)
+                | flattenMetas(T.SW_H(h)) = flattenHWMetas(h)
+                | flattenMetas(T.SW_M(m)) = flattenModMetas(m)
+                | flattenMetas(T.REF(s)) = flattenMetas(s)
+                | flattenMetas(T.S_DATATYPE(tys, u)) = List.rev(foldl (fn((tyv, sty_opt), metas)  => case sty_opt of SOME(s) => flattenMetas(s) @ metas | NONE => metas) [] tys)
                 | flattenMetas(_) = []
+              and flattenHWMetas(T.H_META(hm)) = [hm]
+                | flattenHWMetas(T.ARRAY{ty, size}) = flattenHWMetas(ty)
+                | flattenHWMetas(T.TEMPORAL{ty, time}) = flattenHWMetas(ty)
+                | flattenHWMetas(T.H_RECORD(fs)) = List.rev(foldl (fn((tyv, hty), metas)  => flattenHWMetas(hty) @ metas) [] fs)
+                | flattenHWMetas(T.H_DATATYPE(tys, u)) = List.rev(foldl (fn((tyv, hty_opt), metas)  => case hty_opt of SOME(h) => flattenHWMetas(h) @ metas | NONE => metas) [] tys)
+                | flattenHWMetas(_) = []
+              and flattenModMetas(T.MODULE(h1, h2)) = flattenHWMetas(h1) @ flattenHWMetas(h2)
               val paramMetas = flattenMetas params'
 
               val funTy' = case paramMetas of
