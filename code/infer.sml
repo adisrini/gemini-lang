@@ -242,7 +242,25 @@ struct
             in
               (smap'''', venv''', retTy)
             end
-          | infexp(A.ListExp(exps)) = (smap, venv, T.S_TY(T.LIST(T.INT))) (* TODO *)
+          | infexp(A.ListExp(exps)) =
+            let
+              fun foldElem((exp, pos), (smap, venv, elemTy)) =
+                let
+                  val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
+                  val sub = U.unify(elemTy, expTy, pos)
+                  val smap'' = augmentSmap(smap', [sub], pos)
+
+                  val strongerTy = case elemTy of
+                                        T.S_TY(T.S_META(_)) => expTy
+                                      | _ => elemTy
+                in
+                  (smap'', S.substitute(smap'', venv'), strongerTy)
+                end
+
+              val (smap', venv', retTy) = foldl foldElem (smap, venv, T.S_TY(T.S_META(E.newMeta()))) exps
+            in
+              (smap', venv', T.S_TY(T.LIST(getSWType(retTy))))
+            end
           | infexp(A.ArrayExp(exps)) = (smap, venv, T.EMPTY)
           | infexp(A.RefExp(exp, pos)) =
             let
@@ -534,6 +552,27 @@ struct
               fun foldDatacon({datacon, ty, pos}, venv) =
                 let
                   val venv' = Symbol.enter(venv, datacon, getExplicitType(ty, T.S_TY(T.S_BOTTOM)))
+                in
+                  venv'
+                end
+
+              val venv' = foldl foldDatacon venv datacons
+            in
+              {menv = menv, tenv = tenv, venv = venv', smap = smap}
+            end
+        in
+          foldl foldDatatyDec {menv = menv, tenv = tenv, venv = venv, smap = smap} datatydecs
+        end
+      | infdec(A.HWDatatypeDec(datatydecs)) =
+        let
+          fun foldDatatyDec({name, tyvars, datacons}, {menv, tenv, venv, smap}) =
+            let
+              (* at this point, type should already be in SMAP and all datacons have function types to construct *)
+
+              (* add all datacons to venv *)
+              fun foldDatacon({datacon, ty, pos}, venv) =
+                let
+                  val venv' = Symbol.enter(venv, datacon, getExplicitType(ty, T.H_TY(T.H_BOTTOM)))
                 in
                   venv'
                 end

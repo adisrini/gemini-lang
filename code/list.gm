@@ -1,0 +1,5 @@
+let
+  fun makelist x = [x, 1, "", x = ""]
+in
+  0
+end
