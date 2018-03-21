@@ -54,6 +54,7 @@ struct
                                 | (_, T.S_META(sm)) => S.SUB([(sm, T.S_TY(sty1))])
                                 | (T.INT, T.INT) => S.SUB([])
                                 | (T.STRING, T.STRING) => S.SUB([])
+                                | (T.REAL, T.REAL) => S.SUB([])
                                 | (T.LIST(listTy1), T.LIST(listTy2)) => unifySty(listTy1, listTy2, pos)
                                 | (T.REF(refTy1), T.REF(refTy2)) => unifySty(refTy1, refTy2, pos)
                                 | (T.S_POLY(_, polySty), _) => unifySty(polySty, sty2, pos)

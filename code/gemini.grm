@@ -231,8 +231,6 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
 %left AT
 %left LIST SW REF
 
-%left APPLY
-
 %nonassoc ARRAY_ACC LBRACK RBRACK
 %nonassoc RECORD_ACC POUND
 %nonassoc BANG
@@ -240,6 +238,8 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
 
 %nonassoc LBRACE RBRACE
 %nonassoc LPAREN RPAREN
+
+%left APPLY
 
 %nonassoc UMINUS BIT_NOT BIT_OR_REDUCE BIT_AND_REDUCE BIT_XOR_REDUCE
 

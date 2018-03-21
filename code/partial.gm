@@ -1,0 +1,6 @@
+let
+  fun add a b c = (a + 0; b = ""; c +. 10.5)
+  fun add1 () = add 1
+in
+  0
+end

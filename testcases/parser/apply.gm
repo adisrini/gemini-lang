@@ -1,0 +1,5 @@
+let
+  fun testApply1(f, g, h) : real = f (g 0) (h "")
+in
+  0
+end

@@ -339,13 +339,12 @@ struct
                     makeRecordParamTy(fs, NONE)
                   end
 
-              fun makeParamTy([], SOME(sty)) = sty
-                | makeParamTy(p::ps, NONE) = makeParamTy(ps, SOME(getParamTy(p)))
-                | makeParamTy(p::ps, SOME(sty)) = makeParamTy(ps, SOME(T.ARROW(sty, getParamTy(p))))
-                | makeParamTy(_) = raise Match
+              fun makeFunTy([], SOME(sty)) = sty
+                | makeFunTy(t::ts, NONE) = makeFunTy(ts, SOME(t))
+                | makeFunTy(t::ts, SOME(sty)) = makeFunTy(ts, SOME(T.ARROW(t, sty)))
+                | makeFunTy(_) = raise Match
 
-              val paramTy = makeParamTy(params, NONE)
-              val funTy = T.ARROW(paramTy, getSWType(bodyTy))
+              val funTy = makeFunTy(getSWType(bodyTy)::List.rev(map getParamTy params), NONE)
               val venv'' = Symbol.enter(venv, name, T.S_TY(funTy))
               val venv''' = S.substitute(smap'', venv'')
 
