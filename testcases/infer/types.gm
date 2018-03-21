@@ -4,13 +4,15 @@ let
   val swx : (int, int) pair = (1, 2)
   val hwx : (bit, bit) pair = #('b:0, 'b:1)
   *)
+  
   type ('a, 'b) pair = 'a * 'b
+    with op = (x, y) = (#1(x) = #1(y)) andalso (#2(x) = #2(y))
+
   val a : pair = (0, 0)
   val b : int pair = (0, 0)
   val c : (int, string, real) pair = (0, 0)
   val d : (int, string) pair = (0, "")
-  val x = "
-  hello"
+  val x = ""
 in
   0
 end

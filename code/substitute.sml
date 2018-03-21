@@ -92,6 +92,9 @@ struct
           then iterate(env')
           else env'
         end
+      (*val () = print("=== SUBSTITUTING ===\n")
+      val () = Symbol.print(TextIO.stdOut, smap, T.toString)
+      val () = Symbol.print(TextIO.stdOut, env, T.toString)*)
     in
       iterate(env)
     end

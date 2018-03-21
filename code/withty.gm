@@ -1,0 +1,7 @@
+let
+  type weirdint = int
+    with op = (x, y) = (x <> y andalso x = "")
+    and with op <> (x, y) = (x = y)
+in
+  0
+end

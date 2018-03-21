@@ -1,0 +1,5 @@
+let
+  sdatatype simple = FOO of int
+in
+  0
+end

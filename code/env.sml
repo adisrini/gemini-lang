@@ -25,6 +25,7 @@ struct
   type tenv = Types.ty Symbol.table
   type venv = Types.ty Symbol.table
   type smap = Types.ty Symbol.table
+  type dmap = Types.ty Symbol.table
 
   fun createEnvironmentWithData (l: (Symbol.symbol * 'a) list) = foldr (fn(x, env) => Symbol.enter(env, #1 x, #2 x)) Symbol.empty l
 

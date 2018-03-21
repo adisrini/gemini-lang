@@ -191,6 +191,8 @@ struct
               val {menv = menv', tenv = tenv', venv = venv', smap = smap'} = foldl foldDec {menv = menv, tenv = tenv, venv = venv, smap = smap} decs
               val () = print("====== VENV ======\n")
               val () = Symbol.print(TextIO.stdOut, venv', Types.toString)
+              val () = print("====== TENV ======\n")
+              val () = Symbol.print(TextIO.stdOut, tenv', Types.toString)
             in
               inferExp(menv', tenv', venv', smap', body)
             end
@@ -287,7 +289,49 @@ struct
           | infexp(A.StructAccExp({name, field, pos})) = (smap, venv, T.EMPTY)
           | infexp(A.RecordAccExp({exp, field, pos})) = (smap, venv, T.EMPTY)
           | infexp(A.ArrayAccExp({exp, index, pos})) = (smap, venv, T.EMPTY)
-          | infexp(A.PatternMatchExp({exp, cases, pos})) = (smap, venv, T.EMPTY)
+          | infexp(A.PatternMatchExp({exp, cases, pos})) =
+            let
+              val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
+
+              fun foldCase({match, result, pos}, (smap, venv, ty_opt)) =
+                let
+                  fun addMatchVars(A.VarExp(sym, pos), venv) = Symbol.enter(venv, sym, T.META(E.newMeta()))
+                    | addMatchVars(A.ApplyExp(func, arg, pos), venv) = addMatchVars(arg, venv)
+                    | addMatchVars(A.SWRecordExp({fields, pos}), venv) = foldl (fn((sym, exp, pos), venv) => addMatchVars(exp, venv)) venv fields
+                    | addMatchVars(A.HWRecordExp({fields, pos}), venv) = foldl (fn((sym, exp, pos), venv) => addMatchVars(exp, venv)) venv fields
+                    | addMatchVars(A.ListExp(elems), venv) = foldl (fn((exp, pos), venv) => addMatchVars(exp, venv)) venv elems
+                    | addMatchVars(A.ArrayExp(elems), venv) = foldl (fn((exp, pos), venv) => addMatchVars(exp, venv)) venv (Vector.toList(elems))
+                    | addMatchVars(_, venv) = venv (* int, string, bit, real *)
+
+                  val venv_with_match_vars = addMatchVars(match, venv)
+                  val () = print("=== venv with match vars ===\n")
+                  val () = Symbol.print(TextIO.stdOut, venv_with_match_vars, T.toString)
+                  val (smap', venv', matchTy) = inferExp(menv, tenv, venv_with_match_vars, smap, match)
+                  val sub = U.unify(expTy, matchTy, pos)
+                  val smap'' = augmentSmap(smap', [sub], pos)
+
+                  val () = print("=== smap'' ===\n")
+                  val () = Symbol.print(TextIO.stdOut, smap'', T.toString)
+
+                  val (smap''', venv'', resultTy) = inferExp(menv, tenv, venv', smap'', result)
+
+                  val sub' = case ty_opt of
+                                  SOME(prevTy) => U.unify(prevTy, resultTy, pos)
+                                | _ => S.SUB([])
+                  val smap'''' = augmentSmap(smap''', [sub'], pos)
+                in
+                  (smap'''', S.substitute(smap'''', venv), case ty_opt of
+                                                                SOME(prevTy) => ty_opt
+                                                              | _ => SOME(resultTy))
+                end
+
+              val (smap', venv', retTy_opt) = foldl foldCase (smap, venv, NONE) cases
+
+            in
+              (smap', venv', case retTy_opt of
+                                  SOME(x) => x
+                                | _ => raise Match (* should never have empty cases*))
+            end
           | infexp(A.BitArrayExp({size, result, spec})) = (smap, venv, T.EMPTY)
     in
       let
@@ -446,11 +490,45 @@ struct
             let
               (* enter in type environment *)
               val tenv' = Symbol.enter(tenv, name, getExplicitType(ty, T.TOP))
+
+              fun checkOpdef({oper, param_a, param_b, body, pos}) =
+                let
+                  (* add params into venv *)
+                  val venv' = Symbol.enter(venv, param_a, getExplicitType(ty, T.BOTTOM))
+                  val venv'' = Symbol.enter(venv', param_b, getExplicitType(ty, T.BOTTOM))
+                  val (_, _, bodyTy) = inferExp(menv, tenv', venv'', smap, body)
+                  val _ = U.unify(T.S_TY(T.INT), bodyTy, pos)
+                in
+                  ()
+                end
+
+              val () = app checkOpdef (case opdef of SOME(x) => x | _ => [])
             in
               {menv = menv, tenv = tenv', venv = venv, smap = smap}
             end
         in
           foldl foldTyDec {menv = menv, tenv = tenv, venv = venv, smap = smap} tydecs
+        end
+      | infdec(A.SWDatatypeDec(datatydecs)) =
+        let
+          fun foldDatatyDec({name, tyvars, datacons}, {menv, tenv, venv, smap}) =
+            let
+              (* at this point, type should already be in SMAP and all datacons have function types to construct *)
+
+              (* add all datacons to venv *)
+              fun foldDatacon({datacon, ty, pos}, venv) =
+                let
+                  val venv' = Symbol.enter(venv, datacon, getExplicitType(ty, T.S_TY(T.S_BOTTOM)))
+                in
+                  venv'
+                end
+
+              val venv' = foldl foldDatacon venv datacons
+            in
+              {menv = menv, tenv = tenv, venv = venv', smap = smap}
+            end
+        in
+          foldl foldDatatyDec {menv = menv, tenv = tenv, venv = venv, smap = smap} datatydecs
         end
       | infdec(_) = {menv = menv, tenv = tenv, venv = venv, smap = smap}
     in

@@ -1,0 +1,12 @@
+let
+  val x = (0, "")
+
+  fun length s = 0
+
+  val a = case x of
+               (0, s) => 1
+            |: (n, "") => n
+            |: (n, s) => n * length(s)
+in
+  0
+end

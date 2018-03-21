@@ -15,6 +15,10 @@ struct
 
    *)
 
+  fun getSWType(T.META(m)) = T.S_TY(T.S_META(m))
+    | getSWType(T.S_TY(s)) = T.S_TY(s)
+    | getSWType(_) = T.S_TY(T.S_BOTTOM)
+
   fun error(ty1, ty2, pos) = (ErrorMsg.error pos ("type mismatch!\n" ^
                               "expected:\t" ^ T.toString(ty1) ^ "\n" ^
                               "received:\t" ^ T.toString(ty2) ^ "\n");
@@ -48,7 +52,9 @@ struct
                                                      | _ => S.SUB([]) (* TODO: error *)
 
   and unifyHty(hty1, hty2, pos) = case (hty1, hty2) of
-                                  (T.H_META(hm), _) => S.SUB([(hm, T.H_TY(hty2))])
+                                  (T.H_TOP, _) => S.SUB([])
+                                | (_, T.H_BOTTOM) => S.SUB([])
+                                | (T.H_META(hm), _) => S.SUB([(hm, T.H_TY(hty2))])
                                 | (_, T.H_META(hm)) => S.SUB([(hm, T.H_TY(hty1))])
                                 | (T.BIT, T.BIT) => S.SUB([])
                                 | (T.ARRAY{ty = ty1, size = _}, T.ARRAY{ty = ty2, size = _}) => unifyHty(ty1, ty2, pos)
@@ -71,7 +77,9 @@ struct
                                 | _ => error(T.H_TY(hty1), T.H_TY(hty2), pos)
 
   and unifySty(sty1, sty2, pos) = case (sty1, sty2) of
-                                  (T.S_META(sm), _) => S.SUB([(sm, T.S_TY(sty2))])
+                                  (T.S_TOP, _) => S.SUB([])
+                                | (_, T.S_BOTTOM) => S.SUB([])
+                                | (T.S_META(sm), _) => S.SUB([(sm, T.S_TY(sty2))])
                                 | (_, T.S_META(sm)) => S.SUB([(sm, T.S_TY(sty1))])
                                 | (T.INT, T.INT) => S.SUB([])
                                 | (T.STRING, T.STRING) => S.SUB([])
@@ -99,7 +107,7 @@ struct
 
   and unifyMty(mty1, mty2, pos) = S.SUB([])  (* TODO *)
 
-  and unifyList(ty1, ty2, pos) = case (ty1, ty2) of
+  and unifyList(ty1, ty2, pos) = case (getSWType(ty1), getSWType(ty2)) of
                                  (T.S_TY(sty1), T.S_TY(sty2)) => let
                                                                    val sub = unifySty(T.LIST(sty1), sty2, pos)
                                                                  in
@@ -109,10 +117,10 @@ struct
                                                                             | S.ERROR(_) => T.S_TY(T.S_BOTTOM))
                                                                  end
                                | _ => let
-                                        val sub1 = case ty1 of
+                                        val sub1 = case getSWType(ty1) of
                                                         T.S_TY(_) => S.SUB([])
                                                       | _ => errorSW("'sw", ty1, pos)
-                                        val sub2 = case ty2 of
+                                        val sub2 = case getSWType(ty2) of
                                                         T.S_TY(_) => S.SUB([])
                                                       | _ => errorSW("'sw list", ty2, pos)
                                       in
@@ -125,17 +133,17 @@ struct
    (* TODO: check type being compared? *)
    and unifyInequalityType(ty1, ty2, pos) = (unify(ty1, ty2, pos), T.S_TY(T.INT))
 
-   and unifyAssign(ty1, ty2, pos) = case (ty1, ty2) of
+   and unifyAssign(ty1, ty2, pos) = case (getSWType(ty1), getSWType(ty2)) of
                                          (T.S_TY(sty1), T.S_TY(sty2)) => let
                                                                            val sub = unifySty(sty1, T.REF(sty2), pos)
                                                                          in
                                                                            (sub, T.S_TY(T.S_RECORD([])))
                                                                          end
                                        | _ => let
-                                                val sub1 = case ty1 of
+                                                val sub1 = case getSWType(ty1) of
                                                                 T.S_TY(_) => errorSW("'sw", ty1, pos)
                                                               | _ => S.SUB([])
-                                                val sub2 = case ty2 of
+                                                val sub2 = case getSWType(ty2) of
                                                                 T.S_TY(_) => errorSW("'sw ref", ty2, pos)
                                                               | _ => S.SUB([])
                                               in
@@ -143,11 +151,11 @@ struct
                                               end
 
   (* note: test on case where argTy/paramTy is another poly *)
-  and unifyPolyApp(argTy, paramTy, pos) = case (argTy, paramTy) of
+  and unifyPolyApp(argTy, paramTy, pos) = case (getSWType(argTy), getSWType(paramTy)) of
                                                (T.S_TY(T.S_POLY(tyvars, T.ARROW(sty1, sty2))), _) => unifyPolyApp(T.S_TY(sty1), paramTy, pos)
                                              | (T.S_TY(_), T.S_TY(_)) => unify(paramTy, argTy, pos)
-                                             | (_, T.S_TY(_)) => errorSW("'booga", argTy, pos)
-                                             | (_, _) => errorSW(T.toString(argTy) ^ ", " ^ T.toString(paramTy), paramTy, pos)
+                                             | (_, T.S_TY(_)) => errorSW("'sw", argTy, pos)
+                                             | (_, _) => errorSW("'sw", paramTy, pos)
 
 
 end
