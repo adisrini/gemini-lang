@@ -92,9 +92,8 @@ struct
                  | T.S_TY(T.S_POLY(tyvars, T.ARROW(sty1, sty2))) =>
                     let
                       val sub = U.unifyPolyApp(T.S_TY(sty1), e2Ty, pos)
-                      val () = print(S.toString(sub) ^ "\n")
                     in
-                      (smap'', venv'', S.substituteType(T.S_TY(sty2), S.makeMap(sub), ref false)) (* return original smap but substitute on return type *)
+                      (augmentSmap(smap'', [sub], pos), venv'', S.substituteType(T.S_TY(sty2), S.makeMap(sub), ref false)) (* return original smap but substitute on return type *)
                     end
                  | _ => case e2Ty of
                              T.S_TY(e2Sty) =>

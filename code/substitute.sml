@@ -14,45 +14,65 @@ struct
 
   fun substituteType(ty, submap, hasChanged) =
     let
-      fun subty(T.S_TY(sty)) = T.S_TY(substy(sty))
-        | subty(T.H_TY(hty)) = T.H_TY(subhty(hty))
-        | subty(ty) = ty (* TODO *)
-      and substy(T.INT) = T.INT
-        | substy(T.REAL) = T.REAL
-        | substy(T.STRING) = T.STRING
-        | substy(T.ARROW(sty1, sty2)) = T.ARROW(substy(sty1), substy(sty2))
-        | substy(T.LIST(sty)) = T.LIST(substy(sty))
-        | substy(T.SW_H(hty)) = T.SW_H(subhty(hty))
-        | substy(T.SW_M(mty)) = T.SW_M(submty(mty))
-        | substy(T.S_RECORD(fs)) = T.S_RECORD(map (fn(sym, sty) => (sym, substy(sty))) fs)
-        | substy(T.REF(sty)) = T.REF(substy(sty))
-        | substy(T.S_META(sm)) = (case Symbol.look(submap, sm) of
-                                        SOME(T.S_TY(newty)) => (case newty of
-                                                                     T.S_META(sm') => if (Symbol.name(sm') <> Symbol.name(sm))
-                                                                                      then hasChanged := true
-                                                                                      else ()
-                                                                   | _ => hasChanged := true; newty)
-                                      | _ => T.S_META(sm))
-        | substy(T.S_POLY(tyvars, sty)) = T.S_POLY(tyvars, substy(sty))
-        | substy(T.S_DATATYPE(tycons, u)) =
+      (* the list is a list of tyvars to avoid substituting; it is only added to when encountering a poly so as to avoid substituting things that are part of the poly clause *)
+      fun subty(T.S_TY(sty)) = T.S_TY(substy(sty, []))
+        | subty(T.H_TY(hty)) = T.H_TY(subhty(hty, []))
+        | subty(T.M_TY(mty)) = T.M_TY(submty(mty, []))
+        | subty(ty) = ty
+      and substy(T.INT, _) = T.INT
+        | substy(T.REAL, _) = T.REAL
+        | substy(T.STRING, _) = T.STRING
+        | substy(T.ARROW(sty1, sty2), tyvars) = T.ARROW(substy(sty1, tyvars), substy(sty2, tyvars))
+        | substy(T.LIST(sty), tyvars) = T.LIST(substy(sty, tyvars))
+        | substy(T.SW_H(hty), tyvars) = T.SW_H(subhty(hty, tyvars))
+        | substy(T.SW_M(mty), tyvars) = T.SW_M(submty(mty, tyvars))
+        | substy(T.S_RECORD(fs), tyvars) = T.S_RECORD(map (fn(sym, sty) => (sym, substy(sty, tyvars))) fs)
+        | substy(T.REF(sty), tyvars) = T.REF(substy(sty, tyvars))
+        | substy(T.S_META(sm), tyvars) = (if (List.exists (fn(x) => x = sm) tyvars)
+                                          then T.S_META(sm)
+                                          else (case Symbol.look(submap, sm) of
+                                                     SOME(T.S_TY(newty)) => (case newty of
+                                                                             T.S_META(sm') => if (Symbol.name(sm') <> Symbol.name(sm))
+                                                                                              then hasChanged := true
+                                                                                              else ()
+                                                                           | _ => hasChanged := true; newty)
+                                                   | _ => T.S_META(sm)))
+        | substy(T.S_POLY(polyvars, sty), tyvars) = T.S_POLY(polyvars, substy(sty, tyvars @ polyvars))
+        | substy(T.S_DATATYPE(tycons, u), tyvars) =
           let
-            fun mapTycon(tyvar, sty_opt) = case sty_opt of
-                                                SOME(sty) => (tyvar, SOME(substy(sty)))
-                                              | _ => (tyvar, sty_opt)
+            fun mapTycon(tycon, sty_opt) = case sty_opt of
+                                                SOME(sty) => (tycon, SOME(substy(sty, tyvars)))
+                                              | _ => (tycon, sty_opt)
           in
             T.S_DATATYPE(map mapTycon tycons, u)
           end
-        | substy(sty) = sty (* TODO: datatype, unpoly, bottom, top *)
-      and subhty(T.BIT) = T.BIT
-        | subhty(T.ARRAY{ty, size}) = T.ARRAY{ty = subhty(ty), size = size}
-        | subhty(T.H_RECORD(fs)) = T.H_RECORD(map (fn(sym, hty) => (sym, subhty(hty))) fs)
-        | subhty(T.TEMPORAL{ty, time}) = T.TEMPORAL{ty = subhty(ty), time = time}
-        | subhty(T.H_META(hm)) = (case Symbol.look(submap, hm) of
-                                        SOME(T.H_TY(newty)) => (if (newty <> T.H_META(hm)) then hasChanged := true else (); newty)
-                                      | _ => T.H_META(hm))
-        | subhty(T.H_POLY(tyvars, hty)) = T.H_POLY(tyvars, subhty(hty))
-        | subhty(hty) = hty (* TODO: datatype, unpoly, bottom, top *)
-      and submty(mty) = mty (* TODO *)
+        | substy(T.S_BOTTOM, _) = T.S_BOTTOM
+        | substy(T.S_TOP, _) = T.S_TOP
+      and subhty(T.BIT, _) = T.BIT
+        | subhty(T.ARRAY{ty, size}, tyvars) = T.ARRAY{ty = subhty(ty, tyvars), size = size}
+        | subhty(T.H_RECORD(fs), tyvars) = T.H_RECORD(map (fn(sym, hty) => (sym, subhty(hty, tyvars))) fs)
+        | subhty(T.TEMPORAL{ty, time}, tyvars) = T.TEMPORAL{ty = subhty(ty, tyvars), time = time}
+        | subhty(T.H_META(hm), tyvars) = (if (List.exists (fn(x) => x = hm) tyvars)
+                                          then T.H_META(hm)
+                                          else (case Symbol.look(submap, hm) of
+                                                     SOME(T.H_TY(newty)) => (case newty of
+                                                                             T.H_META(hm') => if (Symbol.name(hm') <> Symbol.name(hm))
+                                                                                              then hasChanged := true
+                                                                                              else ()
+                                                                           | _ => hasChanged := true; newty)
+                                                   | _ => T.H_META(hm)))
+        | subhty(T.H_POLY(polyvars, hty), tyvars) = T.H_POLY(polyvars, subhty(hty, tyvars @ polyvars))
+        | subhty(T.H_DATATYPE(tycons, u), tyvars) =
+          let
+            fun mapTycon(tycon, hty_opt) = case hty_opt of
+                                                SOME(hty) => (tycon, SOME(subhty(hty, tyvars)))
+                                              | _ => (tycon, hty_opt)
+          in
+            T.H_DATATYPE(map mapTycon tycons, u)
+          end
+        | subhty(T.H_BOTTOM, _) = T.H_BOTTOM
+        | subhty(T.H_TOP, _) = T.H_TOP
+      and submty(T.MODULE(hty1, hty2), tyvars) = T.MODULE(subhty(hty1, tyvars), subhty(hty2, tyvars))
     in
       subty(ty)
     end

@@ -21,8 +21,6 @@ let
   fun f5(x, y) = (y + 10; x)
   fun g2 z = f5(10, z)
 
-  (* test partial function application *)
-
   (*
 
   fun polyTest x =
