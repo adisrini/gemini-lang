@@ -54,6 +54,10 @@ struct
     | getSWType(T.META(m)) = T.S_META(m)
     | getSWType(_) = T.S_BOTTOM
 
+  fun getHWType(T.H_TY(hty)) = hty
+    | getHWType(T.META(m)) = T.H_META(m)
+    | getHWType(_) = T.H_BOTTOM
+
   fun getExplicitType(A.ExplicitTy(ty), _) = ty
     | getExplicitType(_, default) = default
 
@@ -262,7 +266,18 @@ struct
             in
               (smap', venv', T.S_TY(T.S_RECORD(List.rev(tyfields))))
             end
-          | infexp(A.HWRecordExp({fields, pos})) = (smap, venv, T.EMPTY)
+          | infexp(A.HWRecordExp({fields, pos})) =
+            let
+              fun foldField((sym, exp, pos), (smap, venv, tyfields)) =
+                let
+                  val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
+                in
+                  (smap', venv', (sym, getHWType(expTy))::tyfields)
+                end
+              val (smap', venv', tyfields) = foldl foldField (smap, venv, []) fields
+            in
+              (smap', venv', T.H_TY(T.H_RECORD(List.rev(tyfields))))
+            end
           | infexp(A.SWExp(exp, pos)) = (smap, venv, T.EMPTY)
           | infexp(A.WithExp({exp, fields, pos})) = (smap, venv, T.EMPTY)
           | infexp(A.DerefExp({exp, pos})) =
