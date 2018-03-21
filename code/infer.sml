@@ -303,15 +303,41 @@ struct
         let
           fun foldFunDec({name, params, result = (resultTy, resultPos), body, pos}, {menv, tenv, venv, smap}) =
             let
-              (* enter params into venv *)
-              fun foldParam(A.NoParam, venv) = venv
-                | foldParam(A.SingleParam{name, ty, escape, pos}, venv) = Symbol.enter(venv, name, getExplicitType(ty, T.S_TY(T.S_BOTTOM)))
-                | foldParam(A.TupleParams(fs), venv) = foldl (fn({name, ty, escape, pos}, v) => Symbol.enter(v, name, getExplicitType(ty, T.S_TY(T.S_BOTTOM)))) venv fs
-                | foldParam(A.RecordParams(fs), venv) = foldl (fn({name, ty, escape, pos}, v) => Symbol.enter(v, name, getExplicitType(ty, T.S_TY(T.S_BOTTOM)))) venv fs
-              val venv' = foldl foldParam venv params
+              val () = print("=== MENV IN " ^ Symbol.name(name) ^ " ===\n")
+              val () = Symbol.print(TextIO.stdOut, menv, T.toString)
+              (* enter params into venv and menv *)
+              fun foldParam(A.NoParam, (venv, menv)) = (venv, menv)
+                | foldParam(A.SingleParam{name, ty, escape, pos}, (venv, menv)) =
+                  let
+                    val paramTy = getExplicitType(ty, T.S_TY(T.S_BOTTOM))
+                    val menv' = case paramTy of
+                                     T.S_TY(T.S_META(sm)) => Symbol.enter(menv, sm, paramTy)
+                                   | _ => menv
+                  in
+                    (Symbol.enter(venv, name, paramTy), menv')
+                  end
+                | foldParam(A.TupleParams(fs), (venv, menv)) = 
+                  foldl (fn({name, ty, escape, pos}, v) => (let
+                                                              val paramTy = getExplicitType(ty, T.S_TY(T.S_BOTTOM))
+                                                              val menv' = case paramTy of
+                                                                               T.S_TY(T.S_META(sm)) => Symbol.enter(menv, sm, paramTy)
+                                                                             | _ => menv
+                                                            in
+                                                              (Symbol.enter(venv, name, paramTy), menv')
+                                                            end)) (venv, menv) fs
+                | foldParam(A.RecordParams(fs), (venv, menv)) =
+                  foldl (fn({name, ty, escape, pos}, v) => (let
+                                                              val paramTy = getExplicitType(ty, T.S_TY(T.S_BOTTOM))
+                                                              val menv' = case paramTy of
+                                                                               T.S_TY(T.S_META(sm)) => Symbol.enter(menv, sm, paramTy)
+                                                                             | _ => menv
+                                                            in
+                                                              (Symbol.enter(venv, name, paramTy), menv')
+                                                            end)) (venv, menv) fs
+              val (venv', menv') = foldl foldParam (venv, menv) params
 
               (* process body with augmented venv' *)
-              val (smap', _, bodyTy) = inferExp(menv, tenv, venv', smap, body)
+              val (smap', _, bodyTy) = inferExp(menv', tenv, venv', smap, body)
 
               (* unify bodyTy with resultTy *)
               val sub = U.unify(getExplicitType(resultTy, T.S_TY(T.S_BOTTOM)), bodyTy, resultPos)
@@ -354,7 +380,9 @@ struct
                                  T.S_TY(T.ARROW(params, _)) => params
                                | _ => (ErrorMsg.error pos ("unbound function: " ^ Symbol.name(name)); T.S_BOTTOM)
 
-              fun flattenMetas(T.S_META(sm)) = [sm]
+              fun flattenMetas(T.S_META(sm)) = (case Symbol.look(menv, sm) of
+                                                    SOME(_) => []
+                                                  | _ => [sm] (* only add if not in menv *))
                 | flattenMetas(T.S_RECORD(fs)) = List.rev(foldl (fn((tyv, sty), metas)  => flattenMetas(sty) @ metas) [] fs)
                 | flattenMetas(T.ARROW(s1, s2)) = flattenMetas(s1) @ flattenMetas(s2)
                 | flattenMetas(T.LIST(s)) = flattenMetas(s)
@@ -363,7 +391,9 @@ struct
                 | flattenMetas(T.REF(s)) = flattenMetas(s)
                 | flattenMetas(T.S_DATATYPE(tys, u)) = List.rev(foldl (fn((tyv, sty_opt), metas)  => case sty_opt of SOME(s) => flattenMetas(s) @ metas | NONE => metas) [] tys)
                 | flattenMetas(_) = []
-              and flattenHWMetas(T.H_META(hm)) = [hm]
+              and flattenHWMetas(T.H_META(hm)) = (case Symbol.look(menv, hm) of
+                                                      SOME(_) => []
+                                                    | _ => [hm] (* only add if not in menv *))
                 | flattenHWMetas(T.ARRAY{ty, size}) = flattenHWMetas(ty)
                 | flattenHWMetas(T.TEMPORAL{ty, time}) = flattenHWMetas(ty)
                 | flattenHWMetas(T.H_RECORD(fs)) = List.rev(foldl (fn((tyv, hty), metas)  => flattenHWMetas(hty) @ metas) [] fs)
@@ -375,6 +405,7 @@ struct
               val funTy' = case paramMetas of
                                 [] => subbedFunTy
                                | _ => T.S_TY(T.S_POLY(paramMetas, getSWType(subbedFunTy)))
+
               val venv'''' = Symbol.enter(venv''', name, funTy')
             in
               {menv = menv,
