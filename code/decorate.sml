@@ -39,6 +39,7 @@ struct
         | extractSWMetas(T.REF(s)) = extractSWMetas(s)
         | extractSWMetas(T.S_DATATYPE(xs, u)) = foldl (fn((_, sty_opt), metas) => (case sty_opt of SOME(sty) => extractSWMetas(sty) | _ => []) @ metas) [] xs
         | extractSWMetas(T.S_POLY(tyvars, s)) = extractSWMetas(s)
+        | extractSWMetas(T.S_MU(tyvars, s)) = extractSWMetas(s)
         | extractSWMetas(T.S_META(sm)) = [sm]
         | extractSWMetas(T.INT) = []
         | extractSWMetas(T.STRING) = []
@@ -592,7 +593,7 @@ struct
                                                                                             | _ => raise Match))
                   | mapDataconForType(_) = raise Match
 
-                val sty = T.S_DATATYPE(map mapDataconForType datacons', ref ())
+                val sty = T.S_MU([tempMeta], T.S_DATATYPE(map mapDataconForType datacons', ref ()))
                 val retTy = case tyvars of
                                  SOME(tyvs) => T.S_TY(T.S_POLY(map (fn(tyv) => valOf(Symbol.look(metamap, tyv))) tyvs, sty))
                                | _ => T.S_TY(sty)

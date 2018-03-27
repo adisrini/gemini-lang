@@ -46,6 +46,7 @@ struct
           in
             T.S_DATATYPE(map mapTycon tycons, u)
           end
+        | substy(T.S_MU(muvars, sty), tyvars) = T.S_MU(muvars, substy(sty, tyvars @ muvars))
         | substy(T.S_BOTTOM, _) = T.S_BOTTOM
         | substy(T.S_TOP, _) = T.S_TOP
       and subhty(T.BIT, _) = T.BIT

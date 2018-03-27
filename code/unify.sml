@@ -103,6 +103,7 @@ struct
                                   in
                                     foldl foldSubs (S.SUB([])) (ListPair.zipEq(recs1, recs2))
                                   end
+                                | (T.S_MU(_, sty1), T.S_MU(_, sty2)) => unifySty(sty1, sty2, pos)
                                 | _ => error(T.S_TY(sty1), T.S_TY(sty2), pos)
 
   and unifyMty(mty1, mty2, pos) = S.SUB([])  (* TODO *)

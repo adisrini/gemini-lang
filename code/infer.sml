@@ -188,7 +188,35 @@ struct
             in
               (smap''', venv'', retTy)
             end
-          | infexp(A.UnOpExp({exp, oper, pos})) = (smap, venv, T.EMPTY)
+          | infexp(A.UnOpExp({exp, oper, pos})) =
+            let
+              val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
+              val (smap'', retTy) = case oper of
+                              A.IntMinusOp =>
+                                let
+                                  val (smap''', subs) = unifyAndSubstitute(smap', T.S_TY(T.INT), [(expTy, pos)])
+                                in
+                                  (smap''', T.S_TY(T.INT))
+                                end
+                            | A.BitNotOp =>
+                                let
+                                  val (smap''', subs) = unifyAndSubstitute(smap', T.H_TY(T.BIT), [(expTy, pos)])
+                                in
+                                  (smap''', T.H_TY(T.BIT))
+                                end
+                            | A.BitOrReduceOp =>
+                                let
+                                  val sub = U.unify(T.H_TY(T.ARRAY({ty = T.BIT, size = ref ~1})), expTy, pos)
+                                  val smap''' = augmentSmap(smap', [sub], pos)
+                                in
+                                  (smap''', T.H_TY(T.BIT))
+                                end
+                            (*| A.BitAndReduce =>
+                            | A.BitXorReduce =>*)
+                            | _ => raise Match
+            in
+              (smap'', venv', retTy)
+            end
           | infexp(A.LetExp({decs, body, pos})) =
             let
               fun foldDec(dec, {menv, tenv, venv, smap}) = inferDec(menv, tenv, venv, smap, dec)
@@ -261,7 +289,25 @@ struct
             in
               (smap', venv', T.S_TY(T.LIST(getSWType(retTy))))
             end
-          | infexp(A.ArrayExp(exps)) = (smap, venv, T.EMPTY)
+          | infexp(A.ArrayExp(exps)) =
+            let
+              fun foldElem((exp, pos), (smap, venv, elemTy)) =
+                let
+                  val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
+                  val sub = U.unify(elemTy, expTy, pos)
+                  val smap'' = augmentSmap(smap', [sub], pos)
+
+                  val strongerTy = case elemTy of
+                                        T.H_TY(T.H_META(_)) => expTy
+                                      | _ => elemTy
+                in
+                  (smap'', S.substitute(smap'', venv'), strongerTy)
+                end
+
+              val (smap', venv', retTy) = foldl foldElem (smap, venv, T.H_TY(T.H_META(E.newMeta()))) (Vector.toList(exps))
+            in
+              (smap', venv', T.H_TY(T.ARRAY({ty = getHWType(retTy), size = ref (Vector.length(exps))})))
+            end
           | infexp(A.RefExp(exp, pos)) =
             let
               val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
@@ -473,6 +519,7 @@ struct
                 | flattenMetas(T.SW_M(m)) = flattenModMetas(m)
                 | flattenMetas(T.REF(s)) = flattenMetas(s)
                 | flattenMetas(T.S_DATATYPE(tys, u)) = List.rev(foldl (fn((tyv, sty_opt), metas)  => case sty_opt of SOME(s) => flattenMetas(s) @ metas | NONE => metas) [] tys)
+                | flattenMetas(T.S_MU(tyvs, s)) = flattenMetas(s)
                 | flattenMetas(_) = []
               and flattenHWMetas(T.H_META(hm)) = (case Symbol.look(menv, hm) of
                                                       SOME(_) => []
@@ -507,7 +554,7 @@ struct
               val (smap', venv', initTy) = inferExp(menv, tenv, venv, smap, init)
 
               (* unify initializing expression with value type *)
-              val sub = U.unify(getExplicitType(ty, T.BOTTOM), initTy, tyPos)
+              val sub = U.unify(S.substituteType(getExplicitType(ty, T.BOTTOM), smap', ref false), initTy, tyPos)
 
               (* add to substitution mapping *)
               val smap'' = augmentSmap(smap', [sub], tyPos)

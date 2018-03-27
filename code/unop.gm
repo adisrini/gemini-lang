@@ -1,0 +1,10 @@
+let
+  fun intNegate x = ~x
+  val b = 'b:0
+  val notB = !b
+
+  val bitArray = #['b:0, 'b:1]
+  val bitReduced = |->bitArray
+in
+  0
+end

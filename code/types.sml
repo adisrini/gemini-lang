@@ -32,6 +32,7 @@ struct
           | S_RECORD of (tyvar * s_ty) list
           | REF of s_ty
           | S_DATATYPE of (tyvar * s_ty option) list * unit ref
+          | S_MU of tyvar list * s_ty
           | S_POLY of tyvar list * s_ty
           | S_META of tyvar
           | S_TOP
@@ -80,6 +81,7 @@ struct
           in
             "S_DATATYPE(" ^ (String.concat(map stringify fs)) ^ ")"
           end
+        | sty(S_MU(tyvars, s)) = "S_MU([" ^ (String.concat(map (fn(tyv) => sty(S_META(tyv)) ^ ", ") tyvars)) ^ "], " ^ sty(s) ^ ")"
         | sty(S_META(tyv)) = "'sw" ^ Symbol.name(tyv)
         | sty(S_TOP) = "sw_top"
         | sty(S_BOTTOM) = "sw_bottom"

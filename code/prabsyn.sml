@@ -225,6 +225,7 @@ fun print (outstream, e0) =
         | sty(T.S_META(tyv), d) = (indent d; say "S_META("; say (Symbol.name(tyv)); say ")")
         | sty(T.S_TOP, d) = (indent d; say "S_TOP")
         | sty(T.S_BOTTOM, d) = (indent d; say "S_BOTTOM")
+        | sty(T.S_MU(tyvars, s), d) = (indent d; say "S_MU(["; dolist (d + 1) saytyvar tyvars; sayln "],"; sty(s, d + 1); sayln ""; indent d; say ")")
         | sty(T.S_POLY(tyvars, s), d) = (indent d; say "S_POLY(["; dolist (d + 1) saytyvar tyvars; sayln "],"; sty(s, d + 1); sayln ""; indent d; say ")")
       and hfield((tyv, h), d) = (indent d; say (Symbol.name(tyv)); say ": "; hty(h, 0))
       and hty(T.BIT, d) = (indent d; say "BIT")
