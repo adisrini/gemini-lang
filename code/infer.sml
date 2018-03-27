@@ -395,11 +395,21 @@ struct
                                T.S_TY(T.S_RECORD(fields)) => (case List.find (fn((sym, sty)) => Symbol.name(sym) = Symbol.name(field)) fields of
                                                                    SOME(_, x) => T.S_TY(x)
                                                                  | _ => (ErrorMsg.error pos ("unknown field " ^ Symbol.name(field)); T.S_TY(T.S_BOTTOM)))
-                             | _ => (ErrorMsg.error pos ("unresolved flex record (can't tell what fields there are besides #" ^ Symbol.name(field)); T.S_TY(T.S_BOTTOM))
+                             | T.S_TY(T.S_META(sm)) => (ErrorMsg.error pos ("unresolved flex record (can't tell what fields there are besides #" ^ Symbol.name(field) ^ ")"); T.S_TY(T.S_BOTTOM))
+                             | _ => (ErrorMsg.error pos ("cannot access field of non-record type"); T.S_TY(T.S_BOTTOM))
             in
               (smap, venv, retTy)
             end
-          | infexp(A.ArrayAccExp({exp, index, pos})) = (smap, venv, T.EMPTY)
+          | infexp(A.ArrayAccExp({exp, index, pos})) =
+            let
+              val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
+              val retTy = case expTy of
+                               T.H_TY(T.ARRAY({ty, size})) => T.H_TY(ty)
+                             | T.H_TY(T.H_META(hm)) => (ErrorMsg.error pos ("unresolved flex array (can't tell size of vector)"); T.H_TY(T.H_BOTTOM))
+                             | _ => (ErrorMsg.error pos ("cannot index element of non-array type"); T.H_TY(T.H_BOTTOM))
+            in
+              (smap, venv, retTy)
+            end
           | infexp(A.PatternMatchExp({exp, cases, pos})) =
             let
               val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
