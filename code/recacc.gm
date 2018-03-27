@@ -1,0 +1,11 @@
+let
+  val x = #a {a = 10, b = 20}
+
+  fun testRecAcc (x: {a: int, b: string}) = #a x
+
+  fun testUnknownFlex x = #a x
+
+  fun testBadLabel (x: {a: int, b: string}) = #c x
+in
+  0
+end

@@ -326,7 +326,7 @@ struct
               val innerTy = case expTy of
                                  T.S_TY(s) => s
                                | T.META(m) => T.S_META(m)
-                               | _ => T.S_BOTTOM
+                               | _ => (ErrorMsg.error pos "expected 'sw type"; T.S_BOTTOM)
             in
               (smap', venv', T.S_TY(T.REF(innerTy)))
             end
@@ -361,7 +361,7 @@ struct
                               T.H_TY(h) => T.SW_H(h)
                             | T.META(m) => T.SW_H(T.H_META(m))
                             | T.M_TY(m) => T.SW_M(m)
-                            | _ => T.S_BOTTOM
+                            | _ => (ErrorMsg.error pos "expected 'sw type"; T.S_BOTTOM)
             in
               (smap', venv', T.S_TY(retTy))
             end
@@ -388,7 +388,17 @@ struct
               (smap'', venv', retTy)
             end
           | infexp(A.StructAccExp({name, field, pos})) = (smap, venv, T.EMPTY)
-          | infexp(A.RecordAccExp({exp, field, pos})) = (smap, venv, T.EMPTY)
+          | infexp(A.RecordAccExp({exp, field, pos})) =
+            let
+              val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
+              val retTy = case expTy of
+                               T.S_TY(T.S_RECORD(fields)) => (case List.find (fn((sym, sty)) => Symbol.name(sym) = Symbol.name(field)) fields of
+                                                                   SOME(_, x) => T.S_TY(x)
+                                                                 | _ => (ErrorMsg.error pos ("unknown field " ^ Symbol.name(field)); T.S_TY(T.S_BOTTOM)))
+                             | _ => (ErrorMsg.error pos ("unresolved flex record (can't tell what fields there are besides #" ^ Symbol.name(field)); T.S_TY(T.S_BOTTOM))
+            in
+              (smap, venv, retTy)
+            end
           | infexp(A.ArrayAccExp({exp, index, pos})) = (smap, venv, T.EMPTY)
           | infexp(A.PatternMatchExp({exp, cases, pos})) =
             let
