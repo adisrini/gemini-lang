@@ -716,7 +716,130 @@ struct
         in
           foldl foldDatatyDec {menv = menv, tenv = tenv, venv = venv, smap = smap} datatydecs
         end
-      | infdec(_) = {menv = menv, tenv = tenv, venv = venv, smap = smap}
+      | infdec(A.ModuleDec(moddecs)) =
+        let
+          fun foldModDec({name, arg, result = (resultTy, resultPos), body, pos}, {menv, tenv, venv, smap}) =
+            let
+              (* enter params into venv and menv *)
+              fun foldParam(A.NoParam, (venv, menv)) = (venv, menv)
+                | foldParam(A.SingleParam{name, ty, escape, pos}, (venv, menv)) =
+                  let
+                    val paramTy = getExplicitType(ty, T.S_TY(T.S_BOTTOM))
+                    val menv' = case paramTy of
+                                     T.S_TY(T.S_META(sm)) => Symbol.enter(menv, sm, paramTy)
+                                   | _ => menv
+                  in
+                    (Symbol.enter(venv, name, paramTy), menv')
+                  end
+                | foldParam(A.TupleParams(fs), (venv, menv)) = 
+                  foldl (fn({name, ty, escape, pos}, (v, m)) => (let
+                                                              val paramTy = getExplicitType(ty, T.H_TY(T.H_BOTTOM))
+                                                              val menv' = case paramTy of
+                                                                               T.H_TY(T.H_META(hm)) => Symbol.enter(m, hm, paramTy)
+                                                                             | _ => m
+                                                              val venv' = Symbol.enter(v, name, paramTy)
+                                                            in
+                                                              (venv', menv')
+                                                            end)) (venv, menv) fs
+                | foldParam(A.RecordParams(fs), (venv, menv)) =
+                  foldl (fn({name, ty, escape, pos}, (v, m)) => (let
+                                                              val paramTy = getExplicitType(ty, T.H_TY(T.H_BOTTOM))
+                                                              val menv' = case paramTy of
+                                                                               T.H_TY(T.H_META(hm)) => Symbol.enter(m, sm, paramTy)
+                                                                             | _ => m
+                                                              val venv' = Symbol.enter(v, name, paramTy)
+                                                            in
+                                                              (venv', menv')
+                                                            end)) (venv, menv) fs
+              val (venv', menv') = foldl foldParam (venv, menv) [arg]
+
+              (* enter module header *)
+              val modHeaderTy = T.M_TY(T.MODULE(T.H_META(E.newMeta()), T.H_META(E.newMeta())))
+              val venvWithHeader = Symbol.enter(venv', name, modHeaderTy)
+
+              (* process body with augmented venv *)
+              val (smap', _, bodyTy) = inferExp(menv', tenv, venvWithHeader, smap, body)
+
+              (* unify bodyTy with resultTy *)
+              val sub = U.unify(getExplicitType(resultTy, T.H_TY(T.H_BOTTOM)), bodyTy, resultPos)
+              val smap'' = augmentSmap(smap', [sub], resultPos)
+
+              (* add module to venv *)
+              fun getParamTy(A.NoParam) = T.H_RECORD([])
+                | getParamTy(A.SingleParam({name, ty, escape, pos})) = getExplicitHWType(ty, T.H_BOTTOM)
+                | getParamTy(A.TupleParams(fs)) =
+                  let
+                    fun makeTupleParamTy([], SOME(hty), _) = hty
+                      | makeTupleParamTy({name, ty, escape, pos}::fs, NONE, i) = makeTupleParamTy(fs, SOME(T.H_RECORD([(Symbol.symbol(Int.toString(i)), getExplicitHWType(ty, T.H_BOTTOM))])), i + 1)
+                      | makeTupleParamTy({name, ty, escape, pos}::fs, SOME(T.H_RECORD(rs)), i) = makeTupleParamTy(fs, SOME(T.H_RECORD(rs @ [(Symbol.symbol(Int.toString(i)), getExplicitHWType(ty, T.H_BOTTOM))])), i + 1)
+                      | makeTupleParamTy(_) = raise Match
+                  in
+                    makeTupleParamTy(fs, NONE, 1)
+                  end
+                | getParamTy(A.RecordParams(fs)) =
+                  let
+                    fun makeRecordParamTy([], SOME(hty)) = hty
+                      | makeRecordParamTy({name, ty, escape, pos}::fs, NONE) = makeRecordParamTy(fs, SOME(T.H_RECORD([(name, getExplicitHWType(ty, T.H_BOTTOM))])))
+                      | makeRecordParamTy({name, ty, escape, pos}::fs, SOME(T.H_RECORD(rs))) = makeRecordParamTy(fs, SOME(T.H_RECORD(rs @ [(name, getExplicitHWType(ty, T.H_BOTTOM))])))
+                      | makeRecordParamTy(_) = raise Match
+                  in
+                    makeRecordParamTy(fs, NONE)
+                  end
+
+              fun makeFunTy([], SOME(hty)) = hty
+                | makeFunTy(t::ts, NONE) = makeFunTy(ts, SOME(t))
+                | makeFunTy(t::ts, SOME(hty)) = makeFunTy(ts, SOME(T.ARROW(t, hty)))
+                | makeFunTy(_) = raise Match
+
+              val modTy = T.MODULE(getParamTy param, getHWType(bodyTy))
+              val venv'' = Symbol.enter(venv, name, T.M_TY(modTy))
+              val venv''' = S.substitute(smap'', venv'')
+
+              (* TODO: pick up from here *)
+
+              val subbedFunTy = valOf(Symbol.look(venv''', name))
+              (* find metas part of substituted function parameters and POLY based on those *)
+              val params' = case subbedFunTy of
+                                 T.S_TY(T.ARROW(params, _)) => params
+                               | _ => (ErrorMsg.error pos ("unbound function: " ^ Symbol.name(name)); T.S_BOTTOM)
+
+              fun flattenMetas(T.S_META(sm)) = (case Symbol.look(menv, sm) of
+                                                    SOME(_) => []
+                                                  | _ => [sm] (* only add if not in menv *))
+                | flattenMetas(T.S_RECORD(fs)) = List.rev(foldl (fn((tyv, sty), metas)  => flattenMetas(sty) @ metas) [] fs)
+                | flattenMetas(T.ARROW(s1, s2)) = flattenMetas(s1) @ flattenMetas(s2)
+                | flattenMetas(T.LIST(s)) = flattenMetas(s)
+                | flattenMetas(T.SW_H(h)) = flattenHWMetas(h)
+                | flattenMetas(T.SW_M(m)) = flattenModMetas(m)
+                | flattenMetas(T.REF(s)) = flattenMetas(s)
+                | flattenMetas(T.S_DATATYPE(tys, u)) = List.rev(foldl (fn((tyv, sty_opt), metas)  => case sty_opt of SOME(s) => flattenMetas(s) @ metas | NONE => metas) [] tys)
+                | flattenMetas(T.S_MU(tyvs, s)) = flattenMetas(s)
+                | flattenMetas(_) = []
+              and flattenHWMetas(T.H_META(hm)) = (case Symbol.look(menv, hm) of
+                                                      SOME(_) => []
+                                                    | _ => [hm] (* only add if not in menv *))
+                | flattenHWMetas(T.ARRAY{ty, size}) = flattenHWMetas(ty)
+                | flattenHWMetas(T.TEMPORAL{ty, time}) = flattenHWMetas(ty)
+                | flattenHWMetas(T.H_RECORD(fs)) = List.rev(foldl (fn((tyv, hty), metas)  => flattenHWMetas(hty) @ metas) [] fs)
+                | flattenHWMetas(T.H_DATATYPE(tys, u)) = List.rev(foldl (fn((tyv, hty_opt), metas)  => case hty_opt of SOME(h) => flattenHWMetas(h) @ metas | NONE => metas) [] tys)
+                | flattenHWMetas(_) = []
+              and flattenModMetas(T.MODULE(h1, h2)) = flattenHWMetas(h1) @ flattenHWMetas(h2)
+              val paramMetas = flattenMetas params'
+
+              val funTy' = case paramMetas of
+                                [] => subbedFunTy
+                               | _ => T.S_TY(T.S_POLY(paramMetas, getSWType(subbedFunTy)))
+
+              val venv'''' = Symbol.enter(venv''', name, funTy')
+            in
+              {menv = menv,
+               tenv = tenv,
+               venv = venv'''',
+               smap = smap''}
+            end
+        in
+          foldl foldModDec {menv = menv, tenv = tenv, venv = venv, smap = smap} moddecs
+        end
     in
       infdec(dec)
     end
