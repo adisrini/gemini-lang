@@ -211,8 +211,20 @@ struct
                                 in
                                   (smap''', T.H_TY(T.BIT))
                                 end
-                            (*| A.BitAndReduce =>
-                            | A.BitXorReduce =>*)
+                            | A.BitAndReduceOp =>
+                                let
+                                  val sub = U.unify(T.H_TY(T.ARRAY({ty = T.BIT, size = ref ~1})), expTy, pos)
+                                  val smap''' = augmentSmap(smap', [sub], pos)
+                                in
+                                  (smap''', T.H_TY(T.BIT))
+                                end
+                            | A.BitXorReduceOp =>
+                                let
+                                  val sub = U.unify(T.H_TY(T.ARRAY({ty = T.BIT, size = ref ~1})), expTy, pos)
+                                  val smap''' = augmentSmap(smap', [sub], pos)
+                                in
+                                  (smap''', T.H_TY(T.BIT))
+                                end
                             | _ => raise Match
             in
               (smap'', venv', retTy)
