@@ -8,6 +8,8 @@ let
                 else if x - y < x / y
                      then rec (x - y) (y)
                      else 0
+
+  fun bad x = bad + 10
 in
   0
 end
