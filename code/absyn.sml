@@ -29,7 +29,8 @@ struct
           | RecordAccExp of {exp: exp, field: symbol, pos: pos}
           | ArrayAccExp of {exp: exp, index: exp, pos: pos}
           | PatternMatchExp of {exp: exp, cases: match list, pos: pos}
-          | BitArrayExp of {size: exp, result: exp, spec: string option}
+          | BitArrayGenExp of {size: exp, counter: symbol, genfun: exp, pos: pos}
+          | BitArrayConvExp of {size: exp, value: exp, spec: string, pos: pos}
 
   and structsig = StructExp of {name: symbol, signat: (structsig * pos) option, decs: dec list, pos: pos}
                 | SigExp of {name: symbol, defs: def list}

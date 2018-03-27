@@ -31,6 +31,12 @@ struct
                      S.ERROR({expected = T.S_TY(T.S_BOTTOM),
                               received = ty}))
 
+  fun kindError(ty1, ty2, pos) = (ErrorMsg.error pos ("kind mismatch!\n" ^
+                              "expected:\t" ^ T.toString(ty1) ^ "\n" ^
+                              "received:\t" ^ T.toString(ty2) ^ "\n");
+                         S.ERROR({expected = ty1,
+                                  received = ty2}))
+
   fun unify(ty1, ty2, pos) = case ty1 of
                                    T.META(m) => S.SUB([(m, ty2)])
                                  | T.H_TY(T.H_META(hm)) => S.SUB([(hm, ty2)])
@@ -49,7 +55,7 @@ struct
                                                        (T.H_TY(h1), T.H_TY(h2)) => unifyHty(h1, h2, pos)
                                                      | (T.S_TY(s1), T.S_TY(s2)) => unifySty(s1, s2, pos)
                                                      | (T.M_TY(m1), T.M_TY(m2)) => unifyMty(m1, m2, pos)
-                                                     | _ => S.SUB([]) (* TODO: error *)
+                                                     | _ => kindError(ty1, ty2, pos)
 
   and unifyHty(hty1, hty2, pos) = case (hty1, hty2) of
                                   (T.H_TOP, _) => S.SUB([])

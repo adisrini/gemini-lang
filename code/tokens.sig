@@ -18,6 +18,7 @@ val SIGNATURE: linenum * linenum -> token
 val SIG: linenum * linenum -> token
 val LIST: linenum * linenum -> token
 val SW: linenum * linenum -> token
+val GEN: linenum * linenum -> token
 
 (* constructs *)
 val LET:  linenum * linenum -> token

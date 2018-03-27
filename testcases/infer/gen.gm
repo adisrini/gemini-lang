@@ -1,0 +1,7 @@
+let
+  val y = #['b:0, 'b:1]
+
+  val x = #[y; gen i => #[y[i]]]
+in
+  0
+end

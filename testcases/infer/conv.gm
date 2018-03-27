@@ -1,0 +1,11 @@
+let
+  val x = 32's:100
+
+  fun double x = x * 2
+
+  fun length s = 0
+
+  val y = (double(32)) 's: length([1, 2, 3])
+in
+  0
+end

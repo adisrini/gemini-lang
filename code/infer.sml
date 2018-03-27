@@ -398,17 +398,21 @@ struct
                              | T.S_TY(T.S_META(sm)) => (ErrorMsg.error pos ("unresolved flex record (can't tell what fields there are besides #" ^ Symbol.name(field) ^ ")"); T.S_TY(T.S_BOTTOM))
                              | _ => (ErrorMsg.error pos ("cannot access field of non-record type"); T.S_TY(T.S_BOTTOM))
             in
-              (smap, venv, retTy)
+              (smap', venv', retTy)
             end
           | infexp(A.ArrayAccExp({exp, index, pos})) =
             let
               val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
+              val (smap'', venv'', indexTy) = inferExp(menv, tenv, venv', smap', index)
+              val sub = U.unify(T.S_TY(T.INT), indexTy, pos)
+              val smap''' = augmentSmap(smap'', [sub], pos)
+
               val retTy = case expTy of
                                T.H_TY(T.ARRAY({ty, size})) => T.H_TY(ty)
                              | T.H_TY(T.H_META(hm)) => (ErrorMsg.error pos ("unresolved flex array (can't tell size of vector)"); T.H_TY(T.H_BOTTOM))
                              | _ => (ErrorMsg.error pos ("cannot index element of non-array type"); T.H_TY(T.H_BOTTOM))
             in
-              (smap, venv, retTy)
+              (smap''', venv'', retTy)
             end
           | infexp(A.PatternMatchExp({exp, cases, pos})) =
             let
@@ -425,14 +429,10 @@ struct
                     | addMatchVars(_, venv) = venv (* int, string, bit, real *)
 
                   val venv_with_match_vars = addMatchVars(match, venv)
-                  val () = print("=== venv with match vars ===\n")
-                  val () = Symbol.print(TextIO.stdOut, venv_with_match_vars, T.toString)
+
                   val (smap', venv', matchTy) = inferExp(menv, tenv, venv_with_match_vars, smap, match)
                   val sub = U.unify(expTy, matchTy, pos)
                   val smap'' = augmentSmap(smap', [sub], pos)
-
-                  val () = print("=== smap'' ===\n")
-                  val () = Symbol.print(TextIO.stdOut, smap'', T.toString)
 
                   val (smap''', venv'', resultTy) = inferExp(menv, tenv, venv', smap'', result)
 
@@ -453,7 +453,44 @@ struct
                                   SOME(x) => x
                                 | _ => raise Match (* should never have empty cases*))
             end
-          | infexp(A.BitArrayExp({size, result, spec})) = (smap, venv, T.EMPTY)
+          | infexp(A.BitArrayGenExp({size, counter, genfun, pos})) =
+            let
+              (* process size expression *)
+              val (smap', venv', sizeTy) = inferExp(menv, tenv, venv, smap, size)
+              val sub = U.unify(T.S_TY(T.INT), sizeTy, pos)
+              val smap'' = augmentSmap(smap', [sub], pos)
+
+              (* add counter variable to venv *)
+              val venv'' = Symbol.enter(venv', counter, T.S_TY(T.INT))
+
+              (* process genfun body with new venv *)
+              val (smap''', venv''', genfunTy) = inferExp(menv, tenv, venv'', smap'', genfun)
+
+              (* final venv *)
+              val venv'''' = S.substitute(smap''', venv')
+
+              val elemTy = case genfunTy of
+                                T.H_TY(h) => h
+                              | T.META(m) => T.H_META(m)
+                              | _ => (ErrorMsg.error pos "return type of generation function must be 'hw"; T.H_BOTTOM)
+            in
+              (smap''', venv'''', T.H_TY(T.ARRAY{ty = elemTy, size = ref ~1}))
+            end
+          | infexp(A.BitArrayConvExp({size, value, spec, pos})) =
+            let
+              (* process size expression *)
+              val (smap', venv', sizeTy) = inferExp(menv, tenv, venv, smap, size)
+              val sub = U.unify(T.S_TY(T.INT), sizeTy, pos)
+              val smap'' = augmentSmap(smap', [sub], pos)
+
+              (* process value expression *)
+              val (smap''', venv'', valueTy) = inferExp(menv, tenv, venv', smap', value)
+              val sub' = U.unify(T.S_TY(T.INT), valueTy, pos)
+              val smap'''' = augmentSmap(smap''', [sub'], pos)
+            in
+              (smap'''', venv'', T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}))
+            end
+
     in
       let
         val (smap', venv', ty) = infexp(exp)

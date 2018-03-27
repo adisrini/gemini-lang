@@ -54,7 +54,7 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
 %%
 %term
     EOF
-  | SDATATYPE | HDATATYPE | TYPE | VAL | REF | FUN | MODULE | STRUCTURE | STRUCT | SIGNATURE | SIG | LIST | SW
+  | SDATATYPE | HDATATYPE | TYPE | VAL | REF | FUN | MODULE | STRUCTURE | STRUCT | SIGNATURE | SIG | LIST | SW | GEN
   | LET | IN | END | IF | THEN | ELSE
   | ORELSE | ANDALSO | NOT
   | NIL | WITH | OF | OP | CASE
@@ -559,7 +559,7 @@ rec_field_comma_tail
 ref_inst      : REF exp                                                     (A.RefExp(exp, REFleft))
 
 array_inst    : POUND LBRACK list_elements RBRACK                           (A.ArrayExp(Vector.fromList(list_elements)))
-              | POUND LBRACK exp SEMICOLON exp RBRACK                       (A.BitArrayExp{size = exp1, result = exp2, spec = NONE})
+              | POUND LBRACK exp SEMICOLON GEN ID FAT_ARROW exp RBRACK      (A.BitArrayGenExp{size = exp1, counter = Symbol.symbol(ID), genfun = exp2, pos = POUNDleft})
               | bit_array_inst                                              (bit_array_inst)
 
 list_inst     : LBRACK list_elements RBRACK                                 (A.ListExp(list_elements))
@@ -574,7 +574,7 @@ hw_tuple_inst : POUND LPAREN list_elements RPAREN                           (A.H
 
 sw_inst       : SW exp                                                      (A.SWExp(exp, SWleft))
 
-bit_array_inst: exp TID COLON exp %prec BIT_ARRAY_INST                      (A.BitArrayExp{size = exp1, result = exp2, spec = SOME(TID)})
+bit_array_inst: exp TID COLON exp %prec BIT_ARRAY_INST                      (A.BitArrayConvExp{size = exp1, value = exp2, spec = TID, pos = exp1left})
 
 with_value    : exp WITH sw_rec_inst                                        (A.WithExp{exp = exp, fields = valOf(extractSWFields(sw_rec_inst)), pos = expleft})
 

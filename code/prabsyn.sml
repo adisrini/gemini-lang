@@ -89,7 +89,8 @@ fun print (outstream, e0) =
     | exp(A.RecordAccExp{exp = e, field, pos}, d) = (indent d; sayln "RecordAccExp("; indent (d + 1); say(Symbol.name field); sayln ","; exp(e, d + 1); sayln ""; indent d; say ")")
     | exp(A.ArrayAccExp{exp = e, index, pos}, d) = (indent d; sayln "ArrayAccExp("; exp(e, d + 1); sayln ","; exp(index, d + 1); sayln ""; indent d; say ")")
     | exp(A.PatternMatchExp{exp = e, cases, pos}, d) = (indent d; sayln "PatternMatchExp("; exp(e, d + 1); sayln ","; indent (d + 1); say "["; dolist (d + 1) m cases; sayln "]"; indent d; say ")")
-    | exp(A.BitArrayExp{size, result, spec}, d) = (indent d; sayln "BitArrayExp("; exp(size, d + 1); sayln ","; exp(result, d + 1); case spec of NONE => () | SOME s => (sayln ","; indent (d + 1); say s); sayln ""; indent d; say ")")
+    | exp(A.BitArrayGenExp{size, counter, genfun, pos}, d) = (indent d; sayln "BitArrayGenExp("; exp(size, d + 1); sayln ","; indent (d + 1); sayln (Symbol.name(counter) ^ ","); exp(genfun, d + 1); indent d; say ")")
+    | exp(A.BitArrayConvExp{size, value, spec, pos}, d) = (indent d; sayln "BitArrayConvExp("; exp(size, d + 1); sayln ","; exp(value, d + 1); indent (d + 1); sayln (spec ^ ","); indent d; say ")")
 
   and ss(A.StructExp({name, signat, decs, pos}), d) = (indent d; sayln "StructExp("; indent (d + 1); say(Symbol.name name); sayln ","; case signat of NONE => () | SOME (s, _) => (ss(s, d + 1); sayln ","); indent (d + 1); say "["; dolist d dec decs; sayln "]"; indent d; say ")")
     | ss(A.SigExp({name, defs}), d) = (indent d; sayln "SigExp("; indent (d + 1); say(Symbol.name name); sayln ","; indent (d + 1); say "["; dolist d def defs; sayln "]"; indent d; say ")")

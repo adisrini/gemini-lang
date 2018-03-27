@@ -278,14 +278,25 @@ struct
             in
               (menv'', A.PatternMatchExp({exp = exp', cases = List.rev(cases'), pos = pos}))
             end
-          | decorexp(A.BitArrayExp({size, result, spec})) =
+          | decorexp(A.BitArrayGenExp({size, counter, genfun, pos})) =
             let
               val (menv', size') = decorateExp(menv, tenv, size)
-              val (menv'', result') = decorateExp(menv', tenv, result)
+              val (menv'', genfun') = decorateExp(menv', tenv, genfun)
             in
-              (menv'', A.BitArrayExp({ size = size',
-                                       result = result',
-                                       spec = spec }))
+              (menv'', A.BitArrayGenExp({ size = size',
+                                       counter = counter,
+                                       genfun = genfun',
+                                       pos = pos }))
+            end
+          | decorexp(A.BitArrayConvExp({size, value, spec, pos})) =
+            let
+              val (menv', size') = decorateExp(menv, tenv, size)
+              val (menv'', value') = decorateExp(menv', tenv, value)
+            in
+              (menv'', A.BitArrayConvExp({ size = size',
+                                       value = value',
+                                       spec = spec,
+                                       pos = pos }))
             end
     in
       decorexp(exp)
