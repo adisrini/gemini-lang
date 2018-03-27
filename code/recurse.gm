@@ -2,6 +2,10 @@ let
   fun fib n = if n = 0
               then 0
               else fib(n - 1) + fib(n - 2)
+
+  fun rec x y = if x + y > x * y
+                then rec (x - 1) (y - 1)
+                else rec (x - y) (y)
 in
   0
 end

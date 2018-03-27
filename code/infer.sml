@@ -394,22 +394,24 @@ struct
                     (Symbol.enter(venv, name, paramTy), menv')
                   end
                 | foldParam(A.TupleParams(fs), (venv, menv)) = 
-                  foldl (fn({name, ty, escape, pos}, v) => (let
+                  foldl (fn({name, ty, escape, pos}, (v, m)) => (let
                                                               val paramTy = getExplicitType(ty, T.S_TY(T.S_BOTTOM))
                                                               val menv' = case paramTy of
-                                                                               T.S_TY(T.S_META(sm)) => Symbol.enter(menv, sm, paramTy)
-                                                                             | _ => menv
+                                                                               T.S_TY(T.S_META(sm)) => Symbol.enter(m, sm, paramTy)
+                                                                             | _ => m
+                                                              val venv' = Symbol.enter(v, name, paramTy)
                                                             in
-                                                              (Symbol.enter(venv, name, paramTy), menv')
+                                                              (venv', menv')
                                                             end)) (venv, menv) fs
                 | foldParam(A.RecordParams(fs), (venv, menv)) =
-                  foldl (fn({name, ty, escape, pos}, v) => (let
+                  foldl (fn({name, ty, escape, pos}, (v, m)) => (let
                                                               val paramTy = getExplicitType(ty, T.S_TY(T.S_BOTTOM))
                                                               val menv' = case paramTy of
-                                                                               T.S_TY(T.S_META(sm)) => Symbol.enter(menv, sm, paramTy)
-                                                                             | _ => menv
+                                                                               T.S_TY(T.S_META(sm)) => Symbol.enter(m, sm, paramTy)
+                                                                             | _ => m
+                                                              val venv' = Symbol.enter(v, name, paramTy)
                                                             in
-                                                              (Symbol.enter(venv, name, paramTy), menv')
+                                                              (venv', menv')
                                                             end)) (venv, menv) fs
               val (venv', menv') = foldl foldParam (venv, menv) params
 
