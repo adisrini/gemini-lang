@@ -354,7 +354,17 @@ struct
             in
               (smap', venv', T.H_TY(T.H_RECORD(List.rev(tyfields))))
             end
-          | infexp(A.SWExp(exp, pos)) = (smap, venv, T.EMPTY)
+          | infexp(A.SWExp(exp, pos)) =
+            let
+              val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
+              val retTy = case expTy of
+                              T.H_TY(h) => T.SW_H(h)
+                            | T.META(m) => T.SW_H(T.H_META(m))
+                            | T.M_TY(m) => T.SW_M(m)
+                            | _ => T.S_BOTTOM
+            in
+              (smap', venv', T.S_TY(retTy))
+            end
           | infexp(A.WithExp({exp, fields, pos})) = (smap, venv, T.EMPTY)
           | infexp(A.DerefExp({exp, pos})) =
             let

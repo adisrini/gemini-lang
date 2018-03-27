@@ -1,0 +1,5 @@
+let
+  val swBit = sw #['b:0, 'b:1]
+in
+  0
+end
