@@ -21,6 +21,8 @@ let
   fun f5(x, y) = (y + 10; x)
   fun g2 z = f5(10, z)
 
+  fun f6 x y = x y
+  fun g3 a b = f6 b a
 in
   0
 end

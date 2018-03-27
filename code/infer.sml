@@ -413,8 +413,12 @@ struct
                                                             end)) (venv, menv) fs
               val (venv', menv') = foldl foldParam (venv, menv) params
 
+              (* enter function header with 'a -> 'b type *)
+              val funHeaderTy = T.S_TY(T.ARROW(T.S_META(E.newMeta()), T.S_META(E.newMeta())))
+              val venvWithHeader = Symbol.enter(venv', name, funHeaderTy)
+
               (* process body with augmented venv' *)
-              val (smap', _, bodyTy) = inferExp(menv', tenv, venv', smap, body)
+              val (smap', _, bodyTy) = inferExp(menv', tenv, venvWithHeader, smap, body)
 
               (* unify bodyTy with resultTy *)
               val sub = U.unify(getExplicitType(resultTy, T.S_TY(T.S_BOTTOM)), bodyTy, resultPos)
