@@ -9,6 +9,20 @@ struct
                  | ListVal of value list
                  | RecordVal of (symbol * value) list
                  | FunVal of value -> value
+                 | NoVal
+
+  fun printlist f lst = case lst of 
+                          [] => ""
+                        | [x] => f x
+                        | x::xs => (f x) ^ ", " ^ (printlist f xs)
+
+  fun toString(IntVal(i)) = "int(" ^ Int.toString(i) ^ ")"
+    | toString(StringVal(s)) = "string(" ^ s ^ ")"
+    | toString(RealVal(r)) = "real(" ^ Real.toString(r) ^ ")"
+    | toString(ListVal(vs)) = "list([" ^ printlist toString vs ^ "])"
+    | toString(RecordVal(fs)) = "record(" ^ (printlist (fn(sym, v) => Symbol.name(sym) ^ ": " ^ toString(v)) fs) ^ ")"
+    | toString(FunVal(f)) = "funval"
+    | toString(NoVal) = "noval"
 
   type vstore = value Symbol.table
 
