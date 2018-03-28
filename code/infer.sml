@@ -667,8 +667,13 @@ struct
 
               val subbedFunTy = valOf(Symbol.look(venv''', name))
               (* find metas part of substituted function parameters and POLY based on those *)
+              fun getParams(T.ARROW(s1, s2)) = (case s2 of
+                                                     T.ARROW(s3, s4) => T.ARROW(s1, getParams(s2))
+                                                   | _ => s1)
+                | getParams(_) = raise Match
+
               val params' = case subbedFunTy of
-                                 T.S_TY(T.ARROW(params, _)) => params
+                                 T.S_TY(arrowTy as T.ARROW(_)) => getParams(arrowTy)
                                | _ => (ErrorMsg.error pos ("unbound function: " ^ Symbol.name(name)); T.S_BOTTOM)
 
               fun flattenMetas(T.S_META(sm)) = (case Symbol.look(menv, sm) of
