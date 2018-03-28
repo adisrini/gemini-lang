@@ -1,7 +1,9 @@
 let
-  module xor (a, b) = #[a, b]
+  module xor #(a, b) = #[a, b]
 
-  module moo (x : #{lhs: bit, rhs: bit}) = #lhs x
+  module moo #(x : #{lhs: bit, rhs: bit}) = #lhs x
+
+  val x = xor #('b:0, 'b:1)
 in
   0
 end

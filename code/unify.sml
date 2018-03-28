@@ -142,7 +142,10 @@ struct
                                   in
                                     foldl foldSubs (S.SUB([])) (ListPair.zipEq(recs1, recs2))
                                   end
-                                | (T.S_MU(_, sty1), T.S_MU(_, sty2)) => unifySty(sty1, sty2, pos)
+                                | (T.S_MU(_, sty1), T.S_MU(_, sty2)) => (unifySty(sty1, sty2, pos))
+                                | (T.S_DATATYPE(_, u1), T.S_DATATYPE(_, u2)) => if u1 = u2
+                                                                                then S.SUB([])
+                                                                                else error(T.S_TY(sty1), T.S_TY(sty2), pos)
                                 | _ => error(T.S_TY(sty1), T.S_TY(sty2), pos)
 
   and unifyMty(mty1, mty2, pos) = S.SUB([])  (* TODO *)
@@ -190,11 +193,16 @@ struct
                                                 (sub2, T.S_TY(T.S_RECORD([])))
                                               end
 
-  and unifyPolyApp(argTy, paramTy, pos) = case (getSWType(argTy), getSWType(paramTy)) of
-                                               (T.S_TY(T.S_POLY(tyvars, T.ARROW(sty1, sty2))), _) => unifyPolyApp(T.S_TY(sty1), paramTy, pos)
-                                             | (T.S_TY(_), T.S_TY(_)) => unify(paramTy, argTy, pos)
-                                             | (_, T.S_TY(_)) => errorSW("'sw", argTy, pos)
-                                             | (_, _) => errorSW("'sw", paramTy, pos)
+  and unifyPolyFunApp(argTy, paramTy, pos) = case (getSWType(argTy), getSWType(paramTy)) of
+                                                 (T.S_TY(T.S_POLY(tyvars, T.ARROW(sty1, sty2))), _) => unifyPolyFunApp(T.S_TY(sty1), paramTy, pos)
+                                               | (T.S_TY(_), T.S_TY(_)) => unify(argTy, paramTy, pos)
+                                               | (_, T.S_TY(_)) => errorSW("'sw", argTy, pos)
+                                               | (_, _) => errorSW("'sw", paramTy, pos)
+
+  and unifyPolyModApp(argTy, paramTy, pos) = case (getHWType(argTy), getHWType(paramTy)) of
+                                                  (T.H_TY(_), T.H_TY(_)) => unify(argTy, paramTy, pos)
+                                                | (_, T.H_TY(_)) => errorHW("'hw", argTy, pos)
+                                                | (_, _) => errorHW("'hw", paramTy, pos)
 
   and unifyBitOp(ty1, ty2, pos) = case (getHWType(ty1), getHWType(ty2)) of
                                         (T.H_TY(hty1), T.H_TY(hty2)) => let

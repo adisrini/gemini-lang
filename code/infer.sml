@@ -98,11 +98,23 @@ struct
                     in
                       (augmentSmap(smap'', [sub], pos), venv'', T.S_TY(sty2))
                     end
+                 | T.M_TY(T.MODULE(hty1, hty2)) =>
+                    let
+                      val sub = U.unify(T.H_TY(hty1), e2Ty, pos)
+                    in
+                      (augmentSmap(smap'', [sub], pos), venv'', T.H_TY(hty2))
+                    end
                  | T.S_TY(T.S_POLY(tyvars, T.ARROW(sty1, sty2))) =>
                     let
-                      val sub = U.unifyPolyApp(T.S_TY(sty1), e2Ty, pos)
+                      val sub = U.unifyPolyFunApp(T.S_TY(sty1), e2Ty, pos)
                     in
                       (augmentSmap(smap'', [sub], pos), venv'', S.substituteType(T.S_TY(sty2), S.makeMap(sub), ref false)) (* return original smap but substitute on return type *)
+                    end
+                 | T.M_TY(T.M_POLY(tyvars, T.MODULE(hty1, hty2))) =>
+                    let
+                      val sub = U.unifyPolyModApp(T.H_TY(hty1), e2Ty, pos)
+                    in
+                      (augmentSmap(smap'', [sub], pos), venv'', S.substituteType(T.H_TY(hty2), S.makeMap(sub), ref false)) (* return original smap but substitute on return type *)
                     end
                  | _ => case e2Ty of
                              T.S_TY(e2Sty) =>
@@ -111,6 +123,13 @@ struct
                                 val sub = U.unify(T.S_TY(T.ARROW(e2Sty, retTy)), e1Ty, pos)
                               in
                                 (augmentSmap(smap'', [sub], pos), venv'', T.S_TY(retTy))
+                              end
+                           | T.H_TY(e2Hty) =>
+                              let
+                                val retTy = T.H_META(E.newMeta())
+                                val sub = U.unify(T.M_TY(T.MODULE(e2Hty, retTy)), e1Ty, pos)
+                              in
+                                (augmentSmap(smap'', [sub], pos), venv'', T.H_TY(retTy))
                               end
                            | T.BOTTOM => (smap'', venv'', T.S_TY(T.S_META(E.newMeta())))
                            | _ => (ErrorMsg.error pos "cannot apply function to non-sw type"; (smap'', venv'', T.S_TY(T.S_META(E.newMeta()))))
@@ -789,16 +808,16 @@ struct
               fun foldParam(A.NoParam, (venv, menv)) = (venv, menv)
                 | foldParam(A.SingleParam{name, ty, escape, pos}, (venv, menv)) =
                   let
-                    val paramTy = getExplicitType(ty, T.S_TY(T.S_BOTTOM))
+                    val paramTy = T.H_TY(getExplicitHWType(ty, T.H_BOTTOM))
                     val menv' = case paramTy of
-                                     T.S_TY(T.S_META(sm)) => Symbol.enter(menv, sm, paramTy)
+                                     T.H_TY(T.H_META(hm)) => Symbol.enter(menv, hm, paramTy)
                                    | _ => menv
                   in
                     (Symbol.enter(venv, name, paramTy), menv')
                   end
                 | foldParam(A.TupleParams(fs), (venv, menv)) = 
                   foldl (fn({name, ty, escape, pos}, (v, m)) => (let
-                                                              val paramTy = getExplicitType(ty, T.H_TY(T.H_BOTTOM))
+                                                              val paramTy = T.H_TY(getExplicitHWType(ty, T.H_BOTTOM))
                                                               val menv' = case paramTy of
                                                                                T.H_TY(T.H_META(hm)) => Symbol.enter(m, hm, paramTy)
                                                                              | _ => m
@@ -808,7 +827,7 @@ struct
                                                             end)) (venv, menv) fs
                 | foldParam(A.RecordParams(fs), (venv, menv)) =
                   foldl (fn({name, ty, escape, pos}, (v, m)) => (let
-                                                              val paramTy = getExplicitType(ty, T.H_TY(T.H_BOTTOM))
+                                                              val paramTy = T.H_TY(getExplicitHWType(ty, T.H_BOTTOM))
                                                               val menv' = case paramTy of
                                                                                T.H_TY(T.H_META(hm)) => Symbol.enter(m, hm, paramTy)
                                                                              | _ => m

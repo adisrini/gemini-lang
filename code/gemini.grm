@@ -597,8 +597,12 @@ pattern       : INT                                                         (A.I
               | BIT                                                         (A.BitExp(BIT, BITleft))
               | ID                                                          (A.VarExp(Symbol.symbol(ID), IDleft))
               | ID pattern                                                  (A.ApplyExp(A.VarExp(Symbol.symbol(ID), IDleft), pattern, IDleft))
-              | LPAREN opt_patterns RPAREN                                  (A.SWRecordExp{fields = numberedExpFields(opt_patterns), pos = LPARENleft})
-              | POUND LPAREN opt_patterns RPAREN                            (A.HWRecordExp{fields = numberedExpFields(opt_patterns), pos = POUNDleft})
+              | LPAREN opt_patterns RPAREN                                  (case opt_patterns of
+                                                                                  [(p, _)] => p
+                                                                                | _ => A.SWRecordExp{fields = numberedExpFields(opt_patterns), pos = LPARENleft})
+              | POUND LPAREN opt_patterns RPAREN                            (case opt_patterns of
+                                                                                  [(p, _)] => p
+                                                                                | _ => A.HWRecordExp{fields = numberedExpFields(opt_patterns), pos = POUNDleft})
               | LBRACK opt_patterns RBRACK                                  (A.ListExp(opt_patterns))
               | POUND LBRACK opt_patterns RBRACK                            (A.ArrayExp(Vector.fromList(opt_patterns)))
               | LBRACE rec_patterns RBRACE                                  (A.SWRecordExp{fields = rec_patterns, pos = LBRACEleft})

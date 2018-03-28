@@ -18,6 +18,9 @@ struct
       fun subty(T.S_TY(sty)) = T.S_TY(substy(sty, []))
         | subty(T.H_TY(hty)) = T.H_TY(subhty(hty, []))
         | subty(T.M_TY(mty)) = T.M_TY(submty(mty, []))
+        | subty(T.META(m)) = (case Symbol.look(submap, m) of
+                                   SOME(ty) => ty
+                                 | _ => T.META(m))
         | subty(ty) = ty
       and substy(T.INT, _) = T.INT
         | substy(T.REAL, _) = T.REAL
