@@ -64,14 +64,37 @@ struct
                    | A.RealMinusOp => V.RealVal(getReal(leftVal) - getReal(rightVal))
                    | A.RealTimesOp => V.RealVal(getReal(leftVal) * getReal(rightVal))
                    | A.RealDivideOp => V.RealVal(getReal(leftVal) / getReal(rightVal))
-                   | _ => V.NoVal
+                   | _ => V.NoVal (* TODO: handle other ops *)
+              end
+            | evexp(A.UnOpExp({exp, oper, pos})) =
+              let
+                val expVal = evexp(exp)
+              in
+                case oper of
+                     A.IntMinusOp => V.IntVal(~(getInt(expVal)))
+                   | _ => V.NoVal (* TODO: handle other ops *)
+              end
+            | evexp(A.LetExp{decs, body, pos}) =
+              let
+                val vstore' = foldl (fn(dec, vs) => evalDec(vs, dec)) vstore decs
+              in
+                evalExp(vstore', body)
               end
             | evexp(_) = V.NoVal
       in
         evexp(exp)
       end
 
-  and evalDec(vstore, dec) = vstore
+  and evalDec(vstore, dec) =
+    let fun evdec(A.FunctionDec(fundecs)) = vstore
+          | evdec(A.ValDec(valdecs)) = vstore
+          | evdec(A.TypeDec(tydecs)) = vstore
+          | evdec(A.ModuleDec(moddecs)) = vstore
+          | evdec(A.SWDatatypeDec(datatydecs)) = vstore
+          | evdec(A.HWDatatypeDec(datatydecs)) = vstore
+    in
+      evdec(dec)
+    end
 (*
 
 eval(FunDef(params, body), vs) =
