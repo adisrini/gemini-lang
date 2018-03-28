@@ -74,6 +74,8 @@ struct
         | subhty(T.H_BOTTOM, _) = T.H_BOTTOM
         | subhty(T.H_TOP, _) = T.H_TOP
       and submty(T.MODULE(hty1, hty2), tyvars) = T.MODULE(subhty(hty1, tyvars), subhty(hty2, tyvars))
+        | submty(T.M_POLY(polyvars, mty), tyvars) = T.M_POLY(polyvars, submty(mty, tyvars @ polyvars))
+        | submty(T.M_BOTTOM, _) = T.M_BOTTOM
     in
       subty(ty)
     end

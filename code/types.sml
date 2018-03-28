@@ -43,6 +43,8 @@ struct
 
   and m_ty =
             MODULE of h_ty * h_ty
+          | M_POLY of tyvar list * m_ty
+          | M_BOTTOM
 
   fun toString(t) =
     let
@@ -104,11 +106,13 @@ struct
             "H_DATATYPE(" ^ (String.concat(map stringify fs)) ^ ")"
           end
         | hty(H_POLY(tyvars, h)) = "H_POLY([" ^ (String.concat(map (fn(tyv) => Symbol.name(tyv) ^ ", ") tyvars)) ^ "], " ^ hty(h) ^ ")"
-        | hty(H_META(tyv)) = "'hwm" ^ Symbol.name(tyv)
+        | hty(H_META(tyv)) = "'hw" ^ Symbol.name(tyv)
         | hty(H_TOP) = "hw_top"
         | hty(H_BOTTOM) = "h_bottom"
 
-      and mty(m) = "MTY: UNIMPLEMENTED FOR NOW"
+      and mty(MODULE(h1, h2)) = hty(h1) ^ " ~> " ^ hty(h2)
+        | mty(M_POLY(tyvars, m)) = "M_POLY([" ^ (String.concat(map (fn(tyv) => hty(H_META(tyv)) ^ ", ") tyvars)) ^ "], " ^ mty(m) ^ ")"
+        | mty(M_BOTTOM) = "m_bottom"
     in
       case t of
            S_TY(s) => sty(s)

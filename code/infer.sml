@@ -58,11 +58,17 @@ struct
     | getHWType(T.META(m)) = T.H_META(m)
     | getHWType(_) = T.H_BOTTOM
 
+  fun getModType(T.M_TY(mty)) = mty
+    | getModType(_) = T.M_BOTTOM
+
   fun getExplicitType(A.ExplicitTy(ty), _) = ty
     | getExplicitType(_, default) = default
 
   fun getExplicitSWType(A.ExplicitTy(ty), _) = getSWType(ty)
     | getExplicitSWType(_, default) = default
+
+  fun getExplicitHWType(A.ExplicitTy(ty), _) = getHWType(ty)
+    | getExplicitHWType(_, default) = default
 
   fun inferProg(smap, e) =
     let
@@ -392,10 +398,14 @@ struct
             let
               val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
               val retTy = case expTy of
-                               T.S_TY(T.S_RECORD(fields)) => (case List.find (fn((sym, sty)) => Symbol.name(sym) = Symbol.name(field)) fields of
+                               T.S_TY(T.S_RECORD(fields)) => (case List.find (fn((sym, _)) => Symbol.name(sym) = Symbol.name(field)) fields of
                                                                    SOME(_, x) => T.S_TY(x)
                                                                  | _ => (ErrorMsg.error pos ("unknown field " ^ Symbol.name(field)); T.S_TY(T.S_BOTTOM)))
+                             | T.H_TY(T.H_RECORD(fields)) => (case List.find (fn((sym, _)) => Symbol.name(sym) = Symbol.name(field)) fields of
+                                                                   SOME(_, x) => T.H_TY(x)
+                                                                 | _ => (ErrorMsg.error pos ("unknown field " ^ Symbol.name(field)); T.H_TY(T.H_BOTTOM)))
                              | T.S_TY(T.S_META(sm)) => (ErrorMsg.error pos ("unresolved flex record (can't tell what fields there are besides #" ^ Symbol.name(field) ^ ")"); T.S_TY(T.S_BOTTOM))
+                             | T.H_TY(T.H_META(hm)) => (ErrorMsg.error pos ("unresolved flex record (can't tell what fields there are besides #" ^ Symbol.name(field) ^ ")"); T.H_TY(T.H_BOTTOM))
                              | _ => (ErrorMsg.error pos ("cannot access field of non-record type"); T.S_TY(T.S_BOTTOM))
             in
               (smap', venv', retTy)
@@ -609,6 +619,7 @@ struct
                 | flattenHWMetas(T.H_DATATYPE(tys, u)) = List.rev(foldl (fn((tyv, hty_opt), metas)  => case hty_opt of SOME(h) => flattenHWMetas(h) @ metas | NONE => metas) [] tys)
                 | flattenHWMetas(_) = []
               and flattenModMetas(T.MODULE(h1, h2)) = flattenHWMetas(h1) @ flattenHWMetas(h2)
+                | flattenModMetas(_) = []
               val paramMetas = flattenMetas params'
 
               val funTy' = case paramMetas of
@@ -745,7 +756,7 @@ struct
                   foldl (fn({name, ty, escape, pos}, (v, m)) => (let
                                                               val paramTy = getExplicitType(ty, T.H_TY(T.H_BOTTOM))
                                                               val menv' = case paramTy of
-                                                                               T.H_TY(T.H_META(hm)) => Symbol.enter(m, sm, paramTy)
+                                                                               T.H_TY(T.H_META(hm)) => Symbol.enter(m, hm, paramTy)
                                                                              | _ => m
                                                               val venv' = Symbol.enter(v, name, paramTy)
                                                             in
@@ -791,30 +802,30 @@ struct
                 | makeFunTy(t::ts, SOME(hty)) = makeFunTy(ts, SOME(T.ARROW(t, hty)))
                 | makeFunTy(_) = raise Match
 
-              val modTy = T.MODULE(getParamTy param, getHWType(bodyTy))
+              val modTy = T.MODULE(getParamTy arg, getHWType(bodyTy))
               val venv'' = Symbol.enter(venv, name, T.M_TY(modTy))
               val venv''' = S.substitute(smap'', venv'')
 
               (* TODO: pick up from here *)
 
-              val subbedFunTy = valOf(Symbol.look(venv''', name))
-              (* find metas part of substituted function parameters and POLY based on those *)
-              val params' = case subbedFunTy of
-                                 T.S_TY(T.ARROW(params, _)) => params
-                               | _ => (ErrorMsg.error pos ("unbound function: " ^ Symbol.name(name)); T.S_BOTTOM)
+              val subbedModTy = valOf(Symbol.look(venv''', name))
+              (* find metas part of substituted module parameters and POLY based on those *)
+              val param' = case subbedModTy of
+                                T.M_TY(T.MODULE(pTy, _)) => pTy
+                              | _ => (ErrorMsg.error pos ("unbound module: " ^ Symbol.name(name)); T.H_BOTTOM)
 
-              fun flattenMetas(T.S_META(sm)) = (case Symbol.look(menv, sm) of
+              fun flattenSWMetas(T.S_META(sm)) = (case Symbol.look(menv, sm) of
                                                     SOME(_) => []
                                                   | _ => [sm] (* only add if not in menv *))
-                | flattenMetas(T.S_RECORD(fs)) = List.rev(foldl (fn((tyv, sty), metas)  => flattenMetas(sty) @ metas) [] fs)
-                | flattenMetas(T.ARROW(s1, s2)) = flattenMetas(s1) @ flattenMetas(s2)
-                | flattenMetas(T.LIST(s)) = flattenMetas(s)
-                | flattenMetas(T.SW_H(h)) = flattenHWMetas(h)
-                | flattenMetas(T.SW_M(m)) = flattenModMetas(m)
-                | flattenMetas(T.REF(s)) = flattenMetas(s)
-                | flattenMetas(T.S_DATATYPE(tys, u)) = List.rev(foldl (fn((tyv, sty_opt), metas)  => case sty_opt of SOME(s) => flattenMetas(s) @ metas | NONE => metas) [] tys)
-                | flattenMetas(T.S_MU(tyvs, s)) = flattenMetas(s)
-                | flattenMetas(_) = []
+                | flattenSWMetas(T.S_RECORD(fs)) = List.rev(foldl (fn((tyv, sty), metas)  => flattenSWMetas(sty) @ metas) [] fs)
+                | flattenSWMetas(T.ARROW(s1, s2)) = flattenSWMetas(s1) @ flattenSWMetas(s2)
+                | flattenSWMetas(T.LIST(s)) = flattenSWMetas(s)
+                | flattenSWMetas(T.SW_H(h)) = flattenHWMetas(h)
+                | flattenSWMetas(T.SW_M(m)) = flattenModMetas(m)
+                | flattenSWMetas(T.REF(s)) = flattenSWMetas(s)
+                | flattenSWMetas(T.S_DATATYPE(tys, u)) = List.rev(foldl (fn((tyv, sty_opt), metas)  => case sty_opt of SOME(s) => flattenSWMetas(s) @ metas | NONE => metas) [] tys)
+                | flattenSWMetas(T.S_MU(tyvs, s)) = flattenSWMetas(s)
+                | flattenSWMetas(_) = []
               and flattenHWMetas(T.H_META(hm)) = (case Symbol.look(menv, hm) of
                                                       SOME(_) => []
                                                     | _ => [hm] (* only add if not in menv *))
@@ -824,13 +835,15 @@ struct
                 | flattenHWMetas(T.H_DATATYPE(tys, u)) = List.rev(foldl (fn((tyv, hty_opt), metas)  => case hty_opt of SOME(h) => flattenHWMetas(h) @ metas | NONE => metas) [] tys)
                 | flattenHWMetas(_) = []
               and flattenModMetas(T.MODULE(h1, h2)) = flattenHWMetas(h1) @ flattenHWMetas(h2)
-              val paramMetas = flattenMetas params'
+                | flattenModMetas(_) = []
 
-              val funTy' = case paramMetas of
-                                [] => subbedFunTy
-                               | _ => T.S_TY(T.S_POLY(paramMetas, getSWType(subbedFunTy)))
+              val paramMetas = flattenHWMetas param'
 
-              val venv'''' = Symbol.enter(venv''', name, funTy')
+              val modTy' = case paramMetas of
+                                [] => subbedModTy
+                              | _ => T.M_TY(T.M_POLY(paramMetas, getModType(subbedModTy)))
+
+              val venv'''' = Symbol.enter(venv''', name, modTy')
             in
               {menv = menv,
                tenv = tenv,

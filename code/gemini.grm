@@ -124,6 +124,7 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
                     | module_dec of A.dec
                         | module_dec_no_type of A.moddec
                         | module_dec_with_type of A.moddec
+                        | mod_param of A.param
                     | non_val_dec of A.dec list
                     | non_fun_dec of A.dec list
                     | non_ty_dec of A.dec list
@@ -435,6 +436,12 @@ fun_param_list_tail
               : COMMA fun_param_elem fun_param_list_tail                    ([fun_param_elem] @ fun_param_list_tail)
               | epsilon                                                     ([])
 
+mod_param     : ID                                                          (param([{name = Symbol.symbol(ID), ty = A.PlaceholderTy(ref ()), escape = ref true, pos = IDleft}], 0))
+              | POUND LPAREN fun_param_list RPAREN                          (param(fun_param_list, 0))
+              | POUND LPAREN RPAREN                                         (param([], 0))
+              | POUND LBRACE fun_param_list RBRACE                          (param(fun_param_list, 1))
+              | POUND LBRACE RBRACE                                         (param([], 0))
+              
 ty_dec        : TYPE tids ID EQ ty                                          (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvars = SOME(tids), opdef = NONE, pos = TYPEleft}])
               | TYPE tids ID EQ ty ty_dec                                   (A.TypeDec([{name = Symbol.symbol(ID), ty = ty1, tyvars = SOME(tids), opdef = NONE, pos = TYPEleft}] @ valOf(extractTypeDecList(ty_dec))))
               | TYPE tids ID EQ ty with_type                                (A.TypeDec[{name = Symbol.symbol(ID), ty = ty1, tyvars = SOME(tids), opdef = SOME(with_type), pos = TYPEleft}])
@@ -515,10 +522,10 @@ module_dec    : module_dec_no_type                                          (A.M
               | module_dec_with_type module_dec                             (A.ModuleDec(module_dec_with_type::valOf(extractModDecList(module_dec))))
 
 module_dec_no_type
-              : MODULE ID fun_param EQ exp                                  ({name = Symbol.symbol(ID), arg = fun_param, result = (A.PlaceholderTy(ref ()), IDleft), body = exp, pos = MODULEleft})
+              : MODULE ID mod_param EQ exp                                  ({name = Symbol.symbol(ID), arg = mod_param, result = (A.PlaceholderTy(ref ()), IDleft), body = exp, pos = MODULEleft})
 
 module_dec_with_type
-              : MODULE ID fun_param COLON ty EQ exp                         ({name = Symbol.symbol(ID), arg = fun_param, result = (ty, tyleft), body = exp, pos = MODULEleft})
+              : MODULE ID mod_param COLON ty EQ exp                         ({name = Symbol.symbol(ID), arg = mod_param, result = (ty, tyleft), body = exp, pos = MODULEleft})
 
 semicolon_exp0: SEMICOLON exp semicolon_exp0                                ([(exp1, exp1left)] @ semicolon_exp0)
               | epsilon                                                     ([])

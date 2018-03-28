@@ -56,6 +56,8 @@ struct
         | extractHWMetas(T.H_TOP) = []
         | extractHWMetas(T.H_BOTTOM) = []
       and extractMDMetas(T.MODULE(h1, h2)) = extractHWMetas(h1) @ extractHWMetas(h2)
+        | extractMDMetas(T.M_POLY(tyvars, m)) = extractMDMetas(m)
+        | extractMDMetas(T.M_BOTTOM) = []
     in
       case ty of
            T.S_TY(s) => extractSWMetas(s)

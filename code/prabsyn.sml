@@ -240,6 +240,8 @@ fun print (outstream, e0) =
         | hty(T.H_POLY(tyvars, h), d) = (indent d; say "H_POLY(["; dolist (d + 1) saytyvar tyvars; sayln "],"; hty(h, d + 1); sayln ""; indent d; say ")")
 
       and mty(T.MODULE(h1, h2), d) = (indent d; sayln "MODULE("; hty(h1, d + 1); sayln "->"; hty(h2, d + 1); sayln ""; indent d; say ")")
+        | mty(T.M_POLY(tyvars, m), d) = (indent d; say "M_POLY(["; dolist (d + 1) saytyvar tyvars; sayln "],"; mty(m, d + 1); sayln ""; indent d; say ")")
+        | mty(T.M_BOTTOM, d) = (indent d; say "M_BOTTOM")
     in
       case t of
            T.S_TY(s) => (indent d; sayln "S_TY("; sty(s, d + 1); sayln ""; indent d; say ")")

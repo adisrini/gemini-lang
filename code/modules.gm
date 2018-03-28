@@ -1,0 +1,7 @@
+let
+  module xor (a, b) = #[a, b]
+
+  module moo (x : #{lhs: bit, rhs: bit}) = #lhs x
+in
+  0
+end
