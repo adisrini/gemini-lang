@@ -7,6 +7,7 @@ struct
                  | StringVal of string
                  | RealVal of real
                  | ListVal of value list
+                 | RefVal of value ref
                  | RecordVal of (symbol * value) list
                  | FunVal of value -> value
                  | NoVal
@@ -20,6 +21,7 @@ struct
     | toString(StringVal(s)) = "string(" ^ s ^ ")"
     | toString(RealVal(r)) = "real(" ^ Real.toString(r) ^ ")"
     | toString(ListVal(vs)) = "list([" ^ printlist toString vs ^ "])"
+    | toString(RefVal(vr)) = "ref(" ^ toString(!vr) ^ ")"
     | toString(RecordVal(fs)) = "record(" ^ (printlist (fn(sym, v) => Symbol.name(sym) ^ ": " ^ toString(v)) fs) ^ ")"
     | toString(FunVal(f)) = "funval"
     | toString(NoVal) = "noval"

@@ -30,6 +30,9 @@ struct
 
   fun getList(V.ListVal x) = x
     | getList(_) = raise TypeError
+
+  fun getRef(V.RefVal x) = x
+    | getRef(_) = raise TypeError
   
 
   (* evaluation functions *)
@@ -79,6 +82,29 @@ struct
                 val vstore' = foldl (fn(dec, vs) => evalDec(vs, dec)) vstore decs
               in
                 evalExp(vstore', body)
+              end
+            | evexp(A.AssignExp{lhs, rhs, pos}) =
+              let
+                val lhsVal = evexp(lhs)
+                val rhsVal = evexp(rhs)
+                val lhsRef = getRef(lhsVal)
+                val () = lhsRef := rhsVal
+              in
+                V.RecordVal [] (* unit *)
+              end
+            | evexp(A.SeqExp(exps)) =
+              let
+                fun foldExp((exp, pos), (opt_val)) =
+                  let
+                    val expVal = evexp(exp)
+                  in
+                    SOME(expVal)
+                  end
+                val opt_val = foldl foldExp NONE exps
+              in
+                (case opt_val of
+                      NONE => V.RecordVal [] (* unit *)
+                    | SOME(v) => v)
               end
             | evexp(_) = V.NoVal
       in
