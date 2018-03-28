@@ -129,12 +129,27 @@ struct
                             | A.RealMinusOp => (unifyAndSubstitute(smap'', T.S_TY(T.REAL), [(leftTy, pos), (rightTy, pos)]), T.S_TY(T.REAL))
                             | A.RealTimesOp => (unifyAndSubstitute(smap'', T.S_TY(T.REAL), [(leftTy, pos), (rightTy, pos)]), T.S_TY(T.REAL))
                             | A.RealDivideOp => (unifyAndSubstitute(smap'', T.S_TY(T.REAL), [(leftTy, pos), (rightTy, pos)]), T.S_TY(T.REAL))
-                            (* | A.BitAndOp =>
+                            | A.BitAndOp =>
                               let
-                                val (sub, retTy) = U.unifyBitwiseOperator(leftTy, rightTy, pos)
+                                val (sub, retTy) = U.unifyBitOp(leftTy, rightTy, pos)
                                 val smap' = augmentSmap(smap'', [sub], pos)
+                              in
+                                ((smap', [sub]), retTy)
+                              end
                             | A.BitOrOp =>
-                            | A.BitXorOp => *)
+                              let
+                                val (sub, retTy) = U.unifyBitOp(leftTy, rightTy, pos)
+                                val smap' = augmentSmap(smap'', [sub], pos)
+                              in
+                                ((smap', [sub]), retTy)
+                              end
+                            | A.BitXorOp =>
+                              let
+                                val (sub, retTy) = U.unifyBitOp(leftTy, rightTy, pos)
+                                val smap' = augmentSmap(smap'', [sub], pos)
+                              in
+                                ((smap', [sub]), retTy)
+                              end
                             | A.BitSLLOp =>
                               let
                                 val (subs, retTy) = U.unifyShift(leftTy, rightTy, pos)
@@ -156,10 +171,30 @@ struct
                               in
                                   ((smap', subs), retTy)
                               end
-                            (*
                             | A.BitDoubleAndOp =>
+                              let
+                                val sub1 = U.unify(T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}), leftTy, pos)
+                                val sub2 = U.unify(T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}), rightTy, pos)
+                                val smap' = augmentSmap(smap'', [sub1, sub2], pos)
+                              in
+                                ((smap', [sub1, sub2]), T.H_TY(T.BIT))
+                              end
                             | A.BitDoubleOrOp =>
-                            | A.BitDoubleXorOp => *)
+                              let
+                                val sub1 = U.unify(T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}), leftTy, pos)
+                                val sub2 = U.unify(T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}), rightTy, pos)
+                                val smap' = augmentSmap(smap'', [sub1, sub2], pos)
+                              in
+                                ((smap', [sub1, sub2]), T.H_TY(T.BIT))
+                              end
+                            | A.BitDoubleXorOp =>
+                              let
+                                val sub1 = U.unify(T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}), leftTy, pos)
+                                val sub2 = U.unify(T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}), rightTy, pos)
+                                val smap' = augmentSmap(smap'', [sub1, sub2], pos)
+                              in
+                                ((smap', [sub1, sub2]), T.H_TY(T.BIT))
+                              end
                             | A.EqOp =>
                               let
                                 val (sub, retTy) = U.unifyEqualityType(leftTy, rightTy, pos)

@@ -19,6 +19,10 @@ struct
     | getSWType(T.S_TY(s)) = T.S_TY(s)
     | getSWType(_) = T.S_TY(T.S_BOTTOM)
 
+  fun getHWType(T.META(m)) = T.H_TY(T.H_META(m))
+    | getHWType(T.H_TY(h)) = T.H_TY(h)
+    | getHWType(_) = T.H_TY(T.H_BOTTOM)
+
   fun error(ty1, ty2, pos) = (ErrorMsg.error pos ("type mismatch!\n" ^
                               "expected:\t" ^ T.toString(ty1) ^ "\n" ^
                               "received:\t" ^ T.toString(ty2) ^ "\n");
@@ -30,6 +34,13 @@ struct
                               "received:\t" ^ T.toString(ty) ^ "\n");
                      S.ERROR({expected = T.S_TY(T.S_BOTTOM),
                               received = ty}))
+
+  fun errorHW(expectedTyStr, ty, pos) = (ErrorMsg.error pos ("type mismatch!\n" ^
+                              "expected " ^ expectedTyStr ^ " type\n" ^
+                              "received:\t" ^ T.toString(ty) ^ "\n");
+                     S.ERROR({expected = T.H_TY(T.H_BOTTOM),
+                              received = ty}))
+
 
   fun kindError(ty1, ty2, pos) = (ErrorMsg.error pos ("kind mismatch!\n" ^
                               "expected:\t" ^ T.toString(ty1) ^ "\n" ^
@@ -82,8 +93,11 @@ struct
                                 | (T.ARRAY{ty = ty1, size = _}, T.ARRAY{ty = ty2, size = _}) => unifyHty(ty1, ty2, pos)
                                 | (T.H_RECORD(recs1), T.H_RECORD(recs2)) => 
                                   let
-                                    fun foldSubs(((_, hty1), (_, hty2)), sub) =
+                                    fun foldSubs(((f1, hty1), (f2, hty2)), sub) =
                                       let
+                                        val () = if(Symbol.name(f1) <> Symbol.name(f2))
+                                                 then ErrorMsg.error pos "record fields do not match"
+                                                 else ()
                                         val innersub = unifyHty(hty1, hty2, pos)
                                       in
                                         case sub of
@@ -112,8 +126,11 @@ struct
                                 | (_, T.S_POLY(_, polySty)) => unifySty(polySty, sty1, pos)
                                 | (T.S_RECORD(recs1), T.S_RECORD(recs2)) => 
                                   let
-                                    fun foldSubs(((_, sty1), (_, sty2)), sub) =
+                                    fun foldSubs(((f1, sty1), (f2, sty2)), sub) =
                                       let
+                                        val () = if(Symbol.name(f1) <> Symbol.name(f2))
+                                                 then ErrorMsg.error pos "record fields do not match"
+                                                 else ()
                                         val innersub = unifySty(sty1, sty2, pos)
                                       in
                                         case sub of
@@ -135,7 +152,7 @@ struct
                                                                    val sub = unifySty(T.LIST(sty1), sty2, pos)
                                                                  in
                                                                    (sub, case sub of
-                                                                              S.SUB((sym, retTy)::rest) => retTy  (* TODO: test this! *)
+                                                                              S.SUB((sym, retTy)::rest) => retTy
                                                                             | S.SUB([]) => ty2
                                                                             | S.ERROR(_) => T.S_TY(T.S_BOTTOM))
                                                                  end
@@ -179,11 +196,32 @@ struct
                                              | (_, T.S_TY(_)) => errorSW("'sw", argTy, pos)
                                              | (_, _) => errorSW("'sw", paramTy, pos)
 
+  and unifyBitOp(ty1, ty2, pos) = case (getHWType(ty1), getHWType(ty2)) of
+                                        (T.H_TY(hty1), T.H_TY(hty2)) => let
+                                                                          val sub = unifyHty(hty1, hty2, pos)
+                                                                        in
+                                                                          (sub, case sub of
+                                                                                     S.SUB((sym, retTy)::rest) => retTy
+                                                                                   | S.SUB([]) => ty2
+                                                                                   | S.ERROR(_) => T.H_TY(T.H_BOTTOM))
+                                                                        end
+                                      | _ =>  let
+                                                val sub1 = case getHWType(ty1) of
+                                                                T.H_TY(_) => S.SUB([])
+                                                              | _ => errorHW("'hw", ty1, pos)
+                                                val sub2 = case getHWType(ty2) of
+                                                                T.H_TY(_) => S.SUB([])
+                                                              | _ => errorHW("'hw", ty2, pos)
+                                              in
+                                                (sub2, T.H_TY(T.H_BOTTOM))
+                                              end
 
-  and unifyShift(arrTy, intTy, pos) =
+
+
+  and unifyShift(arrTy, amtTy, pos) =
     let
       val sub1 = unify(T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}), arrTy, pos)
-      val sub2 = unify(T.S_TY(T.INT), intTy, pos)
+      val sub2 = unify(T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}), amtTy, pos)
     in
       ([sub1, sub2], T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}))
     end
