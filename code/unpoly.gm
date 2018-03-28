@@ -6,7 +6,7 @@ let
   val y = g "a" "b"
   val z = g "a" 10
 
-  (* this should create two unpolied versions of f, and three unpolied versions of g *)
+  (* this should create two monomorphic versions of f, and three monomorphic versions of g *)
 in
   0
 end

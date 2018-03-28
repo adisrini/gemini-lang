@@ -23,6 +23,13 @@ struct
       val smap' = Infer.inferProg (smap, explicitAST)
       val () = print("===== SMAP POST-INFERENCE =====\n")
       val () = S.print(TextIO.stdOut, smap', Types.toString)
+      (* monomorphize 
+          * pull modules out into "toplevel" with everything monomorphized
+          * module_123_g_int_int
+          * rewrite module body and replace module call with new name
+          * symbol table: map from symbol module names -> (definition of module * ref map from list of types -> name of monomorphic version of that module)
+      *)
+      val evalAst = SWEvaluate.evalProg explicitAST
     in
       ()
     end
