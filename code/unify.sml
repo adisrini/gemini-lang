@@ -39,18 +39,34 @@ struct
 
   fun unify(ty1, ty2, pos) = case ty1 of
                                    T.META(m) => S.SUB([(m, ty2)])
-                                 | T.H_TY(T.H_META(hm)) => S.SUB([(hm, ty2)])
-                                 | T.S_TY(T.S_META(sm)) => S.SUB([(sm, ty2)])
+                                 | T.H_TY(T.H_META(hm)) => (case ty2 of
+                                                                 T.H_TY(_) => S.SUB([(hm, ty2)])
+                                                                | _ => kindError(ty1, ty2, pos))
+                                 | T.S_TY(T.S_META(sm)) => (case ty2 of
+                                                                 T.S_TY(_) => S.SUB([(sm, ty2)])
+                                                                | _ => kindError(ty1, ty2, pos))
                                  | T.TOP => S.SUB([])
-                                 | T.S_TY(T.S_TOP) => S.SUB([])
-                                 | T.H_TY(T.H_TOP) => S.SUB([])
+                                 | T.S_TY(T.S_TOP) => (case ty2 of
+                                                            T.S_TY(_) => S.SUB([])
+                                                           | _ => kindError(ty1, ty2, pos))
+                                 | T.H_TY(T.H_TOP) => (case ty2 of
+                                                            T.H_TY(_) => S.SUB([])
+                                                           | _ => kindError(ty1, ty2, pos))
                                  | _ => case ty2 of
                                              T.META(m) => S.SUB([(m, ty1)])
-                                           | T.H_TY(T.H_META(hm)) => S.SUB([(hm, ty1)])
-                                           | T.S_TY(T.S_META(sm)) => S.SUB([(sm, ty1)])
+                                           | T.H_TY(T.H_META(hm)) => (case ty1 of
+                                                                           T.H_TY(_) => S.SUB([(hm, ty1)])
+                                                                          | _ => kindError(ty1, ty2, pos))
+                                           | T.S_TY(T.S_META(sm)) => (case ty1 of
+                                                                           T.S_TY(_) => S.SUB([(sm, ty1)])
+                                                                          | _ => kindError(ty1, ty2, pos))
                                            | T.BOTTOM => S.SUB([])
-                                           | T.S_TY(T.S_BOTTOM) => S.SUB([])
-                                           | T.H_TY(T.H_BOTTOM) => S.SUB([])
+                                           | T.S_TY(T.S_BOTTOM) => (case ty1 of
+                                                                         T.S_TY(_) => S.SUB([])
+                                                                        | _ => kindError(ty1, ty2, pos))
+                                           | T.H_TY(T.H_BOTTOM) => (case ty1 of
+                                                                         T.H_TY(_) => S.SUB([])
+                                                                        | _ => kindError(ty1, ty2, pos))
                                            | _ => case (ty1, ty2) of
                                                        (T.H_TY(h1), T.H_TY(h2)) => unifyHty(h1, h2, pos)
                                                      | (T.S_TY(s1), T.S_TY(s2)) => unifySty(s1, s2, pos)
@@ -157,12 +173,19 @@ struct
                                                 (sub2, T.S_TY(T.S_RECORD([])))
                                               end
 
-  (* note: test on case where argTy/paramTy is another poly *)
   and unifyPolyApp(argTy, paramTy, pos) = case (getSWType(argTy), getSWType(paramTy)) of
                                                (T.S_TY(T.S_POLY(tyvars, T.ARROW(sty1, sty2))), _) => unifyPolyApp(T.S_TY(sty1), paramTy, pos)
                                              | (T.S_TY(_), T.S_TY(_)) => unify(paramTy, argTy, pos)
                                              | (_, T.S_TY(_)) => errorSW("'sw", argTy, pos)
                                              | (_, _) => errorSW("'sw", paramTy, pos)
 
+
+  and unifyShift(arrTy, intTy, pos) =
+    let
+      val sub1 = unify(T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}), arrTy, pos)
+      val sub2 = unify(T.S_TY(T.INT), intTy, pos)
+    in
+      ([sub1, sub2], T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}))
+    end
 
 end

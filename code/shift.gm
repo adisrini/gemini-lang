@@ -1,0 +1,10 @@
+let
+
+  val amt = 10
+
+  module shift (vec) = vec << amt
+
+  val bad = 10 << 'b:0
+in
+  0
+end

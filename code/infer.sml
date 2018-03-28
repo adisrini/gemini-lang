@@ -134,10 +134,29 @@ struct
                                 val (sub, retTy) = U.unifyBitwiseOperator(leftTy, rightTy, pos)
                                 val smap' = augmentSmap(smap'', [sub], pos)
                             | A.BitOrOp =>
-                            | A.BitXorOp =>
+                            | A.BitXorOp => *)
                             | A.BitSLLOp =>
+                              let
+                                val (subs, retTy) = U.unifyShift(leftTy, rightTy, pos)
+                                val smap' = augmentSmap(smap'', subs, pos)
+                              in
+                                  ((smap', subs), retTy)
+                              end
                             | A.BitSRLOp =>
+                              let
+                                val (subs, retTy) = U.unifyShift(leftTy, rightTy, pos)
+                                val smap' = augmentSmap(smap'', subs, pos)
+                              in
+                                  ((smap', subs), retTy)
+                              end
                             | A.BitSRAOp =>
+                              let
+                                val (subs, retTy) = U.unifyShift(leftTy, rightTy, pos)
+                                val smap' = augmentSmap(smap'', subs, pos)
+                              in
+                                  ((smap', subs), retTy)
+                              end
+                            (*
                             | A.BitDoubleAndOp =>
                             | A.BitDoubleOrOp =>
                             | A.BitDoubleXorOp => *)
@@ -805,8 +824,6 @@ struct
               val modTy = T.MODULE(getParamTy arg, getHWType(bodyTy))
               val venv'' = Symbol.enter(venv, name, T.M_TY(modTy))
               val venv''' = S.substitute(smap'', venv'')
-
-              (* TODO: pick up from here *)
 
               val subbedModTy = valOf(Symbol.look(venv''', name))
               (* find metas part of substituted module parameters and POLY based on those *)
