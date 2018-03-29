@@ -137,6 +137,13 @@ struct
               in
                 V.RefVal (ref expVal)
               end
+            | evexp(A.SWRecordExp({fields, pos})) =
+              let
+                fun makeVal(sym, exp, pos) = (sym, evexp(exp))
+                val fs = map makeVal fields
+              in
+                V.RecordVal fs
+              end
             | evexp(_) = V.NoVal
       in
         evexp(exp)
