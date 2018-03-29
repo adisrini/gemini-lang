@@ -37,10 +37,14 @@ struct
   fun getRecord(V.RecordVal x) = x
     | getRecord(_) = raise TypeError
 
+  fun getFun(V.FunVal x) = x
+    | getFun(_) = raise TypeError
+
   (* evaluation functions *)
   fun evalProg(prog) = 
     let
       val progVal = evalExp(V.base_store, prog)
+      val () = print("===== PROGRAM RESULT =====\n")
       val () = print(V.toString(progVal) ^ "\n")
     in
       ()
@@ -55,7 +59,16 @@ struct
             | evexp(A.StringExp(str, pos)) = V.StringVal str
             | evexp(A.RealExp(num, pos)) = V.RealVal num
             | evexp(A.BitExp(bit, pos)) = V.NoVal (* TODO *)
-            | evexp(A.ApplyExp(e1, e2, pos)) = V.NoVal (* TODO *)
+            | evexp(A.ApplyExp(e1, e2, pos)) =
+              let
+                val e1Val = evexp(e1)
+                val e2Val = evexp(e2)
+
+                val e1Fun = getFun(e1Val)
+                val retVal = e1Fun e2Val
+              in
+                retVal
+              end
             | evexp(A.BinOpExp({left, oper, right, pos})) =
               let
                 val leftVal = evexp(left)
@@ -172,7 +185,40 @@ struct
       end
 
   and evalDec(vstore, dec) =
-    let fun evdec(A.FunctionDec(fundecs)) = vstore
+    let fun evdec(A.FunctionDec(fundecs)) =
+            let
+              (* TODO: handle recursion *)
+              fun foldDec({name, params, result, body, pos}, vs) = 
+                let
+                  fun augmentParam(A.NoParam, vs, value) = vs
+                    | augmentParam(A.SingleParam{name, ty, escape, pos}, vs, value) = Symbol.enter(vs, name, value)
+                    | augmentParam(A.TupleParams(fs), vs, value) =
+                      let
+                        fun foldField(({name, ty, escape, pos}, (sym, value)), vs) = Symbol.enter(vs, name, value)
+                      in
+                        foldl foldField vs (ListPair.zipEq(fs, getRecord(value)))
+                      end
+                    | augmentParam(A.RecordParams(fs), vs, value) =
+                      let
+                        fun foldField(({name, ty, escape, pos}, (sym, value)), vs) = Symbol.enter(vs, name, value)
+                      in
+                        foldl foldField vs (ListPair.zipEq(fs, getRecord(value)))
+                      end
+                  fun genFunVal(params, vs) =
+                      fn(value) =>
+                        case params of
+                             [param] => evalExp(augmentParam(param, vs, value), body)
+                           | param::rest => V.FunVal(genFunVal(rest, augmentParam(param, vs, value)))
+                           | [] => raise Match
+                  val funVal = genFunVal(params, vs)
+                  val vs' = Symbol.enter(vs, name, V.FunVal funVal)
+                in
+                  vs'
+                end
+              val vstore' = foldl foldDec vstore fundecs
+            in
+              vstore'
+            end
           | evdec(A.ValDec(valdecs)) =
             let
               fun foldDec({name, escape, ty, init, pos}, vs) =
