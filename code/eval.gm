@@ -3,6 +3,21 @@ let
   val multBy11 = mult 11
 
   fun arithmetic a (b, c) {d, e} = (a / b + c - d) * e
+
+  fun testRef () =
+    let
+      val x = ref 0
+    in
+      (x := 10; $x)
+    end
+
+  fun fact x = if x
+               then x * fact(x - 1)
+               else 1
+
+  fun sum m n = if m
+                then m + n + sum (m - 1) (n - 1)
+                else 0
 in
-  arithmetic 1 (2, 3) {d = 4, e = 5}
+  sum 3 4
 end

@@ -9,7 +9,7 @@ struct
                  | ListVal of value list
                  | RefVal of value ref
                  | RecordVal of (symbol * value) list
-                 | FunVal of value -> value
+                 | FunVal of (value -> value) ref
                  | NoVal
 
   fun printlist f lst = case lst of 

@@ -64,7 +64,7 @@ struct
                 val e1Val = evexp(e1)
                 val e2Val = evexp(e2)
 
-                val e1Fun = getFun(e1Val)
+                val e1Fun = !(getFun(e1Val))
                 val retVal = e1Fun e2Val
               in
                 retVal
@@ -187,7 +187,6 @@ struct
   and evalDec(vstore, dec) =
     let fun evdec(A.FunctionDec(fundecs)) =
             let
-              (* TODO: handle recursion *)
               fun foldDec({name, params, result, body, pos}, vs) = 
                 let
                   fun augmentParam(A.NoParam, vs, value) = vs
@@ -204,14 +203,20 @@ struct
                       in
                         foldl foldField vs (ListPair.zipEq(fs, getRecord(value)))
                       end
+
+                  val vs' = Symbol.enter(vs, name, V.FunVal (ref (fn(v) => V.NoVal)))
+
                   fun genFunVal(params, vs) =
                       fn(value) =>
                         case params of
                              [param] => evalExp(augmentParam(param, vs, value), body)
-                           | param::rest => V.FunVal(genFunVal(rest, augmentParam(param, vs, value)))
+                           | param::rest => V.FunVal(ref (genFunVal(rest, augmentParam(param, vs, value))))
                            | [] => raise Match
-                  val funVal = genFunVal(params, vs)
-                  val vs' = Symbol.enter(vs, name, V.FunVal funVal)
+
+                  val funVal = genFunVal(params, vs')
+                  val () = case Symbol.look(vs', name) of
+                                SOME(V.FunVal(funref)) => funref := funVal
+                              | _ => ()
                 in
                   vs'
                 end
