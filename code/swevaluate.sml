@@ -106,6 +106,28 @@ struct
                       NONE => V.RecordVal [] (* unit *)
                     | SOME(v) => v)
               end
+            | evexp(A.IfExp{test, then', else' = SOME(elseExp), pos}) =
+              let
+                val testVal = evexp(test)
+              in
+                if (getInt(testVal)) <> 0
+                then evexp(then')
+                else evexp(elseExp)
+              end
+            | evexp(A.IfExp{test, then', else' = NONE, pos}) =
+              let
+                val testVal = evexp(test)
+              in
+                if (getInt(testVal)) <> 0
+                then evexp(then')
+                else V.RecordVal [] (* unit *)
+              end
+            | evexp(A.ListExp(elems)) =
+              let
+                val vals = map (fn (exp, _) => evexp(exp)) elems
+              in
+                V.ListVal vals
+              end
             | evexp(_) = V.NoVal
       in
         evexp(exp)
