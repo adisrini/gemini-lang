@@ -163,7 +163,10 @@ struct
               in
                 fieldVal
               end
-            | evexp(_) = V.NoVal
+            | evexp(A.ArrayAccExp{exp, index, pos}) = V.NoVal (* TODO *)
+            | evexp(A.PatternMatchExp{exp, cases, pos}) = V.NoVal (* TODO *)
+            | evexp(A.BitArrayGenExp{size, counter, genfun, pos}) = V.NoVal (* TODO *)
+            | evexp(A.BitArrayConvExp{size, value, spec, pos}) = V.NoVal (* TODO *)
       in
         evexp(exp)
       end
