@@ -34,6 +34,8 @@ struct
   fun getRef(V.RefVal x) = x
     | getRef(_) = raise TypeError
   
+  fun getRecord(V.RecordVal x) = x
+    | getRecord(_) = raise TypeError
 
   (* evaluation functions *)
   fun evalProg(prog) = 
@@ -149,9 +151,17 @@ struct
             | evexp(A.WithExp{exp, fields, pos}) = V.NoVal (* TODO *)
             | evexp(A.DerefExp{exp, pos}) =
               let
-                val expVal = evexp(exp)
+                val refVal = evexp(exp)
               in
-                !(getRef(expVal))
+                !(getRef(refVal))
+              end
+            | evexp(A.StructAccExp{name, field, pos}) = V.NoVal (* TODO *)
+            | evexp(A.RecordAccExp{exp, field, pos}) =
+              let
+                val recVal = evexp(exp)
+                val (_, fieldVal) = valOf(List.find (fn (sym, _) => Symbol.name(sym) = Symbol.name(field)) (getRecord(recVal)))
+              in
+                fieldVal
               end
             | evexp(_) = V.NoVal
       in
