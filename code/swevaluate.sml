@@ -52,6 +52,8 @@ struct
             | evexp(A.IntExp(num, pos)) = V.IntVal num
             | evexp(A.StringExp(str, pos)) = V.StringVal str
             | evexp(A.RealExp(num, pos)) = V.RealVal num
+            | evexp(A.BitExp(bit, pos)) = V.NoVal (* TODO *)
+            | evexp(A.ApplyExp(e1, e2, pos)) = V.NoVal (* TODO *)
             | evexp(A.BinOpExp({left, oper, right, pos})) =
               let
                 val leftVal = evexp(left)
@@ -127,6 +129,13 @@ struct
                 val vals = map (fn (exp, _) => evexp(exp)) elems
               in
                 V.ListVal vals
+              end
+            | evexp(A.ArrayExp(elems)) = V.NoVal (* TODO *)
+            | evexp(A.RefExp(exp, pos)) =
+              let
+                val expVal = evexp(exp)
+              in
+                V.RefVal (ref expVal)
               end
             | evexp(_) = V.NoVal
       in
