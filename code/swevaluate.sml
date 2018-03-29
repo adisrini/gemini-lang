@@ -144,6 +144,15 @@ struct
               in
                 V.RecordVal fs
               end
+            | evexp(A.HWRecordExp({fields, pos})) = V.NoVal (* TODO *)
+            | evexp(A.SWExp(exp, pos)) = V.NoVal (* TODO *)
+            | evexp(A.WithExp{exp, fields, pos}) = V.NoVal (* TODO *)
+            | evexp(A.DerefExp{exp, pos}) =
+              let
+                val expVal = evexp(exp)
+              in
+                !(getRef(expVal))
+              end
             | evexp(_) = V.NoVal
       in
         evexp(exp)
