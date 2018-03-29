@@ -173,7 +173,19 @@ struct
 
   and evalDec(vstore, dec) =
     let fun evdec(A.FunctionDec(fundecs)) = vstore
-          | evdec(A.ValDec(valdecs)) = vstore
+          | evdec(A.ValDec(valdecs)) =
+            let
+              fun foldDec({name, escape, ty, init, pos}, vs) =
+                let
+                  val value = evalExp(vs, init)
+                  val vs' = Symbol.enter(vs, name, value)
+                in
+                  vs'
+                end
+              val vstore' = foldl foldDec vstore valdecs
+            in
+              vstore'
+            end
           | evdec(A.TypeDec(tydecs)) = vstore
           | evdec(A.ModuleDec(moddecs)) = vstore
           | evdec(A.SWDatatypeDec(datatydecs)) = vstore
