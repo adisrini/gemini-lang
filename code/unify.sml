@@ -41,6 +41,12 @@ struct
                      S.ERROR({expected = T.H_TY(T.H_BOTTOM),
                               received = ty}))
 
+  fun errorEq(ty1, ty2, pos) = (ErrorMsg.error pos ("type mismatch!\n" ^
+                              "expected:\t[eqty1] * [eqty2]\n" ^
+                              "received:\t" ^ T.toString(ty1) ^ " * " ^ T.toString(ty2) ^ "\n");
+                         S.ERROR({expected = ty1,
+                                  received = ty2}))
+
 
   fun kindError(ty1, ty2, pos) = (ErrorMsg.error pos ("kind mismatch!\n" ^
                               "expected:\t" ^ T.toString(ty1) ^ "\n" ^
@@ -171,7 +177,21 @@ struct
                                       end
 
    (* TODO: check type being compared? *)
-   and unifyEqualityType(ty1, ty2, pos) = (unify(ty1, ty2, pos), T.S_TY(T.INT))
+   and unifyEqualityType(ty1, ty2, pos) = case (ty1, ty2) of
+                                               (T.S_TY(T.INT), _) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (_, T.S_TY(T.INT)) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (T.S_TY(T.STRING), _) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (_, T.S_TY(T.STRING)) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (T.S_TY(T.REAL), _) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (_, T.S_TY(T.REAL)) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (T.S_TY(T.S_RECORD(_)), _) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (_, T.S_TY(T.S_RECORD(_))) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (T.S_TY(T.LIST(_)), _) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (_, T.S_TY(T.LIST(_))) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (T.S_TY(T.REF(_)), _) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (_, T.S_TY(T.REF(_))) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (T.S_TY(T.S_META(_)), T.S_TY(T.S_META(_))) => (ErrorMsg.warning pos "calling polyEqual"; (unify(ty1, ty2, pos), T.S_TY(T.INT)))
+                                             | (_, _) => (errorEq(ty1, ty2, pos), T.S_TY(T.INT))
 
    (* TODO: check type being compared? *)
    and unifyInequalityType(ty1, ty2, pos) = (unify(ty1, ty2, pos), T.S_TY(T.INT))

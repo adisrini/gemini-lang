@@ -40,6 +40,19 @@ struct
   fun getFun(V.FunVal x) = x
     | getFun(_) = raise TypeError
 
+  (* comparison operators *)
+  fun compareEq(V.IntVal l, V.IntVal r) = l = r
+    | compareEq(V.StringVal l, V.StringVal r) = l = r
+    | compareEq(V.RealVal l, V.RealVal r) = Real.==(l, r)
+    | compareEq(V.ListVal l, V.ListVal r) = if length(l) = length(r)
+                                            then foldl (fn((lv, rv), isequal) => isequal andalso compareEq(lv, rv)) true (ListPair.zipEq(l, r))
+                                            else false
+    | compareEq(V.RefVal l, V.RefVal r) = l = r
+    | compareEq(V.RecordVal l, V.RecordVal r) = if length(l) = length(r)
+                                                then foldl (fn(((lsym, lv), (rsym, rv)), isequal) => isequal andalso (Symbol.name(lsym) = Symbol.name(rsym)) andalso compareEq(lv, rv)) true (ListPair.zipEq(l, r))
+                                                else false
+    | compareEq(_) = raise TypeError
+
   (* evaluation functions *)
   fun evalProg(prog) = 
     let
@@ -84,6 +97,12 @@ struct
                    | A.RealMinusOp => V.RealVal(getReal(leftVal) - getReal(rightVal))
                    | A.RealTimesOp => V.RealVal(getReal(leftVal) * getReal(rightVal))
                    | A.RealDivideOp => V.RealVal(getReal(leftVal) / getReal(rightVal))
+                   | A.EqOp => if compareEq(leftVal, rightVal)
+                               then V.IntVal 1
+                               else V.IntVal 0
+                   | A.NeqOp => if compareEq(leftVal, rightVal)
+                                then V.IntVal 1
+                                else V.IntVal 0
                    | _ => V.NoVal (* TODO: handle other ops *)
               end
             | evexp(A.UnOpExp({exp, oper, pos})) =

@@ -6,6 +6,7 @@ sig
     val linePos : int list ref
     val sourceStream : TextIO.instream ref
     val error : int -> string -> unit
+    val warning : int -> string -> unit
     val typeNumArgsError: (int * string * int * int) -> unit
     exception Error
     val impossible : string -> 'a   (* raises Error *)
@@ -29,21 +30,28 @@ struct
 
   exception Error
 
-  fun error pos (msg:string) =
-      let fun look(a::rest,n) =
-		if a<pos then app print [":",
-				       Int.toString n,
-				       ".",
-				       Int.toString (pos-a)]
-		       else look(rest,n-1)
-	    | look _ = print "0.0"
+  fun display msgtype pos (msg:string) =
+    let fun look(a::rest,n) =
+    if a<pos then app print [":",
+               Int.toString n,
+               ".",
+               Int.toString (pos-a)]
+           else look(rest,n-1)
+      | look _ = print "0.0"
        in anyErrors := true;
-	  print (!fileName);
-	  look(!linePos,!lineNum);
-	  print ":";
-	  print msg;
-	  print "\n"
+    print (!fileName);
+    look(!linePos,!lineNum);
+    print ":[";
+    print msgtype;
+    print "]:";
+    print msg;
+    print "\n"
       end
+
+  fun error pos (msg:string) = display "error" pos msg
+
+  fun warning pos (msg:string) = display "warning" pos msg
+      
 
   fun typeNumArgsError(pos, name, given, wants) =
     error pos ("type constructor " ^ (case String.size(name) of 0 => "" | _ => ("\"" ^ name ^ "\" ")) ^ "given " ^ Int.toString(given) ^ " arguments, wants " ^ Int.toString(wants))

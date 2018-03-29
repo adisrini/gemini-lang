@@ -18,6 +18,14 @@ let
   fun sum m n = if m
                 then m + n + sum (m - 1) (n - 1)
                 else 0
+
+  fun f x = x
+  fun g a = f a
+
+  fun fib n = if (n = 0) orelse (n = 1) orelse (n = 2)
+              then 1
+              else fib(n - 1) + fib(n - 2)
+
 in
-  sum 3 4
+  fib 20
 end
