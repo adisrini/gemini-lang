@@ -26,6 +26,14 @@ let
               then 1
               else fib(n - 1) + fib(n - 2)
 
+  fun testPolyEqual a b = a = b
+
+  fun testBadCompare (a: bit sw) (b: bit sw) = a = b
+
+  fun fibalt n = if n < 3
+                 then 1
+                 else fibalt(n - 1) + fibalt(n - 2)
+
 in
-  fib 20
+  fibalt 10
 end

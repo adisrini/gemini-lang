@@ -1,0 +1,12 @@
+let
+  sdatatype intoption = SOME of int
+                     |: NONE
+
+  val opt = SOME 0
+
+  val res = case opt of
+                 (SOME s) => s
+              |: (NONE) => 0
+in
+  0
+end

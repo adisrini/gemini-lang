@@ -53,6 +53,16 @@ struct
                                                 else false
     | compareEq(_) = raise TypeError
 
+  fun compareLt(V.IntVal l, V.IntVal r) = l < r
+    | compareLt(V.StringVal l, V.StringVal r) = l < r
+    | compareLt(V.RealVal l, V.RealVal r) = l < r
+    | compareLt(_) = raise TypeError
+
+  fun compareGt(V.IntVal l, V.IntVal r) = l > r
+    | compareGt(V.StringVal l, V.StringVal r) = l > r
+    | compareGt(V.RealVal l, V.RealVal r) = l > r
+    | compareGt(_) = raise TypeError
+
   (* evaluation functions *)
   fun evalProg(prog) = 
     let
@@ -101,8 +111,20 @@ struct
                                then V.IntVal 1
                                else V.IntVal 0
                    | A.NeqOp => if compareEq(leftVal, rightVal)
-                                then V.IntVal 1
-                                else V.IntVal 0
+                                then V.IntVal 0
+                                else V.IntVal 1
+                   | A.LtOp => if compareLt(leftVal, rightVal)
+                               then V.IntVal 1
+                               else V.IntVal 0
+                   | A.GeOp => if compareLt(leftVal, rightVal)
+                               then V.IntVal 0
+                               else V.IntVal 1
+                   | A.GtOp => if compareGt(leftVal, rightVal)
+                               then V.IntVal 1
+                               else V.IntVal 0
+                   | A.LeOp => if compareGt(leftVal, rightVal)
+                               then V.IntVal 0
+                               else V.IntVal 1
                    | _ => V.NoVal (* TODO: handle other ops *)
               end
             | evexp(A.UnOpExp({exp, oper, pos})) =
@@ -196,7 +218,51 @@ struct
                 fieldVal
               end
             | evexp(A.ArrayAccExp{exp, index, pos}) = V.NoVal (* TODO *)
-            | evexp(A.PatternMatchExp{exp, cases, pos}) = V.NoVal (* TODO *)
+            | evexp(A.PatternMatchExp{exp, cases, pos}) =
+              let
+                val expVal = evexp(exp)
+                fun foldCase({match, result, pos}, res as SOME(_)) = res
+                  | foldCase({match, result, pos}, NONE) =
+                    let
+                      fun addMatchVars(A.VarExp(sym, pos), vstore) = Symbol.enter(vstore, sym, V.NoVal)
+                        | addMatchVars(A.ApplyExp(func, arg, pos), vstore) = addMatchVars(arg, vstore)
+                        | addMatchVars(A.SWRecordExp({fields, pos}), vstore) = foldl (fn((sym, exp, pos), vstore) => addMatchVars(exp, vstore)) vstore fields
+                        | addMatchVars(A.HWRecordExp({fields, pos}), vstore) = foldl (fn((sym, exp, pos), vstore) => addMatchVars(exp, vstore)) vstore fields
+                        | addMatchVars(A.ListExp(elems), vstore) = foldl (fn((exp, pos), vstore) => addMatchVars(exp, vstore)) vstore elems
+                        | addMatchVars(A.ArrayExp(elems), vstore) = foldl (fn((exp, pos), vstore) => addMatchVars(exp, vstore)) vstore (Vector.toList(elems))
+                        | addMatchVars(_, vstore) = vstore (* int, string, bit, real *)
+                      
+                      val vstore_with_match_vars = addMatchVars(match, Symbol.empty) (* create empty environment and augment with match vars *)
+
+                      val matchVal = evalExp(vstore_with_match_vars, match)
+
+                      (* TODO: matching against HW things *)
+
+                      (* first arg is exp, second arg is match *)
+                      fun isMatch(eVal, mVal) = case (eVal, mVal) of
+                                                     (_, V.NoVal) => true
+                                                   | (V.IntVal _, V.IntVal _) => compareEq(eVal, mVal)
+                                                   | (V.StringVal _, V.StringVal _) => compareEq(eVal, mVal)
+                                                   | (V.RealVal _, V.RealVal _) => compareEq(eVal, mVal)
+                                                   | (V.ListVal es, V.ListVal ms) => if length(es) <> length(ms)
+                                                                                     then false
+                                                                                     else foldl (fn((ev, mv), sofar) => sofar andalso isMatch(ev, mv)) true (ListPair.zipEq(es, ms))
+                                                   | (V.RecordVal es, V.RecordVal ms) => if length(es) <> length(ms)
+                                                                                         then false
+                                                                                         else foldl (fn(((esym, ev), (msym, mv)), sofar) => sofar andalso (Symbol.name(esym) = Symbol.name(msym)) andalso isMatch(ev, mv)) true (ListPair.zipEq(es, ms))
+                                                   | (_, _) => false
+
+                    in
+                      if isMatch(expVal, matchVal)
+                      then SOME(evexp(result))  (* process result with augmented vstore *)
+                      else NONE
+                    end
+                val resVal = foldl foldCase NONE cases
+              in
+                case resVal of 
+                     SOME(x) => x
+                   | NONE => (ErrorMsg.runtime pos ("no case matched, actual value was " ^ V.toString(expVal)); V.NoVal)
+              end
             | evexp(A.BitArrayGenExp{size, counter, genfun, pos}) = V.NoVal (* TODO *)
             | evexp(A.BitArrayConvExp{size, value, spec, pos}) = V.NoVal (* TODO *)
       in

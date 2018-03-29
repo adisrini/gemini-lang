@@ -7,6 +7,7 @@ sig
     val sourceStream : TextIO.instream ref
     val error : int -> string -> unit
     val warning : int -> string -> unit
+    val runtime : int -> string -> unit
     val typeNumArgsError: (int * string * int * int) -> unit
     exception Error
     val impossible : string -> 'a   (* raises Error *)
@@ -52,6 +53,7 @@ struct
 
   fun warning pos (msg:string) = display "warning" pos msg
       
+  fun runtime pos (msg:string) = display "runtime" pos msg
 
   fun typeNumArgsError(pos, name, given, wants) =
     error pos ("type constructor " ^ (case String.size(name) of 0 => "" | _ => ("\"" ^ name ^ "\" ")) ^ "given " ^ Int.toString(given) ^ " arguments, wants " ^ Int.toString(wants))

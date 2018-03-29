@@ -42,7 +42,13 @@ struct
                               received = ty}))
 
   fun errorEq(ty1, ty2, pos) = (ErrorMsg.error pos ("type mismatch!\n" ^
-                              "expected:\t[eqty1] * [eqty2]\n" ^
+                              "expected:\t[eqty] * [eqty]\n" ^
+                              "received:\t" ^ T.toString(ty1) ^ " * " ^ T.toString(ty2) ^ "\n");
+                         S.ERROR({expected = ty1,
+                                  received = ty2}))
+
+  fun errorIneq(ty1, ty2, pos) = (ErrorMsg.error pos ("type mismatch!\n" ^
+                              "expected:\t[ineqty] * [ineqty]\n" ^
                               "received:\t" ^ T.toString(ty1) ^ " * " ^ T.toString(ty2) ^ "\n");
                          S.ERROR({expected = ty1,
                                   received = ty2}))
@@ -176,7 +182,6 @@ struct
                                         (sub2, T.S_TY(T.S_BOTTOM))
                                       end
 
-   (* TODO: check type being compared? *)
    and unifyEqualityType(ty1, ty2, pos) = case (ty1, ty2) of
                                                (T.S_TY(T.INT), _) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
                                              | (_, T.S_TY(T.INT)) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
@@ -193,8 +198,15 @@ struct
                                              | (T.S_TY(T.S_META(_)), T.S_TY(T.S_META(_))) => (ErrorMsg.warning pos "calling polyEqual"; (unify(ty1, ty2, pos), T.S_TY(T.INT)))
                                              | (_, _) => (errorEq(ty1, ty2, pos), T.S_TY(T.INT))
 
-   (* TODO: check type being compared? *)
-   and unifyInequalityType(ty1, ty2, pos) = (unify(ty1, ty2, pos), T.S_TY(T.INT))
+   and unifyInequalityType(ty1, ty2, pos) = case (ty1, ty2) of
+                                               (T.S_TY(T.INT), _) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (_, T.S_TY(T.INT)) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (T.S_TY(T.STRING), _) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (_, T.S_TY(T.STRING)) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (T.S_TY(T.REAL), _) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (_, T.S_TY(T.REAL)) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (T.S_TY(T.S_META(_)), T.S_TY(T.S_META(_))) => (unify(ty1, ty2, pos), T.S_TY(T.INT))
+                                             | (_, _) => (errorIneq(ty1, ty2, pos), T.S_TY(T.INT))
 
    and unifyAssign(ty1, ty2, pos) = case (getSWType(ty1), getSWType(ty2)) of
                                          (T.S_TY(sty1), T.S_TY(sty2)) => let

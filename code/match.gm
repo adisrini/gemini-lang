@@ -1,0 +1,8 @@
+let
+  val x = (11, "a")
+in
+  case x of
+       (10, _) => "ten"
+    |: (_, "") => "empty"
+    |: (_, _) => "else"
+end
