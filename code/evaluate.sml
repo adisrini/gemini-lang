@@ -1,17 +1,18 @@
-structure SWEvaluate : 
+structure Evaluate : 
 sig
   
   type vstore
 
   val evalProg : Absyn.exp -> unit
-  val evalExp  : vstore * Absyn.exp -> SWValue.value
+  val evalExp  : vstore * Absyn.exp -> Value.value
   val evalDec  : vstore * Absyn.dec -> vstore
 
 end = 
 struct
 
+  structure GBA = GeminiBitArray(Vector)
   structure A = Absyn
-  structure V = SWValue
+  structure V = Value
   structure S = Symbol
 
   type vstore = V.value S.table
@@ -40,6 +41,12 @@ struct
   fun getFun(V.FunVal x) = x
     | getFun(_) = raise TypeError
 
+  fun getBit(V.BitVal x) = x
+    | getBit(_) = raise TypeError
+
+  fun getArray(V.ArrayVal x) = x
+    | getArray(_) = raise TypeError
+
   (* comparison operators *)
   fun compareEq(V.IntVal l, V.IntVal r) = l = r
     | compareEq(V.StringVal l, V.StringVal r) = l = r
@@ -63,6 +70,17 @@ struct
     | compareGt(V.RealVal l, V.RealVal r) = l > r
     | compareGt(_) = raise TypeError
 
+  fun evalDoubleBitOp(bitop, leftVal, rightVal, init) =
+    let
+      val leftArr = getArray(leftVal)
+      val rightArr = getArray(rightVal)
+      val bitwiseList = foldl (fn((b1, b2), x) => (bitop (getBit(b1)) (getBit(b2)))::x) [] (ListPair.zipEq(Vector.toList(leftArr), Vector.toList(rightArr)))
+      val bitResult = foldl (fn (b, r) => bitop b r) init bitwiseList
+    in
+      V.BitVal bitResult
+    end
+
+
   (* evaluation functions *)
   fun evalProg(prog) = 
     let
@@ -81,8 +99,8 @@ struct
             | evexp(A.IntExp(num, pos)) = V.IntVal num
             | evexp(A.StringExp(str, pos)) = V.StringVal str
             | evexp(A.RealExp(num, pos)) = V.RealVal num
-            | evexp(A.BitExp(bit, pos)) = V.NoVal (* TODO *)
-            | evexp(A.ApplyExp(e1, e2, pos)) =
+            | evexp(A.BitExp(bit, pos)) = V.BitVal bit
+            | evexp(A.ApplyExp(e1, e2, pos)) = (* TODO: module application *)
               let
                 val e1Val = evexp(e1)
                 val e2Val = evexp(e2)
@@ -125,6 +143,7 @@ struct
                    | A.LeOp => if compareGt(leftVal, rightVal)
                                then V.IntVal 0
                                else V.IntVal 1
+                   | A.ConsOp => (V.ListVal (leftVal::getList(rightVal)))
                    | _ => V.NoVal (* TODO: handle other ops *)
               end
             | evexp(A.UnOpExp({exp, oper, pos})) =
@@ -186,7 +205,12 @@ struct
               in
                 V.ListVal vals
               end
-            | evexp(A.ArrayExp(elems)) = V.NoVal (* TODO *)
+            | evexp(A.ArrayExp(elems)) =
+              let
+                val vals = Vector.map (fn (exp, _) => evexp(exp)) elems
+              in
+                V.ArrayVal vals
+              end
             | evexp(A.RefExp(exp, pos)) =
               let
                 val expVal = evexp(exp)
@@ -224,37 +248,43 @@ struct
                 fun foldCase({match, result, pos}, res as SOME(_)) = res
                   | foldCase({match, result, pos}, NONE) =
                     let
-                      fun addMatchVars(A.VarExp(sym, pos), vstore) = Symbol.enter(vstore, sym, V.NoVal)
-                        | addMatchVars(A.ApplyExp(func, arg, pos), vstore) = addMatchVars(arg, vstore)
-                        | addMatchVars(A.SWRecordExp({fields, pos}), vstore) = foldl (fn((sym, exp, pos), vstore) => addMatchVars(exp, vstore)) vstore fields
-                        | addMatchVars(A.HWRecordExp({fields, pos}), vstore) = foldl (fn((sym, exp, pos), vstore) => addMatchVars(exp, vstore)) vstore fields
-                        | addMatchVars(A.ListExp(elems), vstore) = foldl (fn((exp, pos), vstore) => addMatchVars(exp, vstore)) vstore elems
-                        | addMatchVars(A.ArrayExp(elems), vstore) = foldl (fn((exp, pos), vstore) => addMatchVars(exp, vstore)) vstore (Vector.toList(elems))
-                        | addMatchVars(_, vstore) = vstore (* int, string, bit, real *)
-                      
-                      val vstore_with_match_vars = addMatchVars(match, Symbol.empty) (* create empty environment and augment with match vars *)
-
-                      val matchVal = evalExp(vstore_with_match_vars, match)
-
-                      (* TODO: matching against HW things *)
-
-                      (* first arg is exp, second arg is match *)
-                      fun isMatch(eVal, mVal) = case (eVal, mVal) of
-                                                     (_, V.NoVal) => true
-                                                   | (V.IntVal _, V.IntVal _) => compareEq(eVal, mVal)
-                                                   | (V.StringVal _, V.StringVal _) => compareEq(eVal, mVal)
-                                                   | (V.RealVal _, V.RealVal _) => compareEq(eVal, mVal)
-                                                   | (V.ListVal es, V.ListVal ms) => if length(es) <> length(ms)
-                                                                                     then false
-                                                                                     else foldl (fn((ev, mv), sofar) => sofar andalso isMatch(ev, mv)) true (ListPair.zipEq(es, ms))
-                                                   | (V.RecordVal es, V.RecordVal ms) => if length(es) <> length(ms)
-                                                                                         then false
-                                                                                         else foldl (fn(((esym, ev), (msym, mv)), sofar) => sofar andalso (Symbol.name(esym) = Symbol.name(msym)) andalso isMatch(ev, mv)) true (ListPair.zipEq(es, ms))
-                                                   | (_, _) => false
-
+                      (* takes in match and vstore and returns whether match and augmented vstore *)
+                      fun checkMatch(A.VarExp(sym, _), expVal, vs) = (true, Symbol.enter(vs, sym, expVal))
+                        | checkMatch(A.IntExp(n1, _), V.IntVal n2, vs) = (n1 = n2, vs)
+                        | checkMatch(A.StringExp(s1, _), V.StringVal s2, vs) = (s1 = s2, vs)
+                        | checkMatch(A.RealExp(r1, _), V.RealVal r2, vs) = (Real.==(r1, r2), vs)
+                        | checkMatch(A.ListExp(exps), V.ListVal vals, vs) =
+                          if length(exps) = length(vals)
+                          then (foldl (fn (((e, _), v), (sofar, vs')) =>
+                              let
+                                val (isMatch', vs'') = checkMatch(e, v, vs')
+                              in
+                                (sofar andalso isMatch', vs'')
+                              end) (true, vs) (ListPair.zipEq(exps, vals)))
+                          else (false, vs)
+                        | checkMatch(A.SWRecordExp{fields = exps, pos}, V.RecordVal vals, vs) =
+                          if length(exps) = length(vals)
+                          then (foldl (fn (((s1, e, _), (s2, v)), (sofar, vs')) =>
+                              let
+                                val (isMatch', vs'') = checkMatch(e, v, vs')
+                              in
+                                (sofar andalso isMatch' andalso (Symbol.name(s1) = Symbol.name(s2)), vs'')
+                              end) (true, vs) (ListPair.zipEq(exps, vals)))
+                          else (false, vs)
+                        | checkMatch(A.BinOpExp{left, oper = A.ConsOp, right, pos}, V.ListVal vals, vs) =
+                          (case vals of
+                                [] => (false, vs)
+                              | hd::tl =>  (let
+                                              val (isMatch', vs') = checkMatch(left, hd, vs)
+                                              val (isMatch'', vs'') = checkMatch(right, V.ListVal tl, vs')
+                                            in
+                                              (isMatch' andalso isMatch'', vs'')
+                                            end))
+                        | checkMatch(_, _, vs) = (false, vs)
+                      val (isMatch, vstore_with_vars) = checkMatch(match, expVal, vstore)
                     in
-                      if isMatch(expVal, matchVal)
-                      then SOME(evexp(result))  (* process result with augmented vstore *)
+                      if isMatch
+                      then SOME(evalExp(vstore_with_vars, result))
                       else NONE
                     end
                 val resVal = foldl foldCase NONE cases
@@ -264,7 +294,28 @@ struct
                    | NONE => (ErrorMsg.runtime pos ("no case matched, actual value was " ^ V.toString(expVal)); V.NoVal)
               end
             | evexp(A.BitArrayGenExp{size, counter, genfun, pos}) = V.NoVal (* TODO *)
-            | evexp(A.BitArrayConvExp{size, value, spec, pos}) = V.NoVal (* TODO *)
+            | evexp(A.BitArrayConvExp{size, value, spec, pos}) =
+              case spec of
+                   "'r" => 
+                      let
+                        val sizes = getRecord(evexp(size))
+                        val valueReal = getReal(evexp(value))
+                        val () = print(Real.toString(valueReal) ^ "\n")
+                      in
+                        V.NoVal (* TODO *)
+                      end
+                  | _ =>
+                      let
+                        val sizeInt = getInt(evexp(size))
+                        val valueInt = getInt(evexp(value))
+                        val () = print(Int.toString(sizeInt) ^ "\n")
+                        val () = print(Int.toString(valueInt) ^ "\n")
+                      in
+                        case spec of
+                             "'u" => V.ArrayVal (Vector.map (fn(b) => V.BitVal b) (GBA.fromUnsignedInt valueInt sizeInt pos))
+                           | "'s" => V.ArrayVal (Vector.map (fn(b) => V.BitVal b) (GBA.fromSignedInt valueInt sizeInt pos))
+                           | _ => raise Match
+                      end
       in
         evexp(exp)
       end
@@ -329,17 +380,5 @@ struct
     in
       evdec(dec)
     end
-(*
-
-eval(FunDef(params, body), vs) =
-  fn(value) => 
-    let
-        valuestore' = valuestore[params |-> value]
-    in
-        eval(body, vs')
-    end
-
-
-*)
 
 end

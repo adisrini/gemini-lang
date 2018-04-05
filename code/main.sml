@@ -29,7 +29,7 @@ struct
           * rewrite module body and replace module call with new name
           * symbol table: map from symbol module names -> (definition of module * ref map from list of types -> name of monomorphic version of that module)
       *)
-      val evalAst = SWEvaluate.evalProg explicitAST
+      val evalAst = Evaluate.evalProg explicitAST
     in
       ()
     end

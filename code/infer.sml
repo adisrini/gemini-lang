@@ -492,7 +492,7 @@ struct
 
               val retTy = case expTy of
                                T.H_TY(T.ARRAY({ty, size})) => T.H_TY(ty)
-                             | T.H_TY(T.H_META(hm)) => (ErrorMsg.error pos ("unresolved flex array (can't tell size of vector)"); T.H_TY(T.H_BOTTOM))
+                             | T.H_TY(T.H_META(hm)) => (T.H_TY(T.H_META(E.newMeta())))
                              | _ => (ErrorMsg.error pos ("cannot index element of non-array type"); T.H_TY(T.H_BOTTOM))
             in
               (smap''', venv'', retTy)
@@ -503,12 +503,13 @@ struct
 
               fun foldCase({match, result, pos}, (smap, venv, ty_opt)) =
                 let
-                  fun addMatchVars(A.VarExp(sym, pos), venv) = Symbol.enter(venv, sym, T.META(E.newMeta()))
+                  fun addMatchVars(A.VarExp(sym, pos), venv) = Symbol.enter(venv, sym, T.S_TY(T.S_META(E.newMeta())))
                     | addMatchVars(A.ApplyExp(func, arg, pos), venv) = addMatchVars(arg, venv)
                     | addMatchVars(A.SWRecordExp({fields, pos}), venv) = foldl (fn((sym, exp, pos), venv) => addMatchVars(exp, venv)) venv fields
                     | addMatchVars(A.HWRecordExp({fields, pos}), venv) = foldl (fn((sym, exp, pos), venv) => addMatchVars(exp, venv)) venv fields
                     | addMatchVars(A.ListExp(elems), venv) = foldl (fn((exp, pos), venv) => addMatchVars(exp, venv)) venv elems
                     | addMatchVars(A.ArrayExp(elems), venv) = foldl (fn((exp, pos), venv) => addMatchVars(exp, venv)) venv (Vector.toList(elems))
+                    | addMatchVars(A.BinOpExp{left, oper = A.ConsOp, right, pos}, venv) = addMatchVars(right, addMatchVars(left, venv))
                     | addMatchVars(_, venv) = venv (* int, string, bit, real *)
 
                   val venv_with_match_vars = addMatchVars(match, venv)
@@ -540,7 +541,7 @@ struct
             let
               (* process size expression *)
               val (smap', venv', sizeTy) = inferExp(menv, tenv, venv, smap, size)
-              val sub = U.unify(T.S_TY(T.INT), sizeTy, pos)
+              val sub = U.unify(T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}), sizeTy, pos)
               val smap'' = augmentSmap(smap', [sub], pos)
 
               (* add counter variable to venv *)
@@ -560,20 +561,35 @@ struct
               (smap''', venv'''', T.H_TY(T.ARRAY{ty = elemTy, size = ref ~1}))
             end
           | infexp(A.BitArrayConvExp({size, value, spec, pos})) =
-            let
-              (* process size expression *)
-              val (smap', venv', sizeTy) = inferExp(menv, tenv, venv, smap, size)
-              val sub = U.unify(T.S_TY(T.INT), sizeTy, pos)
-              val smap'' = augmentSmap(smap', [sub], pos)
+            case spec of
+              "'r" => 
+                let
+                  (* process size expression *)
+                  val (smap', venv', sizeTy) = inferExp(menv, tenv, venv, smap, size)
+                  val sub = U.unify(T.S_TY(T.S_RECORD([(Symbol.symbol("1"), T.INT), (Symbol.symbol("2"), T.INT)])), sizeTy, pos)
+                  val smap'' = augmentSmap(smap', [sub], pos)
 
-              (* process value expression *)
-              val (smap''', venv'', valueTy) = inferExp(menv, tenv, venv', smap', value)
-              val sub' = U.unify(T.S_TY(T.INT), valueTy, pos)
-              val smap'''' = augmentSmap(smap''', [sub'], pos)
-            in
-              (smap'''', venv'', T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}))
-            end
+                  (* process value expression *)
+                  val (smap''', venv'', valueTy) = inferExp(menv, tenv, venv', smap', value)
+                  val sub' = U.unify(T.S_TY(T.REAL), valueTy, pos)
+                  val smap'''' = augmentSmap(smap''', [sub'], pos)
+                in
+                  (smap'''', venv'', T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}))
+                end
+            | _ =>
+                let
+                  (* process size expression *)
+                  val (smap', venv', sizeTy) = inferExp(menv, tenv, venv, smap, size)
+                  val sub = U.unify(T.S_TY(T.INT), sizeTy, pos)
+                  val smap'' = augmentSmap(smap', [sub], pos)
 
+                  (* process value expression *)
+                  val (smap''', venv'', valueTy) = inferExp(menv, tenv, venv', smap', value)
+                  val sub' = U.unify(T.S_TY(T.INT), valueTy, pos)
+                  val smap'''' = augmentSmap(smap''', [sub'], pos)
+                in
+                  (smap'''', venv'', T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}))
+                end
     in
       let
         val (smap', venv', ty) = infexp(exp)

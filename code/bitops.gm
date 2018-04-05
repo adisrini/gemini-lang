@@ -1,0 +1,6 @@
+let
+  val x = #['b:1, 'b:1]
+  val y = #['b:1, 'b:1]
+in
+  x && y
+end

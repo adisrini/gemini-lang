@@ -1,8 +1,7 @@
 let
-  val x = (11, "a")
+  fun sum l = case l of
+                   [] => 0
+                |: (x::rest) => x + sum(rest)
 in
-  case x of
-       (10, _) => "ten"
-    |: (_, "") => "empty"
-    |: (_, _) => "else"
+  sum [1, 2, 3]
 end

@@ -6,34 +6,41 @@ struct
 
   fun toString ba = GeminiArray.toString ba GeminiBit.toString
 
-  fun toList ba = Vector.foldl (fn(x, acc) => x::acc) [] ba
+  fun toList ba = Vector.foldr (fn(x, acc) => x::acc) [] ba
 
-  (* TODO: exception handling *)
-  fun zeroExtend ba len =
+  fun zeroExtend ba len pos =
     let
-      fun helper 0 acc = acc
-        | helper n acc = helper (n - 1) (GeminiBit.ZERO::acc)
+      val () = if(len < Vector.length(ba))
+               then ErrorMsg.warning pos "information loss due to cutoff"
+               else ()
+
+      fun helper n acc = if n = len
+                         then acc
+                         else if n >= Vector.length(ba)
+                              then (helper (n + 1) (GeminiBit.ZERO::acc))
+                              else (helper (n + 1) (Vector.sub(ba, Vector.length(ba) - n - 1)::acc))
     in
-      Vector.fromList(helper (len - Vector.length(ba)) (toList(ba)))
+      Vector.fromList(helper 0 [])
     end
 
-  (* TODO: exception handling *)
-  fun fromUnsignedInt num len =
+  fun fromUnsignedInt num len pos =
     let
       fun helper 0 acc = acc
         | helper num acc = helper (num div 2) (num mod 2 :: acc)
     in
-      zeroExtend (Vector.fromList(List.map GeminiBit.fromInt (helper num []))) len
+      if num < 0
+      then (ErrorMsg.error pos "cannot convert signed integer using unsigned semantics"; #[])
+      else zeroExtend (Vector.fromList(List.map GeminiBit.fromInt (helper num []))) len pos
     end
 
   (* TODO: exception handling *)
-  (*fun fromSignedInt num len =
+  fun fromSignedInt num len pos =
     if num < 0
     then
       let
-        val unsigned = fromUnsignedInt (~num) len
+        val unsigned = fromUnsignedInt (~num) len pos
         val flip = Vector.map GeminiBit.notb unsigned
-        fun add1 vec 0   ci acc = acc
+        fun add1 vec ~1   ci acc = acc
           | add1 vec idx ci acc = let
                                     val (sum, co) = GeminiBit.add ci (Vector.sub(vec, idx))
                                   in
@@ -42,7 +49,7 @@ struct
       in
         Vector.fromList(add1 flip (Vector.length(flip) - 1) GeminiBit.ONE [])
       end
-    else fromUnsignedInt num len*)
+    else fromUnsignedInt num len pos
 
   (* TODO *)
   fun fromReal num mantissa exponent = #[]

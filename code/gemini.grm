@@ -293,7 +293,7 @@ ty_sig        : TYPE ID                                                     (A.T
 
 module_sig    : MODULE ID COLON ty THIN_ARROW ty                            (A.ModuleDef{name = Symbol.symbol(ID), input_ty = ty1, output_ty = ty2, pos = MODULEleft})
 
-array_access  : exp LBRACK exp RBRACK %prec ARRAY_ACC                       (A.ArrayAccExp{exp = exp1, index = exp2, pos = exp1left})
+array_access  : exp LBRACK COLON exp COLON RBRACK %prec ARRAY_ACC           (A.ArrayAccExp{exp = exp1, index = exp2, pos = exp1left})
 
 struct_access : ID DOT ID                                                   (A.StructAccExp{name = Symbol.symbol(ID1), field = Symbol.symbol(ID2), pos = ID1left})
 
@@ -607,6 +607,7 @@ pattern       : INT                                                         (A.I
               | POUND LBRACK opt_patterns RBRACK                            (A.ArrayExp(Vector.fromList(opt_patterns)))
               | LBRACE rec_patterns RBRACE                                  (A.SWRecordExp{fields = rec_patterns, pos = LBRACEleft})
               | POUND LBRACE rec_patterns RBRACE                            (A.HWRecordExp{fields = rec_patterns, pos = POUNDleft})
+              | pattern CONS pattern                                        (A.BinOpExp{left = pattern1, oper = A.ConsOp, right = pattern2, pos = pattern1left})
 
 opt_patterns  : pattern opt_patterns_tail                                   ([(pattern, patternleft)] @ opt_patterns_tail)
               | epsilon                                                     ([])

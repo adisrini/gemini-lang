@@ -18,8 +18,8 @@ infer.sml
 parse.sml
 prabsyn.sml
 substitute.sml
-swevaluate.sml
-swvalue.sml
+evaluate.sml
+value.sml
 symbol.sml
 table.sig
 table.sml
