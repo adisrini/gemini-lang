@@ -14,20 +14,31 @@ struct
                  | BitVal of GeminiBit.bit
                  | ArrayVal of value vector
                  | HWRecordVal of (symbol * value) list
-                 | OpVal of {left: value, oper: oper, right: value}
+                 | BinOpVal of {left: value, oper: binop, right: value}
+                 | UnOpVal of {value: value, oper: unop}
                  | ModuleVal of {name: symbol} (* TODO *)
                  | NoVal
 
-  and oper = AndOp | OrOp | XorOp
+  and binop = AndOp | OrOp | XorOp | SLLOp | SRLOp | SRAOp
+
+  and unop = NotOp | AndReduceOp | OrReduceOp | XorReduceOp
 
   fun printlist f lst = case lst of 
                           [] => ""
                         | [x] => f x
                         | x::xs => (f x) ^ ", " ^ (printlist f xs)
 
-  fun operString(AndOp) = "AndOp"
-    | operString(OrOp) = "OrOp"
-    | operString(XorOp) = "XorOp"
+  fun binopString(AndOp) = "AndOp"
+    | binopString(OrOp) = "OrOp"
+    | binopString(XorOp) = "XorOp"
+    | binopString(SLLOp) = "SLLOp"
+    | binopString(SRLOp) = "SRLOp"
+    | binopString(SRAOp) = "SRAOp"
+
+  fun unopString(NotOp) = "NotOp"
+    | unopString(AndReduceOp) = "AndReduceOp"
+    | unopString(OrReduceOp) = "OrReduceOp"
+    | unopString(XorReduceOp) = "XorReduceOp"
 
   fun toString(IntVal(i)) = "int(" ^ Int.toString(i) ^ ")"
     | toString(StringVal(s)) = "string(" ^ s ^ ")"
@@ -40,7 +51,8 @@ struct
     | toString(BitVal(b)) = "bit(" ^ GeminiBit.toString(b) ^ ")"
     | toString(ArrayVal(vs)) = "array([" ^  printlist toString (Vector.toList(vs)) ^ "])"
     | toString(HWRecordVal(fs)) = "hwrecord(" ^ (printlist (fn(sym, v) => Symbol.name(sym) ^ ": " ^ toString(v)) fs) ^ ")"
-    | toString(OpVal{left, oper, right}) = "oper{left: " ^ toString(left) ^ ", right: " ^ toString(right) ^ ", oper: " ^ operString(oper) ^ "}"
+    | toString(BinOpVal{left, oper, right}) = "oper{left: " ^ toString(left) ^ ", right: " ^ toString(right) ^ ", oper: " ^ binopString(oper) ^ "}"
+    | toString(UnOpVal{value, oper}) = "oper{value: " ^ toString(value) ^ ", oper: " ^ unopString(oper) ^ "}"
     | toString(ModuleVal{name}) = "module{name: " ^ Symbol.name(name) ^ "}"
     | toString(NoVal) = "noval"
 

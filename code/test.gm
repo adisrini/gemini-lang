@@ -1,0 +1,13 @@
+let
+
+  (*
+      hwrecord(a: array([oper{left: bit('b:0), right: bit('b:1), oper: AndOp}, oper{left: bit('b:1), right: bit('b:1), oper: AndOp}]))
+  *)
+  val x = #{a = #['b:0, 'b:1]} & #{a = #['b:1, 'b:1]}
+
+
+
+  val y = #['b:0, 'b:1] && #['b:0, 'b:1]
+in
+  y
+end

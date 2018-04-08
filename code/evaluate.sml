@@ -71,16 +71,39 @@ struct
     | compareGt(V.RealVal l, V.RealVal r) = l > r
     | compareGt(_) = raise TypeError
 
-  fun evalDoubleBitOp(bitop, leftVal, rightVal, init) =
+  fun evalBitwiseOp(bitop, leftVal, rightVal) = case (leftVal, rightVal) of
+                                                     (V.BitVal _, V.BitVal _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
+                                                   | (V.ArrayVal vals1, V.ArrayVal vals2) => V.ArrayVal(Vector.map (fn (v1, v2) => evalBitwiseOp(bitop, v1, v2)) (Utils.vectorZipEq(vals1, vals2)))
+                                                   | (V.HWRecordVal vals1, V.HWRecordVal vals2) => V.HWRecordVal(map (fn ((s1, v1), (s2, v2)) => if Symbol.name(s1) = Symbol.name(s2) then (s1, evalBitwiseOp(bitop, v1, v2)) else raise TypeError) (ListPair.zipEq(vals1, vals2)))
+                                                   | _ => raise TypeError
+
+  fun evalShiftOp(bitop, leftVal, rightVal) =
     let
-      val leftArr = getArray(leftVal)
+      val leftArr  = getArray(leftVal)
       val rightArr = getArray(rightVal)
-      val bitwiseList = foldl (fn((b1, b2), x) => (bitop (getBit(b1)) (getBit(b2)))::x) [] (ListPair.zipEq(Vector.toList(leftArr), Vector.toList(rightArr)))
-      val bitResult = foldl (fn (b, r) => bitop b r) init bitwiseList
     in
-      V.BitVal bitResult
+      V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
     end
 
+  fun evalReduceOp(bitop, arrVal) =
+    let
+      val arr = getArray(arrVal)
+    in
+      V.UnOpVal{value = arrVal, oper = bitop}
+    end
+
+  fun evalDoubleBitOp(bitop, leftVal, rightVal) =
+    let
+      val bitwiseResult = evalBitwiseOp(bitop, leftVal, rightVal)
+      val bitwiseArr = getArray(bitwiseResult)
+
+      fun build(0) = Vector.sub(bitwiseArr, 0)
+        | build(idx) = V.BinOpVal{left = build(idx - 1), oper = bitop, right = Vector.sub(bitwiseArr, idx)}
+    in
+      if Vector.length(bitwiseArr) < 1
+      then raise TypeError
+      else build(Vector.length(bitwiseArr) - 1)
+    end
 
   (* evaluation functions *)
   fun evalProg(prog) = 
@@ -145,7 +168,14 @@ struct
                                then V.IntVal 0
                                else V.IntVal 1
                    | A.ConsOp => (V.ListVal (leftVal::getList(rightVal)))
-                   | _ => V.NoVal (* TODO: handle other ops *)
+                   | A.BitAndOp => evalBitwiseOp(V.AndOp, leftVal, rightVal)
+                   | A.BitOrOp  => evalBitwiseOp(V.OrOp, leftVal, rightVal)
+                   | A.BitXorOp => evalBitwiseOp(V.XorOp, leftVal, rightVal)
+                   | A.BitSLLOp => evalShiftOp(V.SLLOp, leftVal, rightVal)
+                   | A.BitSRLOp => evalShiftOp(V.SRLOp, leftVal, rightVal)
+                   | A.BitSRAOp => evalShiftOp(V.SRAOp, leftVal, rightVal)
+                   | A.BitDoubleAndOp => evalDoubleBitOp(V.AndOp, leftVal, rightVal)
+                   | _ => V.NoVal
               end
             | evexp(A.UnOpExp({exp, oper, pos})) =
               let
@@ -153,7 +183,11 @@ struct
               in
                 case oper of
                      A.IntMinusOp => V.IntVal(~(getInt(expVal)))
-                   | _ => V.NoVal (* TODO: handle other ops *)
+                   | A.BitNotOp => V.UnOpVal{value = expVal, oper = V.NotOp}
+                   | A.BitAndReduceOp => evalReduceOp(V.AndReduceOp, expVal)
+                   | A.BitOrReduceOp => evalReduceOp(V.OrReduceOp, expVal)
+                   | A.BitXorReduceOp => evalReduceOp(V.XorReduceOp, expVal)
+                   | _ => V.NoVal
               end
             | evexp(A.LetExp{decs, body, pos}) =
               let
@@ -225,7 +259,13 @@ struct
               in
                 V.RecordVal fs
               end
-            | evexp(A.HWRecordExp({fields, pos})) = V.NoVal (* TODO *)
+            | evexp(A.HWRecordExp({fields, pos})) =
+              let
+                fun makeVal(sym, exp, pos) = (sym, evexp(exp))
+                val fs = map makeVal fields
+              in
+                V.HWRecordVal fs
+              end
             | evexp(A.SWExp(exp, pos)) = V.NoVal (* TODO *)
             | evexp(A.WithExp{exp, fields, pos}) = V.NoVal (* TODO *)
             | evexp(A.DerefExp{exp, pos}) =

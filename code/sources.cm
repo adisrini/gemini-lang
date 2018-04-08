@@ -25,6 +25,7 @@ table.sig
 table.sml
 types.sml
 unify.sml
+utils.sml
 
 (* base *)
 $/ml-yacc-lib.cm
