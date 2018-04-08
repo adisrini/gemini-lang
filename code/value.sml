@@ -16,6 +16,7 @@ struct
                  | HWRecordVal of (symbol * value) list
                  | BinOpVal of {left: value, oper: binop, right: value}
                  | UnOpVal of {value: value, oper: unop}
+                 | ArrayAccVal of {arr: value vector, index: int}
                  | ModuleVal of {name: symbol} (* TODO *)
                  | NoVal
 
@@ -51,8 +52,9 @@ struct
     | toString(BitVal(b)) = "bit(" ^ GeminiBit.toString(b) ^ ")"
     | toString(ArrayVal(vs)) = "array([" ^  printlist toString (Vector.toList(vs)) ^ "])"
     | toString(HWRecordVal(fs)) = "hwrecord(" ^ (printlist (fn(sym, v) => Symbol.name(sym) ^ ": " ^ toString(v)) fs) ^ ")"
-    | toString(BinOpVal{left, oper, right}) = "oper{left: " ^ toString(left) ^ ", right: " ^ toString(right) ^ ", oper: " ^ binopString(oper) ^ "}"
-    | toString(UnOpVal{value, oper}) = "oper{value: " ^ toString(value) ^ ", oper: " ^ unopString(oper) ^ "}"
+    | toString(BinOpVal{left, oper, right}) = "binop{left: " ^ toString(left) ^ ", right: " ^ toString(right) ^ ", oper: " ^ binopString(oper) ^ "}"
+    | toString(UnOpVal{value, oper}) = "unop{value: " ^ toString(value) ^ ", oper: " ^ unopString(oper) ^ "}"
+    | toString(ArrayAccVal{arr, index}) = "acc{arr: " ^ toString(ArrayVal(arr)) ^ ", index: " ^ Int.toString(index) ^ "}"
     | toString(ModuleVal{name}) = "module{name: " ^ Symbol.name(name) ^ "}"
     | toString(NoVal) = "noval"
 

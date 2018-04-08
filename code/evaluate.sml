@@ -284,7 +284,13 @@ struct
               in
                 fieldVal
               end
-            | evexp(A.ArrayAccExp{exp, index, pos}) = V.NoVal (* TODO *)
+            | evexp(A.ArrayAccExp{exp, index, pos}) =
+              let
+                val arr = getArray(evexp(exp))
+                val idx = getInt(evexp(index))
+              in
+                V.ArrayAccVal{arr = arr, index = idx}
+              end
             | evexp(A.PatternMatchExp{exp, cases, pos}) =
               let
                 val expVal = evexp(exp)
