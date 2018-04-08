@@ -178,8 +178,7 @@ struct
                                                                    val sub = unifySty(T.LIST(sty1), sty2, pos)
                                                                  in
                                                                    (sub, case sub of
-                                                                              S.SUB((sym, retTy)::rest) => retTy
-                                                                            | S.SUB([]) => ty2
+                                                                              S.SUB(_) => ty2
                                                                             | S.ERROR(_) => T.S_TY(T.S_BOTTOM))
                                                                  end
                                | _ => let

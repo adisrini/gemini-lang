@@ -29,7 +29,7 @@ let
   val acc = ref []
 
   fun dfs node = case node of
-                      NODE(l, r, v) => (dfs(l); acc := v::($acc); dfs(r))
+                      NODE(l, r, v) => (dfs(r); acc := v::($acc); dfs(l))
                    |: LEAF(v) => (acc := v::($acc))
 
   val _ = dfs tree
