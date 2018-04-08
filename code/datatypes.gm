@@ -1,0 +1,38 @@
+let
+  sdatatype inttree = NODE of inttree * inttree * int
+                   |: LEAF of int
+
+  (*
+          4
+        /   \
+       2     6
+      / \   / \
+     1  3  5   7
+
+  *)
+
+
+  val tree =  NODE(
+                NODE(
+                  LEAF(1),
+                  LEAF(3),
+                  2
+                ),
+                NODE(
+                  LEAF(5),
+                  LEAF(7),
+                  6
+                ),
+                4
+              )
+
+  val acc = ref []
+
+  fun dfs node = case node of
+                      NODE(l, r, v) => (dfs(l); acc := v::($acc); dfs(r))
+                   |: LEAF(v) => (acc := v::($acc))
+
+  val _ = dfs tree
+in
+  $acc
+end

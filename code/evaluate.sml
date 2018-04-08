@@ -14,6 +14,7 @@ struct
   structure A = Absyn
   structure V = Value
   structure S = Symbol
+  structure T = Types
 
   type vstore = V.value S.table
 
@@ -249,7 +250,14 @@ struct
                   | foldCase({match, result, pos}, NONE) =
                     let
                       (* takes in match and vstore and returns whether match and augmented vstore *)
-                      fun checkMatch(A.VarExp(sym, _), expVal, vs) = (true, Symbol.enter(vs, sym, expVal))
+                      fun checkMatch(A.VarExp(sym, _), expVal, vs) =
+                        (case Symbol.look(vs, sym) of
+                              SOME(V.DatatypeVal(datatypeSym, datatypeU, datatypeVal)) => (case expVal of
+                                                                                                V.DatatypeVal(expSym, expU, expVal) => (if Symbol.name(datatypeSym) = Symbol.name(expSym)
+                                                                                                                                        then (true, vs)
+                                                                                                                                        else (false, vs))
+                                                                                              | _ => (false, vs))
+                            | _ => (true, Symbol.enter(vs, sym, expVal)))
                         | checkMatch(A.IntExp(n1, _), V.IntVal n2, vs) = (n1 = n2, vs)
                         | checkMatch(A.StringExp(s1, _), V.StringVal s2, vs) = (s1 = s2, vs)
                         | checkMatch(A.RealExp(r1, _), V.RealVal r2, vs) = (Real.==(r1, r2), vs)
@@ -280,6 +288,10 @@ struct
                                             in
                                               (isMatch' andalso isMatch'', vs'')
                                             end))
+                        | checkMatch(A.ApplyExp(A.VarExp(consym, _), param, _), V.DatatypeVal(sym, unique, value), vs) =
+                          if Symbol.name(consym) = Symbol.name(sym)
+                          then checkMatch(param, value, vs)
+                          else (false, vs)
                         | checkMatch(_, _, vs) = (false, vs)
                       val (isMatch, vstore_with_vars) = checkMatch(match, expVal, vstore)
                     in
@@ -375,7 +387,20 @@ struct
             end
           | evdec(A.TypeDec(tydecs)) = vstore
           | evdec(A.ModuleDec(moddecs)) = vstore
-          | evdec(A.SWDatatypeDec(datatydecs)) = vstore
+          | evdec(A.SWDatatypeDec(datatydecs)) =
+            let
+              fun foldDec({name, tyvars, datacons}, vs) = 
+                let
+                  fun foldDatacon({datacon, ty, pos}, vs') = case ty of 
+                                                                  A.ExplicitTy(T.S_TY(T.ARROW(_))) => Symbol.enter(vs', datacon, V.FunVal (ref (fn(v) => V.DatatypeVal(datacon, ref (), v))))
+                                                                | _ => Symbol.enter(vs', datacon, V.DatatypeVal(datacon, ref (), V.NoVal))
+                in
+                  foldl foldDatacon vs datacons
+                end
+              val vstore' = foldl foldDec vstore datatydecs
+            in
+              vstore'
+            end
           | evdec(A.HWDatatypeDec(datatydecs)) = vstore
     in
       evdec(dec)

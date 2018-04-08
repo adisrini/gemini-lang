@@ -147,9 +147,9 @@ struct
                                       in
                                         case sub of
                                           S.ERROR(_) => sub
-                                        | S.SUB(subs) => case innersub of
-                                                              S.ERROR(_) => innersub
-                                                            | S.SUB(innersubs) => S.SUB(subs @ innersubs)
+                                        | S.SUB(subs) => (case innersub of
+                                                               S.ERROR(_) => innersub
+                                                             | S.SUB(innersubs) => S.SUB(subs @ innersubs))
                                       end
                                   in
                                     foldl foldSubs (S.SUB([])) (ListPair.zipEq(recs1, recs2))
@@ -158,6 +158,17 @@ struct
                                 | (T.S_DATATYPE(_, u1), T.S_DATATYPE(_, u2)) => if u1 = u2
                                                                                 then S.SUB([])
                                                                                 else error(T.S_TY(sty1), T.S_TY(sty2), pos)
+                                | (T.ARROW(arg1, res1), T.ARROW(arg2, res2)) => 
+                                  let
+                                    val sub1 = unifySty(arg1, arg2, pos)
+                                    val sub2 = unifySty(arg2, res2, pos)
+                                  in
+                                    case sub1 of
+                                         S.ERROR(_) => sub1
+                                       | S.SUB(subs1) => (case sub2 of
+                                                               S.ERROR(_) => sub2
+                                                             | S.SUB(subs2) => S.SUB(subs1 @ subs2))
+                                  end
                                 | _ => error(T.S_TY(sty1), T.S_TY(sty2), pos)
 
   and unifyMty(mty1, mty2, pos) = S.SUB([])  (* TODO *)

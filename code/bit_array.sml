@@ -52,6 +52,6 @@ struct
     else fromUnsignedInt num len pos
 
   (* TODO *)
-  fun fromReal num mantissa exponent = #[]
+  fun fromReal num mantissa exponent pos = #[]
 
 end

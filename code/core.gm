@@ -1,0 +1,40 @@
+let
+  fun map f x = case x of
+                     [] => []
+                  |: a::rest => (f a)::(map f rest)
+
+  fun double x = x * 2
+
+  fun filter f x = case x of
+                        [] => []
+                     |: a::rest => if (f a)
+                                   then a::(filter f rest)
+                                   else (filter f rest)
+
+  fun isEven x = (x % 2) = 0
+
+  fun foldl f acc init = case init of
+                              [] => acc
+                           |: (x::rest) => (foldl f (f(x, acc)) rest)
+
+  fun foldr f acc init = case init of
+                              [] => acc
+                           |: (x::rest) => f(x, (foldr f acc rest))
+
+  fun concat(x, acc) = x::acc
+
+  sdatatype 'a option = SOME of 'a
+                     |: NONE
+
+  fun mapPartial f x = case x of
+                            [] => []
+                         |: (a::rest) => (case (f a) of
+                                               NONE => mapPartial f rest
+                                            |: SOME v => v::(mapPartial f rest))
+
+  fun tryReciprocal n = if n = 0.0
+                        then NONE
+                        else SOME(1.0 /. n)
+in
+  mapPartial tryReciprocal [~1.0, 0.0, 1.0, 1.5, 0.0, 2.5]
+end
