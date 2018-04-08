@@ -175,6 +175,8 @@ struct
                    | A.BitSRLOp => evalShiftOp(V.SRLOp, leftVal, rightVal)
                    | A.BitSRAOp => evalShiftOp(V.SRAOp, leftVal, rightVal)
                    | A.BitDoubleAndOp => evalDoubleBitOp(V.AndOp, leftVal, rightVal)
+                   | A.BitDoubleOrOp => evalDoubleBitOp(V.OrOp, leftVal, rightVal)
+                   | A.BitDoubleXorOp => evalDoubleBitOp(V.XorOp, leftVal, rightVal)
                    | _ => V.NoVal
               end
             | evexp(A.UnOpExp({exp, oper, pos})) =
