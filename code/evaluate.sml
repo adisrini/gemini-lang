@@ -48,6 +48,9 @@ struct
   fun getArray(V.ArrayVal x) = x
     | getArray(_) = raise TypeError
 
+  fun getBitArray(V.ArrayVal bs) = Vector.map getBit bs
+    | getBitArray(_) = raise TypeError
+
   (* comparison operators *)
   fun compareEq(V.IntVal l, V.IntVal r) = l = r
     | compareEq(V.StringVal l, V.StringVal r) = l = r
@@ -353,7 +356,22 @@ struct
                      SOME(x) => x
                    | NONE => (ErrorMsg.runtime pos ("no case matched, actual value was " ^ V.toString(expVal)); V.NoVal)
               end
-            | evexp(A.BitArrayGenExp{size, counter, genfun, pos}) = V.NoVal (* TODO *)
+            | evexp(A.BitArrayGenExp{size, counter, genfun, pos}) =
+              let
+                val sizeArr = getBitArray(evexp(size))
+                val sizeVal = GBA.toUnsignedInt(sizeArr)
+                fun gen(i, acc) = if i < 0
+                                  then acc
+                                  else (let
+                                          val vstore' = Symbol.enter(vstore, counter, V.IntVal i)
+                                          val genexp = evalExp(vstore', genfun)
+                                        in
+                                          gen(i - 1, genexp::acc)
+                                        end)
+                val valList = gen(sizeVal - 1, [])
+              in
+                V.ArrayVal (Vector.fromList(valList))
+              end
             | evexp(A.BitArrayConvExp{size, value, spec, pos}) =
               case spec of
                    "'r" => 

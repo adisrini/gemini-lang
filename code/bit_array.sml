@@ -54,4 +54,12 @@ struct
   (* TODO *)
   fun fromReal num mantissa exponent pos = #[]
 
+  fun toUnsignedInt arr =
+    let
+      fun foldSum(_, GeminiBit.ZERO, acc) = acc
+        | foldSum(idx, GeminiBit.ONE, acc) = Real.round(Math.pow(2.0, Real.fromInt(length(arr) - idx - 1))) + acc
+    in
+      foldri foldSum 0 arr
+    end
+
 end
