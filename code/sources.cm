@@ -15,6 +15,8 @@ errormsg.sml
 gemini.lex
 gemini.grm
 infer.sml
+library.sml
+meta.sml
 parse.sml
 prabsyn.sml
 substitute.sml

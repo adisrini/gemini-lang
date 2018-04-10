@@ -1,0 +1,7 @@
+let
+  fun iter x = case x of
+                    a::rest => (Core.print(a); iter(rest))
+                 |: [] => ()
+in
+  iter ["a", "b", "c", "d"]
+end

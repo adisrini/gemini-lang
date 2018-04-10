@@ -127,15 +127,15 @@ struct
             | evexp(A.StringExp(str, pos)) = V.StringVal str
             | evexp(A.RealExp(num, pos)) = V.RealVal num
             | evexp(A.BitExp(bit, pos)) = V.BitVal bit
-            | evexp(A.ApplyExp(e1, e2, pos)) = (* TODO: module application *)
+            | evexp(A.ApplyExp(e1, e2, pos)) =
               let
                 val e1Val = evexp(e1)
                 val e2Val = evexp(e2)
-
-                val e1Fun = !(getFun(e1Val))
-                val retVal = e1Fun e2Val
               in
-                retVal
+                case e1Val of
+                     V.FunVal f => !f e2Val
+                   | V.ModuleVal m => m e2Val
+                   | _ => raise TypeError
               end
             | evexp(A.BinOpExp({left, oper, right, pos})) =
               let
@@ -279,7 +279,11 @@ struct
               in
                 !(getRef(refVal))
               end
-            | evexp(A.StructAccExp{name, field, pos}) = V.NoVal (* TODO *)
+            | evexp(A.StructAccExp{name, field, pos}) = (case Symbol.look(Env.base_senv, name) of
+                                                              SOME(struct_vstore) => (case Symbol.look(struct_vstore, field) of
+                                                                                           SOME(_, v) => v
+                                                                                         | NONE => (ErrorMsg.error pos ("unbound path in structure: " ^ Symbol.name(field) ^ "\n"); V.NoVal))
+                                                            | NONE => (ErrorMsg.error pos ("unbound structure: " ^ Symbol.name(name) ^ "\n"); V.NoVal))
             | evexp(A.RecordAccExp{exp, field, pos}) =
               let
                 val recVal = evexp(exp)
@@ -452,7 +456,33 @@ struct
               vstore'
             end
           | evdec(A.TypeDec(tydecs)) = vstore
-          | evdec(A.ModuleDec(moddecs)) = vstore
+          | evdec(A.ModuleDec(moddecs)) =
+            let
+              fun augmentParam(A.NoParam, vs, value) = vs
+                | augmentParam(A.SingleParam{name, ty, escape, pos}, vs, value) = Symbol.enter(vs, name, value)
+                | augmentParam(A.TupleParams(fs), vs, value) =
+                  let
+                    fun foldField(({name, ty, escape, pos}, (sym, value)), vs) = Symbol.enter(vs, name, value)
+                  in
+                    foldl foldField vs (ListPair.zipEq(fs, getRecord(value)))
+                  end
+                | augmentParam(A.RecordParams(fs), vs, value) =
+                  let
+                    fun foldField(({name, ty, escape, pos}, (sym, value)), vs) = Symbol.enter(vs, name, value)
+                  in
+                    foldl foldField vs (ListPair.zipEq(fs, getRecord(value)))
+                  end
+              fun foldDec({name, arg, result, body, pos}, vs) =
+                let
+                  val mfun = fn(v) => evalExp(augmentParam(arg, vs, v), body)
+                  val vs' = Symbol.enter(vs, name, V.ModuleVal(mfun))
+                in
+                  vs'
+                end
+              val vstore' = foldl foldDec vstore moddecs
+            in
+              vstore'
+            end
           | evdec(A.SWDatatypeDec(datatydecs)) =
             let
               fun foldDec({name, tyvars, datacons}, vs) = 

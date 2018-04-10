@@ -17,7 +17,7 @@ struct
                  | BinOpVal of {left: value, oper: binop, right: value}
                  | UnOpVal of {value: value, oper: unop}
                  | ArrayAccVal of {arr: value vector, index: int}
-                 | ModuleVal of {name: symbol} (* TODO *)
+                 | ModuleVal of (value -> value)
                  | NoVal
 
   and binop = AndOp | OrOp | XorOp | SLLOp | SRLOp | SRAOp
@@ -55,10 +55,12 @@ struct
     | toString(BinOpVal{left, oper, right}) = "binop{left: " ^ toString(left) ^ ", right: " ^ toString(right) ^ ", oper: " ^ binopString(oper) ^ "}"
     | toString(UnOpVal{value, oper}) = "unop{value: " ^ toString(value) ^ ", oper: " ^ unopString(oper) ^ "}"
     | toString(ArrayAccVal{arr, index}) = "acc{arr: " ^ toString(ArrayVal(arr)) ^ ", index: " ^ Int.toString(index) ^ "}"
-    | toString(ModuleVal{name}) = "module{name: " ^ Symbol.name(name) ^ "}"
+    | toString(ModuleVal(m)) = "moduleval"
     | toString(NoVal) = "noval"
 
   type vstore = value Symbol.table
+
+  fun createEnvironmentWithData (l: (Symbol.symbol * 'a) list) = foldr (fn(x, env) => Symbol.enter(env, #1 x, #2 x)) Symbol.empty l
 
   val base_store = Symbol.empty
 

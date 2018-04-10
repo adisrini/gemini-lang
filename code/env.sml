@@ -5,49 +5,62 @@ sig
   type tenv
   type venv
   type smap
+  type senv
 
   val base_menv : menv
   val base_tenv : tenv
   val base_venv : venv
   val base_smap : smap
-
-  val newMeta   : unit -> Symbol.symbol
-  val createEnvironmentWithData : (Symbol.symbol * 'a) list -> 'a Symbol.table
+  val base_senv : senv
+  
+  val makeEnv : (Symbol.symbol * 'a) list -> 'a Symbol.table
 
 end
 
 structure Env : ENV =
 struct
 
+  structure L = Library
+  structure S = Symbol
   structure T = Types
+  structure V = Value
 
-  type menv = Types.ty Symbol.table
-  type tenv = Types.ty Symbol.table
-  type venv = Types.ty Symbol.table
-  type smap = Types.ty Symbol.table
-  type dmap = Types.ty Symbol.table
+  type menv = T.ty S.table
+  type tenv = T.ty S.table
+  type venv = T.ty S.table
+  type smap = T.ty S.table
+  type senv = ((T.ty * V.value) S.table) S.table
 
-  fun createEnvironmentWithData (l: (Symbol.symbol * 'a) list) = foldr (fn(x, env) => Symbol.enter(env, #1 x, #2 x)) Symbol.empty l
+  fun makeEnv (l: (S.symbol * 'a) list) = foldr (fn(x, env) => S.enter(env, #1 x, #2 x)) S.empty l
 
-  val metaCount = ref 0
+  val base_menv = S.empty
 
-  val base_menv = Symbol.empty
+  val base_tenv = makeEnv [(S.symbol("int"), T.S_TY(T.INT)),
+                           (S.symbol("string"), T.S_TY(T.STRING)),
+                           (S.symbol("real"), T.S_TY(T.REAL)),
+                           (S.symbol("bit"), T.H_TY(T.BIT))]
 
-  val base_tenv = createEnvironmentWithData [(Symbol.symbol("int"), T.S_TY(T.INT)),
-                                             (Symbol.symbol("string"), T.S_TY(T.STRING)),
-                                             (Symbol.symbol("real"), T.S_TY(T.REAL)),
-                                             (Symbol.symbol("bit"), T.H_TY(T.BIT))]
+  val base_venv = S.empty
 
-  val base_venv = Symbol.empty
+  val base_smap = S.empty
 
-  val base_smap = Symbol.empty
-
-  fun newMeta () =
-    let
-      val x = !metaCount;
-    in
-      metaCount := x + 1;
-      Symbol.symbol("m" ^ (Int.toString x))
-    end
+  val base_senv = makeEnv [
+                            (
+                              S.symbol("Core"), makeEnv [
+                                                         (S.symbol("print"), (L.Core.print_ty, L.Core.print_impl))
+                                                       ]
+                            ),
+                            (
+                              S.symbol("Bit"), makeEnv [
+                                                         (S.symbol("twosComp"), (L.Bit.twosComp_ty, L.Bit.twosComp_impl))
+                                                       ]
+                            ),
+                            (
+                              S.symbol("List"), makeEnv [
+                                                         (S.symbol("nth"), (L.List.nth_ty, L.List.nth_impl)),
+                                                         (S.symbol("length"), (L.List.length_ty, L.List.length_impl))
+                                                       ]
+                            )
+                          ]
 
 end

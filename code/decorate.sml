@@ -17,6 +17,7 @@ struct
   structure T = Types
   structure E = Env
   structure S = Substitute
+  structure M = Meta
 
   (* attach information/context to TOP in order to make warnings/errors more clearn
   potentially number warnings and refer to others based on whether error is propagated *)
@@ -427,7 +428,7 @@ struct
                               T.S_TOP => T.BOTTOM
                             | _ => T.S_TY(T.ARROW(argTy, resTy)))
             end
-          | decoty(A.PlaceholderTy(u)) = T.META(E.newMeta())
+          | decoty(A.PlaceholderTy(u)) = T.META(M.newMeta())
           | decoty(A.NoTy) = T.EMPTY
           | decoty(A.ExplicitTy(t)) = t
     in
@@ -484,7 +485,7 @@ struct
               let
                 fun foldMenv(tyv, (menv, metamap)) =
                   let
-                    val newMeta = E.newMeta()
+                    val newMeta = M.newMeta()
                   in
                     (Symbol.enter(menv, tyv, T.META(newMeta)),
                      Symbol.enter(metamap, tyv, newMeta))
@@ -570,7 +571,7 @@ struct
               let
                 fun foldMenv(tyvar, (menv, metamap)) =
                   let
-                    val newmeta = E.newMeta()
+                    val newmeta = M.newMeta()
                   in
                     (Symbol.enter(menv, tyvar, T.META(newmeta)),
                      Symbol.enter(metamap, tyvar, newmeta))
@@ -580,7 +581,7 @@ struct
                                             SOME(tyvs) => foldl foldMenv (menv, Symbol.empty) tyvs
                                           | _ => (menv, Symbol.empty)
                 (* add datatype as META in tenv *)
-                val tempMeta = E.newMeta()
+                val tempMeta = M.newMeta()
                 val tenv' = Symbol.enter(tenv, name, T.S_TY(T.S_META(tempMeta)))
                 (* map datacons to explicit types *)
                 fun mapDatacon({datacon, ty, pos}) =
@@ -635,7 +636,7 @@ struct
               let
                 fun foldMenv(tyvar, (menv, metamap)) =
                   let
-                    val newmeta = E.newMeta()
+                    val newmeta = M.newMeta()
                   in
                     (Symbol.enter(menv, tyvar, T.META(newmeta)),
                      Symbol.enter(metamap, tyvar, newmeta))
@@ -645,7 +646,7 @@ struct
                                             SOME(tyvs) => foldl foldMenv (menv, Symbol.empty) tyvs
                                           | _ => (menv, Symbol.empty)
                 (* add datatype as META in tenv *)
-                val tempMeta = E.newMeta()
+                val tempMeta = M.newMeta()
                 val tenv' = Symbol.enter(tenv, name, T.H_TY(T.H_META(tempMeta)))
                 (* map datacons to explicit types *)
                 fun mapDatacon({datacon, ty, pos}) =

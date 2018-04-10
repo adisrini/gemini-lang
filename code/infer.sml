@@ -18,6 +18,7 @@ struct
   structure E = Env
   structure U = Unify
   structure S = Substitute
+  structure M = Meta
 
   (* augments smap if substitution is defined, else returns original *)
   fun augmentSmap(smap, subs, pos) =
@@ -119,20 +120,20 @@ struct
                  | _ => case e2Ty of
                              T.S_TY(e2Sty) =>
                               let
-                                val retTy = T.S_META(E.newMeta())
+                                val retTy = T.S_META(M.newMeta())
                                 val sub = U.unify(T.S_TY(T.ARROW(e2Sty, retTy)), e1Ty, pos)
                               in
                                 (augmentSmap(smap'', [sub], pos), venv'', T.S_TY(retTy))
                               end
                            | T.H_TY(e2Hty) =>
                               let
-                                val retTy = T.H_META(E.newMeta())
+                                val retTy = T.H_META(M.newMeta())
                                 val sub = U.unify(T.M_TY(T.MODULE(e2Hty, retTy)), e1Ty, pos)
                               in
                                 (augmentSmap(smap'', [sub], pos), venv'', T.H_TY(retTy))
                               end
-                           | T.BOTTOM => (smap'', venv'', T.S_TY(T.S_META(E.newMeta())))
-                           | _ => (ErrorMsg.error pos "cannot apply function to non-sw type"; (smap'', venv'', T.S_TY(T.S_META(E.newMeta()))))
+                           | T.BOTTOM => (smap'', venv'', T.S_TY(T.S_META(M.newMeta())))
+                           | _ => (ErrorMsg.error pos "cannot apply function to non-sw type"; (smap'', venv'', T.S_TY(T.S_META(M.newMeta()))))
             end
           | infexp(A.BinOpExp({left, oper, right, pos})) =
             let
@@ -376,7 +377,7 @@ struct
                   (smap'', S.substitute(smap'', venv'), strongerTy)
                 end
 
-              val (smap', venv', retTy) = foldl foldElem (smap, venv, T.S_TY(T.S_META(E.newMeta()))) exps
+              val (smap', venv', retTy) = foldl foldElem (smap, venv, T.S_TY(T.S_META(M.newMeta()))) exps
             in
               (smap', venv', T.S_TY(T.LIST(getSWType(retTy))))
             end
@@ -395,7 +396,7 @@ struct
                   (smap'', S.substitute(smap'', venv'), strongerTy)
                 end
 
-              val (smap', venv', retTy) = foldl foldElem (smap, venv, T.H_TY(T.H_META(E.newMeta()))) (Vector.toList(exps))
+              val (smap', venv', retTy) = foldl foldElem (smap, venv, T.H_TY(T.H_META(M.newMeta()))) (Vector.toList(exps))
             in
               (smap', venv', T.H_TY(T.ARRAY({ty = getHWType(retTy), size = ref (Vector.length(exps))})))
             end
@@ -453,7 +454,7 @@ struct
                                | T.S_TY(T.S_META(m)) => T.S_META(m)
                                | T.META(m) => T.S_META(m)
                                | _ => T.S_BOTTOM
-              val newInnerTy = T.S_META(E.newMeta()) (* NOTE: should be creating new meta here? *)
+              val newInnerTy = T.S_META(M.newMeta()) (* NOTE: should be creating new meta here? *)
               val sub = case innerTy of
                              T.S_META(m) => U.unify(expTy, T.S_TY(T.REF(newInnerTy)), pos)
                            | _ => S.SUB([])
@@ -466,7 +467,11 @@ struct
             in
               (smap'', venv', retTy)
             end
-          | infexp(A.StructAccExp({name, field, pos})) = (smap, venv, T.EMPTY)
+          | infexp(A.StructAccExp({name, field, pos})) = (smap, venv, case Symbol.look(E.base_senv, name) of
+                                                                           SOME(stenv) => (case Symbol.look(stenv, field) of
+                                                                                                SOME(t, _) => t
+                                                                                              | _ => (ErrorMsg.error pos ("unbound path in structure: " ^ Symbol.name(field)); T.BOTTOM))
+                                                                         | _ => (ErrorMsg.error pos ("unbound structure: " ^ Symbol.name(name)); T.BOTTOM))
           | infexp(A.RecordAccExp({exp, field, pos})) =
             let
               val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
@@ -492,7 +497,7 @@ struct
 
               val retTy = case expTy of
                                T.H_TY(T.ARRAY({ty, size})) => T.H_TY(ty)
-                             | T.H_TY(T.H_META(hm)) => (T.H_TY(T.H_META(E.newMeta())))
+                             | T.H_TY(T.H_META(hm)) => (T.H_TY(T.H_META(M.newMeta())))
                              | _ => (ErrorMsg.error pos ("cannot index element of non-array type"); T.H_TY(T.H_BOTTOM))
             in
               (smap''', venv'', retTy)
@@ -503,7 +508,7 @@ struct
 
               fun foldCase({match, result, pos}, (smap, venv, ty_opt)) =
                 let
-                  fun addMatchVars(A.VarExp(sym, pos), venv) = Symbol.enter(venv, sym, T.S_TY(T.S_META(E.newMeta())))
+                  fun addMatchVars(A.VarExp(sym, pos), venv) = Symbol.enter(venv, sym, T.S_TY(T.S_META(M.newMeta())))
                     | addMatchVars(A.ApplyExp(func, arg, pos), venv) = addMatchVars(arg, venv)
                     | addMatchVars(A.SWRecordExp({fields, pos}), venv) = foldl (fn((sym, exp, pos), venv) => addMatchVars(exp, venv)) venv fields
                     | addMatchVars(A.HWRecordExp({fields, pos}), venv) = foldl (fn((sym, exp, pos), venv) => addMatchVars(exp, venv)) venv fields
@@ -640,7 +645,7 @@ struct
               val (venv', menv') = foldl foldParam (venv, menv) params
 
               (* enter function header with 'a -> 'b type *)
-              val funHeaderTy = T.S_TY(T.ARROW(T.S_META(E.newMeta()), T.S_META(E.newMeta())))
+              val funHeaderTy = T.S_TY(T.ARROW(T.S_META(M.newMeta()), T.S_META(M.newMeta())))
               val venvWithHeader = Symbol.enter(venv', name, funHeaderTy)
 
               (* process body with augmented venv' *)
@@ -859,7 +864,7 @@ struct
               val (venv', menv') = foldl foldParam (venv, menv) [arg]
 
               (* enter module header *)
-              val modHeaderTy = T.M_TY(T.MODULE(T.H_META(E.newMeta()), T.H_META(E.newMeta())))
+              val modHeaderTy = T.M_TY(T.MODULE(T.H_META(M.newMeta()), T.H_META(M.newMeta())))
               val venvWithHeader = Symbol.enter(venv', name, modHeaderTy)
 
               (* process body with augmented venv *)
