@@ -29,7 +29,10 @@ struct
           * rewrite module body and replace module call with new name
           * symbol table: map from symbol module names -> (definition of module * ref map from list of types -> name of monomorphic version of that module)
       *)
-      val evalAst = Evaluate.evalProg explicitAST
+      val evalValue = Evaluate.evalProg explicitAST
+      val () = case evalValue of
+                    Value.ModuleVal(m, namedArgs) => print(Value.toString(m(namedArgs)) ^ "\n")
+                  | _ => print("it's something else\n")
     in
       ()
     end

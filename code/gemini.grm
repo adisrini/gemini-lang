@@ -54,7 +54,7 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
 %%
 %term
     EOF
-  | SDATATYPE | HDATATYPE | TYPE | VAL | REF | FUN | MODULE | STRUCTURE | STRUCT | SIGNATURE | SIG | LIST | SW | GEN
+  | SDATATYPE | HDATATYPE | TYPE | VAL | REF | FUN | MODULE | STRUCTURE | STRUCT | SIGNATURE | SIG | LIST | SW | UNSW | GEN
   | LET | IN | END | IF | THEN | ELSE
   | ORELSE | ANDALSO | NOT
   | NIL | WITH | OF | OP | CASE
@@ -147,6 +147,7 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
                 | sw_tuple_inst of A.exp
                 | hw_tuple_inst of A.exp
                 | sw_inst of A.exp
+                | unsw of A.exp
                 | exp_comma_tail of (A.exp * int) list
             | with_value of A.exp
             | pattern_match of A.exp
@@ -231,7 +232,7 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
 
 %nonassoc CASE
 %left AT
-%left LIST SW REF
+%left LIST SW REF UNSW
 
 %nonassoc ARRAY_ACC LBRACK RBRACK
 %nonassoc RECORD_ACC POUND
@@ -263,6 +264,7 @@ exp           : exp exp %prec APPLY                                         (A.A
               | exp_seq                                                     (exp_seq)
               | conditional                                                 (conditional)
               | insts                                                       (insts)
+              | unsw                                                        (unsw)
               | with_value                                                  (with_value)
               | pattern_match                                               (pattern_match)
               | LPAREN RPAREN                                               (A.SeqExp[])
@@ -580,6 +582,8 @@ sw_tuple_inst : LPAREN list_elements RPAREN                                 (A.S
 hw_tuple_inst : POUND LPAREN list_elements RPAREN                           (A.HWRecordExp{fields = numberedExpFields(list_elements), pos = LPARENleft})
 
 sw_inst       : SW exp                                                      (A.SWExp(exp, SWleft))
+
+unsw          : UNSW exp                                                    (A.UnSWExp(exp, UNSWleft))
 
 bit_array_inst: exp TID COLON exp %prec BIT_ARRAY_INST                      (A.BitArrayConvExp{size = exp1, value = exp2, spec = TID, pos = exp1left})
 

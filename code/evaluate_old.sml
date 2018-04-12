@@ -3,7 +3,7 @@ sig
   
   type vstore
 
-  val evalProg : Absyn.exp -> Value.value
+  val evalProg : Absyn.exp -> unit
   val evalExp  : vstore * Absyn.exp -> Value.value
   val evalDec  : vstore * Absyn.dec -> vstore
 
@@ -80,37 +80,15 @@ struct
     | compareGt(V.RealVal l, V.RealVal r) = l > r
     | compareGt(_) = raise TypeError
 
-  fun evalBinaryBitOp(V.AndOp, b1, b2) = GeminiBit.andb b1 b2
-    | evalBinaryBitOp(V.OrOp, b1, b2) = GeminiBit.orb b1 b2
-    | evalBinaryBitOp(V.XorOp, b1, b2) = GeminiBit.xorb b1 b2
-    | evalBinaryBitOp(_) = raise Match
-
-  fun evalUnaryBitOp(V.NotOp, b) = GeminiBit.notb b
-    | evalUnaryBitOp(_) = raise Match
-
-  fun evalBinaryBitwiseOp(bitop, leftVal, rightVal) = case (leftVal, rightVal) of
-                                                     (V.BitVal b1, V.BitVal b2) => V.BitVal (evalBinaryBitOp(bitop, b1, b2))
-                                                   | (V.ArrayVal vals1, V.ArrayVal vals2) => V.ArrayVal(Vector.map (fn (v1, v2) => evalBinaryBitwiseOp(bitop, v1, v2)) (Utils.vectorZipEq(vals1, vals2)))
-                                                   | (V.HWRecordVal vals1, V.HWRecordVal vals2) => V.HWRecordVal(map (fn ((s1, v1), (s2, v2)) => if Symbol.name(s1) = Symbol.name(s2) then (s1, evalBinaryBitwiseOp(bitop, v1, v2)) else raise TypeError) (ListPair.zipEq(vals1, vals2)))
+  fun evalBitwiseOp(bitop, leftVal, rightVal) = case (leftVal, rightVal) of
+                                                     (V.BitVal _, V.BitVal _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
+                                                   | (V.ArrayVal vals1, V.ArrayVal vals2) => V.ArrayVal(Vector.map (fn (v1, v2) => evalBitwiseOp(bitop, v1, v2)) (Utils.vectorZipEq(vals1, vals2)))
+                                                   | (V.HWRecordVal vals1, V.HWRecordVal vals2) => V.HWRecordVal(map (fn ((s1, v1), (s2, v2)) => if Symbol.name(s1) = Symbol.name(s2) then (s1, evalBitwiseOp(bitop, v1, v2)) else raise TypeError) (ListPair.zipEq(vals1, vals2)))
                                                    | (V.BinOpVal _, _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
                                                    | (_, V.BinOpVal _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
-                                                   | (V.UnOpVal _, _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
-                                                   | (_, V.UnOpVal _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
-                                                   | (V.NamedVal _, _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
-                                                   | (_, V.NamedVal _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
                                                    | (V.ArrayAccVal _, _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
                                                    | (_, V.ArrayAccVal _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
                                                    | _ => raise TypeError
-
-  fun evalUnaryBitwiseOp(bitop, expVal) = case expVal of
-                                               V.BitVal(b) => V.BitVal (evalUnaryBitOp(bitop, b))
-                                             | V.ArrayVal(vals) => V.ArrayVal(Vector.map (fn (v) => evalUnaryBitwiseOp(bitop, v)) vals)
-                                             | V.HWRecordVal(vals) => V.HWRecordVal(map (fn (s, v) => (s, evalUnaryBitwiseOp(bitop, v))) vals)
-                                             | V.NamedVal _ => V.UnOpVal{value = expVal, oper = bitop}
-                                             | V.BinOpVal _ => V.UnOpVal{value = expVal, oper = bitop}
-                                             | V.UnOpVal _ => V.UnOpVal{value = expVal, oper = bitop}
-                                             | V.ArrayAccVal _ => V.UnOpVal{value = expVal, oper = bitop}
-                                             | _ => raise TypeError
 
   fun evalShiftOp(bitop, leftVal, rightVal) =
     let
@@ -129,7 +107,7 @@ struct
 
   fun evalDoubleBitOp(bitop, leftVal, rightVal) =
     let
-      val bitwiseResult = evalBinaryBitwiseOp(bitop, leftVal, rightVal)
+      val bitwiseResult = evalBitwiseOp(bitop, leftVal, rightVal)
       val bitwiseArr = getArray(bitwiseResult)
 
       fun build(0) = Vector.sub(bitwiseArr, 0)
@@ -147,7 +125,7 @@ struct
       val () = print("===== PROGRAM RESULT =====\n")
       val () = print(V.toString(progVal) ^ "\n")
     in
-      progVal
+      ()
     end
 
   and evalExp(vstore, exp) =
@@ -166,7 +144,7 @@ struct
               in
                 case e1Val of
                      V.FunVal f => !f e2Val
-                   | V.ModuleVal(m, _) => m e2Val
+                   | V.ModuleVal m => m e2Val
                    | _ => raise TypeError
               end
             | evexp(A.BinOpExp({left, oper, right, pos})) =
@@ -203,9 +181,9 @@ struct
                                then V.IntVal 0
                                else V.IntVal 1
                    | A.ConsOp => (V.ListVal (leftVal::getList(rightVal)))
-                   | A.BitAndOp => evalBinaryBitwiseOp(V.AndOp, leftVal, rightVal)
-                   | A.BitOrOp  => evalBinaryBitwiseOp(V.OrOp, leftVal, rightVal)
-                   | A.BitXorOp => evalBinaryBitwiseOp(V.XorOp, leftVal, rightVal)
+                   | A.BitAndOp => evalBitwiseOp(V.AndOp, leftVal, rightVal)
+                   | A.BitOrOp  => evalBitwiseOp(V.OrOp, leftVal, rightVal)
+                   | A.BitXorOp => evalBitwiseOp(V.XorOp, leftVal, rightVal)
                    | A.BitSLLOp => evalShiftOp(V.SLLOp, leftVal, rightVal)
                    | A.BitSRLOp => evalShiftOp(V.SRLOp, leftVal, rightVal)
                    | A.BitSRAOp => evalShiftOp(V.SRAOp, leftVal, rightVal)
@@ -220,7 +198,7 @@ struct
               in
                 case oper of
                      A.IntMinusOp => V.IntVal(~(getInt(expVal)))
-                   | A.BitNotOp => evalUnaryBitwiseOp(V.NotOp, expVal)
+                   | A.BitNotOp => V.UnOpVal{value = expVal, oper = V.NotOp}
                    | A.BitAndReduceOp => evalReduceOp(V.AndReduceOp, expVal)
                    | A.BitOrReduceOp => evalReduceOp(V.OrReduceOp, expVal)
                    | A.BitXorReduceOp => evalReduceOp(V.XorReduceOp, expVal)
@@ -536,17 +514,10 @@ struct
                   in
                     foldl foldField vs (ListPair.zipEq(fs, getHWRecord(value)))
                   end
-
-              fun makeNamedArgs(A.NoParam) = raise Match
-                | makeNamedArgs(A.SingleParam{name, ty, escape, pos}) = V.NamedVal(name)
-                | makeNamedArgs(A.TupleParams(fs)) = V.HWRecordVal (List.rev(#2(foldl (fn ({name, ty, escape, pos}, (i, acc)) => (i + 1, (Symbol.symbol(Int.toString(i)), V.NamedVal(name))::acc)) (1, []) fs)))
-                | makeNamedArgs(A.RecordParams(fs)) = V.HWRecordVal (map (fn {name, ty, escape, pos} => (name, V.NamedVal(name))) fs)
-
               fun foldDec({name, arg, result, body, pos}, vs) =
                 let
-                  val namedArgs = makeNamedArgs(arg)
                   val mfun = fn(v) => evalExp(augmentParam(arg, vs, v), body)
-                  val vs' = Symbol.enter(vs, name, V.ModuleVal(mfun, namedArgs))
+                  val vs' = Symbol.enter(vs, name, V.ModuleVal(mfun))
                 in
                   vs'
                 end

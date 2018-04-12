@@ -63,7 +63,7 @@ struct
                                               List.nth(getList(v1), getInt(v2))
                                             end))
 
-    (* nth *)
+    (* length *)
     val length_ty =
       let
         val meta = Meta.newMeta()
@@ -77,11 +77,23 @@ struct
                                                   V.IntVal (List.length(listVal))
                                                 end))
 
-    
+    (* rev *)
+    val rev_ty =
+      let
+        val meta = Meta.newMeta()
+      in
+        T.S_TY(T.S_POLY([meta], T.ARROW(T.LIST(T.S_META(meta)), T.LIST(T.S_META(meta)))))
+      end
+
+    val rev_impl = V.FunVal (ref (fn (v) => let
+                                              val listVal = getList(v)
+                                            in
+                                              V.ListVal (List.rev(listVal))
+                                            end))
 
   end
 
-  structure Bit = 
+  structure BitArray = 
   struct
     
     (* 2s complement *)
@@ -89,6 +101,20 @@ struct
 
     val twosComp_impl = V.IntVal 0
 
+  end
+
+  structure HW = 
+  struct
+
+    (* dff *)
+    val dff_ty =
+      let
+        val meta = Meta.newMeta()
+      in
+        T.M_TY(T.MODULE(T.H_META(meta), T.TEMPORAL{ty = T.H_META(meta), time = ref ~1}))
+      end
+    val dff_impl = V.NoVal (* V.ModuleVal (fn(v) => V.TemporalVal v) *)
+    
   end
 
 end

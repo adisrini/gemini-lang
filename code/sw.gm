@@ -1,0 +1,29 @@
+let
+  sdatatype explicitLogic = AND of explicitLogic list
+                         |: OR of explicitLogic list
+                         |: XOR of explicitLogic list
+                         |: NOT of explicitLogic
+                         |: INP of bit sw
+
+  fun toHW expl =
+    let
+      fun listToArray elist =
+        sw #[32'u:(List.length elist); gen i => (unsw (toHW (List.nth(elist, i))))]
+    in
+       case expl of
+            INP(b) => b
+         |: AND(lst) => sw (&-> (unsw (listToArray lst)))
+         |: OR(lst) => sw (|-> (unsw (listToArray lst)))
+         |: XOR(lst) => sw (^-> (unsw (listToArray lst)))
+         |: NOT(el) => sw (! (unsw (toHW el)))
+    end
+
+  module thing #(a,b,c) =
+    let
+      val temp = NOT(XOR[INP(sw c), AND [INP(sw a), INP(sw b)]])
+    in
+      unsw (toHW temp)
+    end
+in
+  thing #('b:0, 'b:1, 'b:0)
+end

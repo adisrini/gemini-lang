@@ -1,24 +1,25 @@
-let
-  module rca_helper #(ai : bit, bi : bit, cin : bit) =
-    let
-      val sum = ai ^ bi ^ cin
-      val cout = (ai & bi) | (ai & cin) | (bi & cin)
-    in
-      #(cout, sum)
-    end
+module my_program #(a, b, c, d) =
+  let
+    module rca_helper #(ai : bit, bi : bit, cin : bit) =
+      let
+        val sum = ai ^ bi ^ cin
+        val cout = (ai & bi) | (ai & cin) | (bi & cin)
+      in
+        #(cout, sum)
+      end
 
-  module rca #(a, b, n) =
-    let
-      val couts = #[n; gen i => if i = 0 then
-                                  'b:0
-                                else
-                                  #1(rca_helper #(a[:i:], b[:i:], couts[:i - 1:]))]
-    in
-      #[n; gen i => #2(rca_helper #(a[:i:], b[:i:], couts[:i:]))]
-    end
+    module rca #(a, b, n) =
+      let
+        val couts = #[n; gen i => if i = 0 then
+                                    #1(rca_helper #(a[:i:], b[:i:], 'b:0))
+                                  else
+                                    #1(rca_helper #(a[:i:], b[:i:], couts[:i - 1:]))]
+      in
+        #[n; gen i => #2(rca_helper #(a[:i:], b[:i:], couts[:i:]))]
+      end
 
-  module four_bit_rca #(a, b) = rca #(a, b, #['b:1, 'b:0, 'b:0])
+    module two_bit_rca #(a, b) = rca #(a, b, 2'u:2)
 
-in
-  four_bit_rca
-end
+  in
+    two_bit_rca #(#[a, b], #[c, d])
+  end

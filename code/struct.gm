@@ -3,5 +3,5 @@ let
                     a::rest => (Core.print(a); iter(rest))
                  |: [] => ()
 in
-  iter ["a", "b", "c", "d"]
+  iter (List.rev(["\n", "a", "b", "c", "d", "\n"]))
 end

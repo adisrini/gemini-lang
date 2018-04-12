@@ -83,6 +83,7 @@ fun print (outstream, e0) =
     | exp(A.SWRecordExp{fields, pos}, d) = (indent d; say "SWRecordExp(["; dolist d f fields; sayln "]"; indent d; say ")")
     | exp(A.HWRecordExp{fields, pos}, d) = (indent d; say "HWRecordExp(["; dolist d f fields; sayln "]"; indent d; say ")")
     | exp(A.SWExp(e, p), d) = (indent d; sayln "SWExp("; exp(e, d + 1); sayln ""; indent d; say ")")
+    | exp(A.UnSWExp(e, p), d) = (indent d; sayln "UnSWExp("; exp(e, d + 1); sayln ""; indent d; say ")")
     | exp(A.WithExp{exp = e, fields, pos}, d) = (indent d; sayln "WithExp("; exp(e, d + 1); sayln ","; indent (d + 1); say "["; dolist d f fields; sayln "]"; indent d; say ")")
     | exp(A.DerefExp{exp = e, pos}, d) = (indent d; sayln "DerefExp("; exp(e, d + 1); sayln ""; indent d; say ")")
     | exp(A.StructAccExp{name, field, pos}, d) = (indent d; say "StructAccExp("; say(Symbol.name name); say ", "; say (Symbol.name field); say ")")

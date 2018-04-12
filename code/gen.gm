@@ -1,0 +1,7 @@
+let
+  val y = #[2'u:3; gen i => if i = 0
+                            then 'b:0
+                            else y[:i - 1:]]
+in
+  y
+end

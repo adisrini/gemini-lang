@@ -226,6 +226,12 @@ struct
             in
               (menv', A.SWExp(exp', pos))
             end
+          | decorexp(A.UnSWExp(exp, pos)) =
+            let
+              val (menv', exp') = decorateExp(menv, tenv, exp)
+            in
+              (menv', A.UnSWExp(exp', pos))
+            end
           | decorexp(A.WithExp({exp, fields, pos})) =
             let
               val (menv', exp') = decorateExp(menv, tenv, exp)

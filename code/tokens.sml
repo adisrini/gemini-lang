@@ -22,6 +22,7 @@ fun SIGNATURE(a, b) = "SIGNATURE @" ^ locationToString(a, b)
 fun SIG(a, b) = "SIG @" ^ locationToString(a, b)
 fun LIST(a, b) = "LIST @" ^ locationToString(a, b)
 fun SW(a, b) = "SW @" ^ locationToString(a, b)
+fun UNSW(a, b) = "UNSW @" ^ locationToString(a, b)
 fun GEN(a, b) = "GEN @" ^ locationToString(a, b)
 
 (* constructs *)

@@ -61,6 +61,7 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"sig"  	                             => (Tokens.SIG(yypos, yypos + 3));
 <INITIAL>"list"                                => (Tokens.LIST(yypos, yypos + 4));
 <INITIAL>"sw"                                  => (Tokens.SW(yypos, yypos + 2));
+<INITIAL>"unsw"                                => (Tokens.UNSW(yypos, yypos + 4));
 <INITIAL>"gen"                                 => (Tokens.GEN(yypos, yypos + 3));
 
 <INITIAL>"let"  	                             => (Tokens.LET(yypos, yypos + 3));

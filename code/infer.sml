@@ -279,11 +279,10 @@ struct
                                   (smap''', T.S_TY(T.INT))
                                 end
                             | A.BitNotOp =>
-                                let
-                                  val (smap''', subs) = unifyAndSubstitute(smap', T.H_TY(T.BIT), [(expTy, pos)])
-                                in
-                                  (smap''', T.H_TY(T.BIT))
-                                end
+                                (smap', case expTy of
+                                             T.H_TY(_) => expTy
+                                           | T.META(m) => T.H_TY(T.H_META(m))
+                                           | _ => (ErrorMsg.error pos "expected hw type"; T.H_TY(T.H_BOTTOM)))
                             | A.BitOrReduceOp =>
                                 let
                                   val sub = U.unify(T.H_TY(T.ARRAY({ty = T.BIT, size = ref ~1})), expTy, pos)
@@ -441,9 +440,30 @@ struct
                               T.H_TY(h) => T.SW_H(h)
                             | T.META(m) => T.SW_H(T.H_META(m))
                             | T.M_TY(m) => T.SW_M(m)
-                            | _ => (ErrorMsg.error pos "expected 'sw type"; T.S_BOTTOM)
+                            | _ => (ErrorMsg.error pos "expected hw or module type"; T.S_BOTTOM)
             in
               (smap', venv', T.S_TY(retTy))
+            end
+          | infexp(A.UnSWExp(exp, pos)) =
+            let
+              val (smap', venv', expTy) = inferExp(menv, tenv, venv, smap, exp)
+              val innerTy = case expTy of
+                                 T.S_TY(T.SW_H(h)) => h
+                               | T.S_TY(T.S_META(m)) => T.H_META(M.newMeta())
+                               | T.META(m) => T.H_META(M.newMeta())
+                               | _ => T.H_BOTTOM
+              val newInnerTy = T.H_META(M.newMeta()) (* NOTE: should be creating new meta here? *)
+              val sub = case innerTy of
+                             T.H_META(m) => U.unify(expTy, T.S_TY(T.SW_H(newInnerTy)), pos)
+                           | _ => S.SUB([])
+              val smap'' = augmentSmap(smap', [sub], pos)
+              val retTy = case sub of
+                               S.SUB(x) => (case innerTy of
+                                                 T.H_META(m) => T.H_TY(newInnerTy)
+                                               | _ => T.H_TY(innerTy))
+                             | S.ERROR(m) => T.BOTTOM
+            in
+              (smap'', venv', retTy)
             end
           | infexp(A.WithExp({exp, fields, pos})) = (smap, venv, T.EMPTY)
           | infexp(A.DerefExp({exp, pos})) =
@@ -739,6 +759,10 @@ struct
         let
           fun foldValDec({name, escape, ty = (ty, tyPos), init, pos}, {menv, tenv, venv, smap}) =
             let
+              (* add variable in case of BitArrayGenExp since can be defined recursively *)
+              val venv = case init of
+                              A.BitArrayGenExp (_) => Symbol.enter(venv, name, T.H_TY(T.H_META(M.newMeta())))
+                            | _ => venv
               (* infer type of initializing expression *)
               val (smap', venv', initTy) = inferExp(menv, tenv, venv, smap, init)
 

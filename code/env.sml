@@ -51,14 +51,20 @@ struct
                                                        ]
                             ),
                             (
-                              S.symbol("Bit"), makeEnv [
-                                                         (S.symbol("twosComp"), (L.Bit.twosComp_ty, L.Bit.twosComp_impl))
+                              S.symbol("BitArray"), makeEnv [
+                                                         (S.symbol("twosComp"), (L.BitArray.twosComp_ty, L.BitArray.twosComp_impl))
+                                                       ]
+                            ),
+                            (
+                              S.symbol("HW"), makeEnv [
+                                                         (S.symbol("dff"), (L.HW.dff_ty, L.HW.dff_impl))
                                                        ]
                             ),
                             (
                               S.symbol("List"), makeEnv [
                                                          (S.symbol("nth"), (L.List.nth_ty, L.List.nth_impl)),
-                                                         (S.symbol("length"), (L.List.length_ty, L.List.length_impl))
+                                                         (S.symbol("length"), (L.List.length_ty, L.List.length_impl)),
+                                                         (S.symbol("rev"), (L.List.rev_ty, L.List.rev_impl))
                                                        ]
                             )
                           ]

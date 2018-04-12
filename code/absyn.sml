@@ -23,6 +23,7 @@ struct
           | SWRecordExp of {fields: (symbol * exp * pos) list, pos: pos}
           | HWRecordExp of {fields: (symbol * exp * pos) list, pos: pos}
           | SWExp of exp * pos
+          | UnSWExp of exp * pos
           | WithExp of {exp: exp, fields: (symbol * exp * pos) list, pos: pos}
           | DerefExp of {exp: exp, pos: pos}
           | StructAccExp of {name: symbol, field: symbol, pos: pos}
