@@ -66,9 +66,9 @@ struct
          | TyVar of symbol * pos
          | SWRecordTy of field list * pos
          | HWRecordTy of field list * pos
-         | ArrayTy of ty * exp * pos
+         | ArrayTy of ty * int * pos
          | ListTy of ty * pos
-         | TemporalTy of ty * exp * pos
+         | TemporalTy of ty * int * pos
          | RefTy of ty * pos
          | SWTy of ty * pos
          | FunTy of ty * ty * pos

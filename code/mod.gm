@@ -1,5 +1,5 @@
 let
-  module simple a = &->a
+  module simple #(a, b) = a & b
 in
   simple
 end

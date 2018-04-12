@@ -388,7 +388,7 @@ struct
             let
               val realTy1 = getHWTy(decoty(ty))
             in
-              T.H_TY(T.ARRAY({ty = realTy1, size = ref ~1}))
+              T.H_TY(T.ARRAY({ty = realTy1, size = ref size}))
             end
           | decoty(A.ListTy(ty, pos)) =
             let
@@ -400,7 +400,7 @@ struct
             let
               val realTy1 = getHWTy(decoty(ty))
             in
-              T.H_TY(T.TEMPORAL({ty = realTy1, time = ref ~1}))
+              T.H_TY(T.TEMPORAL({ty = realTy1, time = ref time}))
             end
           | decoty(A.RefTy(ty, pos)) =
             let
