@@ -57,6 +57,9 @@ struct
   fun getSWInner(V.SWVal x) = x
     | getSWInner(_) = raise TypeError
 
+  fun getExplicitTy(A.ExplicitTy t) = t
+    | getExplicitTy(_) = raise TypeError
+
   (* comparison operators *)
   fun compareEq(V.IntVal l, V.IntVal r) = l = r
     | compareEq(V.StringVal l, V.StringVal r) = l = r
@@ -538,9 +541,9 @@ struct
                   end
 
               fun makeNamedArgs(A.NoParam) = raise Match
-                | makeNamedArgs(A.SingleParam{name, ty, escape, pos}) = V.NamedVal(name)
-                | makeNamedArgs(A.TupleParams(fs)) = V.HWRecordVal (List.rev(#2(foldl (fn ({name, ty, escape, pos}, (i, acc)) => (i + 1, (Symbol.symbol(Int.toString(i)), V.NamedVal(name))::acc)) (1, []) fs)))
-                | makeNamedArgs(A.RecordParams(fs)) = V.HWRecordVal (map (fn {name, ty, escape, pos} => (name, V.NamedVal(name))) fs)
+                | makeNamedArgs(A.SingleParam{name, ty, escape, pos}) = V.NamedVal(name, getExplicitTy(ty))
+                | makeNamedArgs(A.TupleParams(fs)) = V.HWRecordVal (List.rev(#2(foldl (fn ({name, ty, escape, pos}, (i, acc)) => (i + 1, (Symbol.symbol(Int.toString(i)), V.NamedVal(name, getExplicitTy(ty)))::acc)) (1, []) fs)))
+                | makeNamedArgs(A.RecordParams(fs)) = V.HWRecordVal (map (fn {name, ty, escape, pos} => (name, V.NamedVal(name, getExplicitTy(ty)))) fs)
 
               fun foldDec({name, arg, result, body, pos}, vs) =
                 let

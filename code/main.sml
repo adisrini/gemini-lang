@@ -20,7 +20,7 @@ struct
       val () = P.print(TextIO.stdOut, explicitAST)
       val () = print("===== SMAP =====\n")
       val () = S.print(TextIO.stdOut, smap, Types.toString)
-      val smap' = Infer.inferProg (smap, explicitAST)
+      val (smap', inferredAST) = Infer.inferProg (smap, explicitAST)
       val () = print("===== SMAP POST-INFERENCE =====\n")
       val () = S.print(TextIO.stdOut, smap', Types.toString)
       (* monomorphize 
@@ -29,7 +29,7 @@ struct
           * rewrite module body and replace module call with new name
           * symbol table: map from symbol module names -> (definition of module * ref map from list of types -> name of monomorphic version of that module)
       *)
-      val evalValue = Evaluate.evalProg explicitAST
+      val evalValue = Evaluate.evalProg inferredAST
       val () = case evalValue of
                     Value.ModuleVal(m, namedArgs) => print(Value.toString(m(namedArgs)) ^ "\n")
                   | _ => print("it's something else\n")

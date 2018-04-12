@@ -13,7 +13,7 @@ struct
                  | FunVal of (value -> value) ref
                  | DatatypeVal of (symbol * unit ref * value)
 
-                 | NamedVal of symbol
+                 | NamedVal of symbol * Types.ty
                  | BitVal of GeminiBit.bit
                  | ArrayVal of value vector
                  | HWRecordVal of (symbol * value) list
@@ -55,7 +55,7 @@ struct
     | toString(RecordVal(fs)) = "record(" ^ (printlist (fn(sym, v) => Symbol.name(sym) ^ ": " ^ toString(v)) fs) ^ ")"
     | toString(FunVal(f)) = "funval"
     | toString(DatatypeVal(sym, unique, v)) = "data(" ^ Symbol.name(sym) ^ ", " ^ toString(v) ^ ")"
-    | toString(NamedVal(n)) = "named_val(" ^ Symbol.name(n) ^ ")"
+    | toString(NamedVal(n, t)) = "named_val(" ^ Symbol.name(n) ^ " : " ^ Types.toString(t) ^ ")"
     | toString(BitVal(b)) = "bit(" ^ GeminiBit.toString(b) ^ ")"
     | toString(ArrayVal(vs)) = "array([" ^  printlist toString (Vector.toList(vs)) ^ "])"
     | toString(HWRecordVal(fs)) = "hwrecord(" ^ (printlist (fn(sym, v) => Symbol.name(sym) ^ ": " ^ toString(v)) fs) ^ ")"

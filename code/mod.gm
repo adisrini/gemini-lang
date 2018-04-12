@@ -1,5 +1,5 @@
 let
-  module simple #(a : bit, b : bit) : bit = (a | a) & b
+  module simple a = &->a
 in
   simple
 end
