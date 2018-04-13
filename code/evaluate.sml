@@ -91,16 +91,28 @@ struct
   fun evalUnaryBitOp(V.NotOp, b) = GeminiBit.notb b
     | evalUnaryBitOp(_) = raise Match
 
+  fun evalShortcutBitOp(V.AndOp, V.BitVal GeminiBit.ZERO, _) = V.BitVal GeminiBit.ZERO
+    | evalShortcutBitOp(V.AndOp, _, V.BitVal GeminiBit.ZERO) = V.BitVal GeminiBit.ZERO
+    | evalShortcutBitOp(V.AndOp, V.BitVal GeminiBit.ONE, x) = x
+    | evalShortcutBitOp(V.AndOp, x, V.BitVal GeminiBit.ONE) = x
+    | evalShortcutBitOp(V.OrOp, V.BitVal GeminiBit.ONE, _) = V.BitVal GeminiBit.ONE
+    | evalShortcutBitOp(V.OrOp, _, V.BitVal GeminiBit.ONE) = V.BitVal GeminiBit.ONE
+    | evalShortcutBitOp(V.OrOp, V.BitVal GeminiBit.ZERO, x) = x
+    | evalShortcutBitOp(V.OrOp, x, V.BitVal GeminiBit.ZERO) = x
+    | evalShortcutBitOp(bitop, leftVal, rightVal) = V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
+
   fun evalBinaryBitwiseOp(bitop, leftVal, rightVal) = case (leftVal, rightVal) of
                                                      (V.BitVal b1, V.BitVal b2) => V.BitVal (evalBinaryBitOp(bitop, b1, b2))
+                                                   | (V.BitVal b, _) => evalShortcutBitOp(bitop, leftVal, rightVal)
+                                                   | (_, V.BitVal b) => evalShortcutBitOp(bitop, leftVal, rightVal)
                                                    | (V.ArrayVal vals1, V.ArrayVal vals2) => V.ArrayVal(Vector.map (fn (v1, v2) => evalBinaryBitwiseOp(bitop, v1, v2)) (Utils.vectorZipEq(vals1, vals2)))
                                                    | (V.HWRecordVal vals1, V.HWRecordVal vals2) => V.HWRecordVal(map (fn ((s1, v1), (s2, v2)) => if Symbol.name(s1) = Symbol.name(s2) then (s1, evalBinaryBitwiseOp(bitop, v1, v2)) else raise TypeError) (ListPair.zipEq(vals1, vals2)))
+                                                   | (V.NamedVal _, _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
+                                                   | (_, V.NamedVal _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
                                                    | (V.BinOpVal _, _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
                                                    | (_, V.BinOpVal _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
                                                    | (V.UnOpVal _, _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
                                                    | (_, V.UnOpVal _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
-                                                   | (V.NamedVal _, _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
-                                                   | (_, V.NamedVal _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
                                                    | (V.ArrayAccVal _, _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
                                                    | (_, V.ArrayAccVal _) => V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
                                                    | _ => raise TypeError
@@ -123,24 +135,26 @@ struct
       V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
     end
 
-  fun evalReduceOp(bitop, arrVal) =
-    let
-      val arr = getArray(arrVal)
-    in
-      V.UnOpVal{value = arrVal, oper = bitop}
-    end
+  fun reduceToBitOp(V.AndReduceOp) = V.AndOp
+    | reduceToBitOp(V.OrReduceOp) = V.OrOp
+    | reduceToBitOp(V.XorReduceOp) = V.XorOp
+    | reduceToBitOp(_) = raise Match
+
+  fun bitToReduceOp(V.AndOp) = V.AndReduceOp
+    | bitToReduceOp(V.OrOp) = V.OrReduceOp
+    | bitToReduceOp(V.XorOp) = V.XorReduceOp
+    | bitToReduceOp(_) = raise Match
+
+  fun evalReduceOp(bitop, expVal) =
+    case expVal of
+         V.ArrayVal(arr) => foldl (fn (v, acc) => evalBinaryBitwiseOp(reduceToBitOp(bitop), v, acc)) (Vector.sub(arr, 0)) (List.drop(Vector.toList(arr), 1))
+       | _ => V.UnOpVal{value = expVal, oper = bitop}
 
   fun evalDoubleBitOp(bitop, leftVal, rightVal) =
     let
       val bitwiseResult = evalBinaryBitwiseOp(bitop, leftVal, rightVal)
-      val bitwiseArr = getArray(bitwiseResult)
-
-      fun build(0) = Vector.sub(bitwiseArr, 0)
-        | build(idx) = V.BinOpVal{left = build(idx - 1), oper = bitop, right = Vector.sub(bitwiseArr, idx)}
     in
-      if Vector.length(bitwiseArr) < 1
-      then raise TypeError
-      else build(Vector.length(bitwiseArr) - 1)
+      evalReduceOp(bitToReduceOp(bitop), bitwiseResult)
     end
 
   (* evaluation functions *)
@@ -339,10 +353,12 @@ struct
               end
             | evexp(A.ArrayAccExp{exp, index, pos}) =
               let
-                val arr = getArray(evexp(exp))
+                val expVal = evexp(exp)
                 val idx = getInt(evexp(index))
               in
-                V.ArrayAccVal{arr = arr, index = idx}
+                case expVal of
+                     V.ArrayVal vals => Vector.sub(vals, Vector.length(vals) - 1 - idx)
+                   | _ => V.ArrayAccVal{arr = expVal, index = idx}
               end
             | evexp(A.PatternMatchExp{exp, cases, pos}) =
               let

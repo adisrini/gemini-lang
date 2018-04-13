@@ -1,385 +1,110 @@
 array([
-  binop{
-    left: binop{
-            left: acc{arr: array([
-                            bit('b:0),
-                            bit('b:1)
-                           ]),
-                      index: 1
-                  }, 
-            right: acc{arr: array([
-                              bit('b:1),
-                              bit('b:1)
-                            ]), 
-                        index: 1
-                    },
-            oper: XorOp
-          }, 
-    right: acc{arr: array([
-                      binop{
-                        left: binop{
-                                left: binop{
-                                        left: acc{arr: array([
-                                                        bit('b:0), 
-                                                        bit('b:1)
-                                                      ]), 
-                                                  index: 1
-                                              },
-                                        right: acc{arr: array([
-                                                          bit('b:1), 
-                                                          bit('b:1)
-                                                        ]),
-                                                  index: 1
-                                              },
-                                        oper: AndOp
-                                      },
-                                right: binop{
-                                        left: acc{arr: array([
-                                                        bit('b:0),
-                                                        bit('b:1)
-                                                      ]),
-                                                  index: 1
-                                              },
-                                        right: acc{arr: array([
-                                                          binop{
-                                                            left: binop{
-                                                                    left: binop{
-                                                                            left: acc{arr: array([
-                                                                                            bit('b:0),
-                                                                                            bit('b:1)
-                                                                                          ]),
-                                                                                      index: 0
-                                                                                  },
-                                                                            right: acc{arr: array([ 
-                                                                                              bit('b:1),
-                                                                                              bit('b:1)
-                                                                                            ]),
-                                                                                      index: 0
-                                                                                  },
-                                                                            oper: AndOp
-                                                                          },
-                                                                    right: binop{
-                                                                            left: acc{arr: array([
-                                                                                            bit('b:0),
-                                                                                            bit('b:1)
-                                                                                          ]),
-                                                                                      index: 0
-                                                                                  },
-                                                                            right: bit('b:0),
-                                                                            oper: AndOp
-                                                                          },
-                                                                    oper: OrOp
-                                                                  },
-                                                            right: binop{
-                                                                    left: acc{arr: array([
-                                                                                    bit('b:1),
-                                                                                    bit('b:1)
-                                                                                  ]),
-                                                                              index: 0
-                                                                          },
-                                                                    right: bit('b:0),
-                                                                    oper: AndOp
-                                                                  },
-                                                            oper: OrOp
-                                                          }
-                                                        ]),
-                                                  index: 0
-                                              },
-                                        oper: AndOp
-                                      },
-                                oper: OrOp
-                            },
+  hwrecord(
+    1: binop{
+        left: binop{
+                left: binop{
+                        left: acc{
+                                arr: named_val(a : bit[2]),
+                                index: 1
+                              },
+                        right: acc{
+                                arr: named_val(b : bit[2]),
+                                index: 1
+                              },
+                        oper: AndOp
+                      },
+                right: binop{
+                        left: acc{
+                                arr: named_val(a : bit[2]),
+                                index: 1
+                              },
                         right: binop{
-                                left: acc{arr: array([
-                                                bit('b:1),
-                                                bit('b:1)
-                                              ]),
-                                          index: 1
-                                      },
-                                right: acc{arr: array([
-                                                  binop{
-                                                    left: binop{
-                                                            left: binop{
-                                                                    left: acc{arr: array([
-                                                                                    bit('b:0),
-                                                                                    bit('b:1)
-                                                                                  ]),
-                                                                              index: 0
-                                                                          },
-                                                                    right: acc{arr: array([
-                                                                                      bit('b:1),
-                                                                                      bit('b:1)
-                                                                                    ]),
-                                                                              index: 0
-                                                                            },
-                                                                    oper: AndOp
-                                                                  },
-                                                            right: binop{
-                                                                    left: acc{arr: array([
-                                                                                    bit('b:0),
-                                                                                    bit('b:1)
-                                                                                  ]),
-                                                                              index: 0
-                                                                          },
-                                                                    right: bit('b:0),
-                                                                    oper: AndOp
-                                                                  },
-                                                            oper: OrOp
-                                                          },
-                                                    right: binop{
-                                                            left: acc{arr: array([
-                                                                            bit('b:1),
-                                                                            bit('b:1)
-                                                                          ]),
-                                                                      index: 0
-                                                                  },
-                                                            right: bit('b:0),
-                                                            oper: AndOp
-                                                          },
-                                                    oper: OrOp
-                                                  }
-                                                 ]),
+                                  left: acc{
+                                          arr: named_val(a : bit[2]),
                                           index: 0
-                                      },
+                                        },
+                                  right: acc{
+                                          arr: named_val(b : bit[2]),
+                                          index: 0
+                                        },
                                   oper: AndOp
                                 },
-                        oper: OrOp
+                        oper: AndOp
                       },
-                      binop{
-                        left: binop{
-                                left: binop{
-                                        left: acc{arr: array([
-                                                        bit('b:0),
-                                                        bit('b:1)
-                                                       ]),
-                                                  index: 0
-                                              },
-                                        right: acc{arr: array([
-                                                          bit('b:1),
-                                                          bit('b:1)
-                                                        ]),
-                                                  index: 0
-                                                },
-                                        oper: AndOp
-                                      },
-                                right: binop{
-                                        left: acc{arr: array([
-                                                        bit('b:0),
-                                                        bit('b:1)
-                                                      ]),
-                                                  index: 0
-                                              },
-                                        right: bit('b:0),
-                                        oper: AndOp},
-                                oper: OrOp
-                              }, 
-                        right: binop{
-                                left: acc{arr: array([
-                                                bit('b:1),
-                                                bit('b:1)
-                                              ]),
-                                          index: 0
-                                      },
-                                right: bit('b:0),
-                                oper: AndOp
-                              },
-                        oper: OrOp
-                      }
-                    ]),
-                index: 1
-            },
-    oper: XorOp
-  },
-  binop{
-    left: binop{
-            left: acc{arr: array([
-                            bit('b:0),
-                            bit('b:1)
-                          ]),
-                      index: 0
-                  },
-            right: acc{arr: array([
-                              bit('b:1),
-                              bit('b:1)
-                            ]),
-                      index: 0
-                  },
-            oper: XorOp
-          },
-    right: acc{arr: array([
-                      binop{
-                        left: binop{
-                                left: binop{
-                                        left: acc{arr: array([
-                                                        bit('b:0),
-                                                        bit('b:1)
-                                                      ]),
-                                                  index: 1
-                                              },
-                                        right: acc{arr: array([
-                                                          bit('b:1),
-                                                          bit('b:1)
-                                                        ]),
-                                                  index: 1
-                                                },
-                                        oper: AndOp
-                                      },
-                                right: binop{
-                                        left: acc{arr: array([
-                                                        bit('b:0),
-                                                        bit('b:1)
-                                                      ]),
-                                                  index: 1
-                                              }
-                                        right: acc{arr: array([
-                                                          binop{
-                                                            left: binop{
-                                                                    left: binop{
-                                                                            left: acc{arr: array([
-                                                                                            bit('b:0),
-                                                                                            bit('b:1)
-                                                                                          ]),
-                                                                                      index: 0
-                                                                                  },
-                                                                            right: acc{arr: array([
-                                                                                              bit('b:1),
-                                                                                              bit('b:1)
-                                                                                            ]),
-                                                                                        index: 0
-                                                                                    },
-                                                                            oper: AndOp
-                                                                          },
-                                                                    right: binop{
-                                                                            left: acc{arr: array([
-                                                                                            bit('b:0),
-                                                                                            bit('b:1)
-                                                                                          ]),
-                                                                                      index: 0
-                                                                                  },
-                                                                            right: bit('b:0),
-                                                                            oper: AndOp
-                                                                          },
-                                                                    oper: OrOp
-                                                                  },
-                                                            right: binop{
-                                                                    left: acc{arr: array([
-                                                                                    bit('b:1),
-                                                                                    bit('b:1)
-                                                                                  ]),
-                                                                              index: 0
-                                                                          },
-                                                                    right: bit('b:0),
-                                                                    oper: AndOp
-                                                                  },
-                                                            oper: OrOp
-                                                          }
-                                                        ]),
-                                                    index: 0
-                                              },
-                                        oper: AndOp
-                                      },
-                                oper: OrOp
-                              },
-                        right: binop{
-                                left: acc{arr: array([
-                                                bit('b:1),
-                                                bit('b:1)
-                                              ]),
-                                          index: 1
-                                      },
-                                right: acc{arr: array([
-                                                  binop{
-                                                    left: binop{
-                                                            left: binop{
-                                                                    left: acc{arr: array([
-                                                                                    bit('b:0),
-                                                                                    bit('b:1)
-                                                                                  ]),
-                                                                              index: 0
-                                                                          },
-                                                                    right: acc{arr: array([
-                                                                                      bit('b:1),
-                                                                                      bit('b:1)
-                                                                                    ]),
-                                                                              index: 0
-                                                                            },
-                                                                    oper: AndOp
-                                                                  },
-                                                            right: binop{
-                                                                    left: acc{arr: array([
-                                                                                    bit('b:0),
-                                                                                    bit('b:1)
-                                                                                  ]),
-                                                                              index: 0
-                                                                          },
-                                                                    right: bit('b:0),
-                                                                    oper: AndOp
-                                                                  },
-                                                            oper: OrOp
-                                                          },
-                                                    right: binop{
-                                                            left: acc{arr: array([
-                                                                            bit('b:1),
-                                                                            bit('b:1)
-                                                                          ]),
-                                                                      index: 0
-                                                                  },
-                                                            right: bit('b:0),
-                                                            oper: AndOp
-                                                          },
-                                                    oper: OrOp
-                                                  }
-                                                ]),
-                                            index: 0
-                                        },
-                                oper: AndOp
-                              },
-                        oper: OrOp
+                oper: OrOp
+              },
+        right: binop{
+                left: acc{
+                        arr: named_val(b : bit[2]),
+                        index: 1
                       },
-                      binop{
-                        left: binop{
-                                left: binop{
-                                        left: acc{arr: array([
-                                                        bit('b:0),
-                                                        bit('b:1)
-                                                      ]),
-                                                  index: 0
-                                              },
-                                        right: acc{arr: array([
-                                                          bit('b:1),
-                                                          bit('b:1)
-                                                        ]),
-                                                  index: 0
-                                                },
-                                        oper: AndOp
-                                      },
-                                right: binop{
-                                        left: acc{arr: array([
-                                                        bit('b:0),
-                                                        bit('b:1)
-                                                      ]),
-                                                  index: 0
-                                              },
-                                        right: bit('b:0),
-                                        oper: AndOp
-                                      },
-                                oper: OrOp
-                              },
-                        right: binop{
-                                left: acc{arr: array([
-                                                bit('b:1),
-                                                bit('b:1)
-                                              ]),
-                                          index: 0
-                                      },
-                                right: bit('b:0),
-                                oper: AndOp
-                              },
-                        oper: OrOp
-                      }
-                    ]),
-              index: 0
-          },
-    oper: XorOp
-  }
+                right: binop{
+                          left: acc{
+                                  arr: named_val(a : bit[2]),
+                                  index: 0
+                                },
+                          right: acc{
+                                    arr: named_val(b : bit[2]),
+                                    index: 0
+                                  },
+                          oper: AndOp
+                        },
+                oper: AndOp
+              },
+        oper: OrOp
+    }, 
+    2: binop{
+          left: binop{
+                  left: acc{
+                          arr: named_val(a : bit[2]),
+                          index: 1
+                        },
+                  right: acc{
+                            arr: named_val(b : bit[2]),
+                            index: 1
+                          },
+                  oper: XorOp
+                },
+          right: binop{
+                  left: acc{
+                          arr: named_val(a : bit[2]),
+                          index: 0
+                        },
+                  right: acc{
+                            arr: named_val(b : bit[2]),
+                            index: 0
+                          },
+                  oper: AndOp
+                },
+          oper: XorOp
+        }
+  ),
+  hwrecord(
+    1: binop{
+          left: acc{
+                  arr:named_val(a : bit[2]),
+                  index: 0
+                },
+          right: acc{
+                  arr: named_val(b : bit[2]),
+                  index: 0
+                },
+          oper: AndOp
+        },
+    2: binop{
+        left: binop{
+                left: acc{
+                        arr: named_val(a : bit[2]),
+                        index: 0
+                      },
+                right: acc{
+                          arr: named_val(b : bit[2]),
+                          index: 0
+                      },
+                oper: XorOp
+              },
+        right: bit('b:0),
+        oper: XorOp
+      }
+  )
 ])

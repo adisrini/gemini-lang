@@ -56,6 +56,12 @@ struct
                                                        ]
                             ),
                             (
+                              S.symbol("Array"), makeEnv [
+                                                         (S.symbol("toList"), (L.Array.toList_ty, L.Array.toList_impl)),
+                                                         (S.symbol("fromList"), (L.Array.fromList_ty, L.Array.fromList_impl))
+                                                       ]
+                            ),
+                            (
                               S.symbol("HW"), makeEnv [
                                                          (S.symbol("dff"), (L.HW.dff_ty, L.HW.dff_impl))
                                                        ]

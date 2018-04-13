@@ -32,7 +32,7 @@ struct
       val evalValue = Evaluate.evalProg inferredAST
       val () = case evalValue of
                     Value.ModuleVal(m, namedArgs) => print(Value.toString(m(namedArgs)) ^ "\n")
-                  | _ => print("it's something else\n")
+                  | _ => ()
     in
       ()
     end

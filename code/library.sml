@@ -37,6 +37,9 @@ struct
   fun getBitArray(V.ArrayVal bs) = Vector.map getBit bs
     | getBitArray(_) = raise TypeError
 
+  fun getSWInner(V.SWVal x) = x
+    | getSWInner(_) = raise TypeError
+
   structure Core = 
   struct
 
@@ -90,6 +93,53 @@ struct
                                             in
                                               V.ListVal (List.rev(listVal))
                                             end))
+
+  end
+
+  structure Array = 
+  struct
+
+    (* toList *)
+    (* hw[n] sw -> hw sw list*)
+    val toList_ty = 
+      let
+        val meta = Meta.newMeta()
+      in
+        T.S_TY(
+          T.ARROW(
+            T.SW_H(T.ARRAY{ty = T.H_META(meta), size = ref ~1}),
+            T.LIST(T.SW_H(T.H_META(meta)))
+          )
+        )
+      end
+
+    val toList_impl = V.FunVal (ref (fn (v) =>  let
+                                                  val hwArrayVal = getSWInner(v)
+                                                  val hwArray = getArray(hwArrayVal)
+                                                in
+                                                  V.ListVal (map (fn (v') => V.SWVal v') (Vector.toList(hwArray)))
+                                                end))
+
+    (* fromList *)
+    (* hw sw list -> hw[n] sw *)
+    val fromList_ty = 
+      let
+        val meta = Meta.newMeta()
+      in
+        T.S_TY(
+          T.ARROW(
+            T.LIST(T.SW_H(T.H_META(meta))),
+            T.SW_H(T.ARRAY{ty = T.H_META(meta), size = ref ~1})
+          )
+        )
+      end
+
+    val fromList_impl = V.FunVal (ref (fn (v) =>  let
+                                                  val swVals = getList(v)
+                                                  val hwList = map (fn (v') => case v' of V.SWVal v' => v' | _ => raise TypeError) swVals
+                                                in
+                                                  V.SWVal (V.ArrayVal (Vector.fromList(hwList)))
+                                                end))
 
   end
 

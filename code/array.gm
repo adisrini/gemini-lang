@@ -1,0 +1,13 @@
+let
+  val x = #[#('b:0, 'b:1), #('b:0, 'b:1)]
+
+  fun map f x = case x of
+                     [] => []
+                  |: a::rest => (f a)::(map f rest)
+
+  fun getSecond x = sw(#2(unsw x))
+
+  val y = unsw Array.fromList(map getSecond (Array.toList(sw x)))
+in
+  y
+end

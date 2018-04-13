@@ -25,5 +25,5 @@ let
       unsw (toHW temp)
     end
 in
-  thing #('b:0, 'b:1, 'b:0)
+  thing
 end

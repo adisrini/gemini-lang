@@ -19,7 +19,7 @@ struct
                  | HWRecordVal of (symbol * value) list
                  | BinOpVal of {left: value, oper: binop, right: value}
                  | UnOpVal of {value: value, oper: unop}
-                 | ArrayAccVal of {arr: value vector, index: int}
+                 | ArrayAccVal of {arr: value, index: int}
                  (*| DFFVal of int*)
                  | ModuleVal of (value -> value) * value    (* first is module function, second is named arguments value to supply to function when at top-level *)
 
@@ -61,7 +61,7 @@ struct
     | toString(HWRecordVal(fs)) = "hwrecord(" ^ (printlist (fn(sym, v) => Symbol.name(sym) ^ ": " ^ toString(v)) fs) ^ ")"
     | toString(BinOpVal{left, oper, right}) = "binop{left: " ^ toString(left) ^ ", right: " ^ toString(right) ^ ", oper: " ^ binopString(oper) ^ "}"
     | toString(UnOpVal{value, oper}) = "unop{value: " ^ toString(value) ^ ", oper: " ^ unopString(oper) ^ "}"
-    | toString(ArrayAccVal{arr, index}) = "acc{arr: " ^ toString(ArrayVal(arr)) ^ ", index: " ^ Int.toString(index) ^ "}"
+    | toString(ArrayAccVal{arr, index}) = "acc{arr: " ^ toString(arr) ^ ", index: " ^ Int.toString(index) ^ "}"
     | toString(ModuleVal(m, namedArgs)) = "moduleval(" ^ toString(namedArgs) ^ ")"
     | toString(NoVal) = "noval"
 

@@ -7,14 +7,20 @@ let
       #(cout, sum)
     end
 
+  fun map f x = case x of
+                     [] => []
+                  |: a::rest => (f a)::(map f rest)
+
+  fun getSecond x = (sw #2(unsw x))
+
   module rca #(a, b, n) =
     let
       val couts = #[n; gen i => if i = 0 then
-                                  #1(rca_helper #(a[:i:], b[:i:], 'b:0))
+                                  rca_helper #(a[:i:], b[:i:], 'b:0)
                                 else
-                                  #1(rca_helper #(a[:i:], b[:i:], couts[:i - 1:]))]
+                                  rca_helper #(a[:i:], b[:i:], #1(couts[:i - 1:]))]
     in
-      #[n; gen i => #2(rca_helper #(a[:i:], b[:i:], couts[:i:]))]
+      unsw Array.fromList(map getSecond (Array.toList(sw couts)))
     end
 
   module two_bit_rca #(a : bit[2], b : bit[2]) = rca #(a, b, 2'u:2)
