@@ -57,6 +57,7 @@ struct
         | extractHWMetas(T.H_TOP) = []
         | extractHWMetas(T.H_BOTTOM) = []
       and extractMDMetas(T.MODULE(h1, h2)) = extractHWMetas(h1) @ extractHWMetas(h2)
+        | extractMDMetas(T.PARAMETERIZED_MODULE(s, h1, h2)) = extractSWMetas(s) @ extractHWMetas(h1) @ extractHWMetas(h2)
         | extractMDMetas(T.M_POLY(tyvars, m)) = extractMDMetas(m)
         | extractMDMetas(T.M_BOTTOM) = []
     in
@@ -98,6 +99,13 @@ struct
               val (menv'', e2') = decorateExp(menv', tenv, e2)
             in
               (menv'', A.ApplyExp(e1', e2', pos))
+            end
+          | decorexp(A.ParameterApplyExp(e1, e2, pos)) =
+            let
+              val (menv', e1') = decorateExp(menv, tenv, e1)
+              val (menv'', e2') = decorateExp(menv', tenv, e2)
+            in
+              (menv'', A.ParameterApplyExp(e1', e2', pos))
             end
           | decorexp(A.BinOpExp({left, oper, right, pos})) =
             let
@@ -532,7 +540,7 @@ struct
         | decodec(A.ModuleDec(moddecs)) =
         let
           (* NOTE: tenv is never altered *)
-          fun foldModDec({name, arg, result = (ty, typos), body, pos}, {menv, mdecs}) =
+          fun foldModDec({name, arg, sw_arg, result = (ty, typos), body, pos}, {menv, mdecs}) =
             let
               fun mapField({name, ty, escape, pos}) = {name = name, ty = A.ExplicitTy(decorateTy(menv, tenv, ty)), escape = escape, pos = pos}
 
@@ -542,6 +550,7 @@ struct
                 | mapArg(A.RecordParams(fs)) = A.RecordParams(map mapField fs)
 
               val arg' = mapArg arg
+              val sw_arg' = Option.map mapArg sw_arg
 
               val resultTy = decorateTy(menv, tenv, ty)
               val resultTy' = case resultTy of
@@ -550,7 +559,7 @@ struct
                                  | _ => T.H_TY(T.H_BOTTOM)
 
               val (menv', body') = decorateExp(menv, tenv, body)
-              val mdec' = {name = name, arg = arg', result = (A.ExplicitTy(resultTy'), typos), body = body', pos = pos}
+              val mdec' = {name = name, arg = arg', sw_arg = sw_arg', result = (A.ExplicitTy(resultTy'), typos), body = body', pos = pos}
             in
               {menv = menv', mdecs = mdec'::mdecs}
             end

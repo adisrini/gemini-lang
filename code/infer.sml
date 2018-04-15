@@ -72,6 +72,113 @@ struct
   fun getExplicitHWType(A.ExplicitTy(ty), _) = getHWType(ty)
     | getExplicitHWType(_, default) = default
 
+  (* enter params into venv and menv *)
+  fun foldSWParam(A.NoParam, (venv, menv)) = (venv, menv)
+    | foldSWParam(A.SingleParam{name, ty, escape, pos}, (venv, menv)) =
+      let
+        val paramTy = getExplicitType(ty, T.S_TY(T.S_BOTTOM))
+        val menv' = case paramTy of
+                         T.S_TY(T.S_META(sm)) => Symbol.enter(menv, sm, paramTy)
+                       | _ => menv
+      in
+        (Symbol.enter(venv, name, paramTy), menv')
+      end
+    | foldSWParam(A.TupleParams(fs), (venv, menv)) = 
+      foldl (fn({name, ty, escape, pos}, (v, m)) => (let
+                                                  val paramTy = getExplicitType(ty, T.S_TY(T.S_BOTTOM))
+                                                  val menv' = case paramTy of
+                                                                   T.S_TY(T.S_META(sm)) => Symbol.enter(m, sm, paramTy)
+                                                                 | _ => m
+                                                  val venv' = Symbol.enter(v, name, paramTy)
+                                                in
+                                                  (venv', menv')
+                                                end)) (venv, menv) fs
+    | foldSWParam(A.RecordParams(fs), (venv, menv)) =
+      foldl (fn({name, ty, escape, pos}, (v, m)) => (let
+                                                  val paramTy = getExplicitType(ty, T.S_TY(T.S_BOTTOM))
+                                                  val menv' = case paramTy of
+                                                                   T.S_TY(T.S_META(sm)) => Symbol.enter(m, sm, paramTy)
+                                                                 | _ => m
+                                                  val venv' = Symbol.enter(v, name, paramTy)
+                                                in
+                                                  (venv', menv')
+                                                end)) (venv, menv) fs
+
+  (* enter params into venv and menv *)
+  fun foldHWParam(A.NoParam, (venv, menv)) = (venv, menv)
+    | foldHWParam(A.SingleParam{name, ty, escape, pos}, (venv, menv)) =
+      let
+        val paramTy = T.H_TY(getExplicitHWType(ty, T.H_BOTTOM))
+        val menv' = case paramTy of
+                         T.H_TY(T.H_META(hm)) => Symbol.enter(menv, hm, paramTy)
+                       | _ => menv
+      in
+        (Symbol.enter(venv, name, paramTy), menv')
+      end
+    | foldHWParam(A.TupleParams(fs), (venv, menv)) = 
+      foldl (fn({name, ty, escape, pos}, (v, m)) => (let
+                                                  val paramTy = T.H_TY(getExplicitHWType(ty, T.H_BOTTOM))
+                                                  val menv' = case paramTy of
+                                                                   T.H_TY(T.H_META(hm)) => Symbol.enter(m, hm, paramTy)
+                                                                 | _ => m
+                                                  val venv' = Symbol.enter(v, name, paramTy)
+                                                in
+                                                  (venv', menv')
+                                                end)) (venv, menv) fs
+    | foldHWParam(A.RecordParams(fs), (venv, menv)) =
+      foldl (fn({name, ty, escape, pos}, (v, m)) => (let
+                                                  val paramTy = T.H_TY(getExplicitHWType(ty, T.H_BOTTOM))
+                                                  val menv' = case paramTy of
+                                                                   T.H_TY(T.H_META(hm)) => Symbol.enter(m, hm, paramTy)
+                                                                 | _ => m
+                                                  val venv' = Symbol.enter(v, name, paramTy)
+                                                in
+                                                  (venv', menv')
+                                                end)) (venv, menv) fs
+
+  fun getSWParamTy(A.NoParam) = T.S_RECORD([])
+    | getSWParamTy(A.SingleParam({name, ty, escape, pos})) = getExplicitSWType(ty, T.S_BOTTOM)
+    | getSWParamTy(A.TupleParams(fs)) =
+      let
+        fun makeTupleParamTy([], SOME(sty), _) = sty
+          | makeTupleParamTy({name, ty, escape, pos}::fs, NONE, i) = makeTupleParamTy(fs, SOME(T.S_RECORD([(Symbol.symbol(Int.toString(i)), getExplicitSWType(ty, T.S_BOTTOM))])), i + 1)
+          | makeTupleParamTy({name, ty, escape, pos}::fs, SOME(T.S_RECORD(rs)), i) = makeTupleParamTy(fs, SOME(T.S_RECORD(rs @ [(Symbol.symbol(Int.toString(i)), getExplicitSWType(ty, T.S_BOTTOM))])), i + 1)
+          | makeTupleParamTy(_) = raise Match
+      in
+        makeTupleParamTy(fs, NONE, 1)
+      end
+    | getSWParamTy(A.RecordParams(fs)) =
+      let
+        fun makeRecordParamTy([], SOME(sty)) = sty
+          | makeRecordParamTy({name, ty, escape, pos}::fs, NONE) = makeRecordParamTy(fs, SOME(T.S_RECORD([(name, getExplicitSWType(ty, T.S_BOTTOM))])))
+          | makeRecordParamTy({name, ty, escape, pos}::fs, SOME(T.S_RECORD(rs))) = makeRecordParamTy(fs, SOME(T.S_RECORD(rs @ [(name, getExplicitSWType(ty, T.S_BOTTOM))])))
+          | makeRecordParamTy(_) = raise Match
+      in
+        makeRecordParamTy(fs, NONE)
+      end
+
+  fun getHWParamTy(A.NoParam) = T.H_RECORD([])
+    | getHWParamTy(A.SingleParam({name, ty, escape, pos})) = getExplicitHWType(ty, T.H_BOTTOM)
+    | getHWParamTy(A.TupleParams(fs)) =
+      let
+        fun makeTupleParamTy([], SOME(hty), _) = hty
+          | makeTupleParamTy({name, ty, escape, pos}::fs, NONE, i) = makeTupleParamTy(fs, SOME(T.H_RECORD([(Symbol.symbol(Int.toString(i)), getExplicitHWType(ty, T.H_BOTTOM))])), i + 1)
+          | makeTupleParamTy({name, ty, escape, pos}::fs, SOME(T.H_RECORD(rs)), i) = makeTupleParamTy(fs, SOME(T.H_RECORD(rs @ [(Symbol.symbol(Int.toString(i)), getExplicitHWType(ty, T.H_BOTTOM))])), i + 1)
+          | makeTupleParamTy(_) = raise Match
+      in
+        makeTupleParamTy(fs, NONE, 1)
+      end
+    | getHWParamTy(A.RecordParams(fs)) =
+      let
+        fun makeRecordParamTy([], SOME(hty)) = hty
+          | makeRecordParamTy({name, ty, escape, pos}::fs, NONE) = makeRecordParamTy(fs, SOME(T.H_RECORD([(name, getExplicitHWType(ty, T.H_BOTTOM))])))
+          | makeRecordParamTy({name, ty, escape, pos}::fs, SOME(T.H_RECORD(rs))) = makeRecordParamTy(fs, SOME(T.H_RECORD(rs @ [(name, getExplicitHWType(ty, T.H_BOTTOM))])))
+          | makeRecordParamTy(_) = raise Match
+      in
+        makeRecordParamTy(fs, NONE)
+      end
+
+
   fun inferProg(smap, e) =
     let
       val (prog, smap', venv', ty) = inferExp(E.base_menv, E.base_tenv, E.base_venv, smap, e)
@@ -136,6 +243,7 @@ struct
                            | T.BOTTOM => (A.ApplyExp(e1', e2', pos), smap'', venv'', T.S_TY(T.S_META(M.newMeta())))
                            | _ => (ErrorMsg.error pos "cannot apply function to non-sw type"; (A.ApplyExp(e1', e2', pos), smap'', venv'', T.S_TY(T.S_META(M.newMeta()))))
             end
+          | infexp(A.ParameterApplyExp(e1, e2, pos)) = (exp, smap, venv, T.EMPTY)
           | infexp(A.BinOpExp({left, oper, right, pos})) =
             let
               val (left', smap', venv', leftTy) = inferExp(menv, tenv, venv, smap, left)
@@ -645,38 +753,8 @@ struct
             let
               val () = print("=== MENV IN " ^ Symbol.name(name) ^ " ===\n")
               val () = Symbol.print(TextIO.stdOut, menv, T.toString)
-              (* enter params into venv and menv *)
-              fun foldParam(A.NoParam, (venv, menv)) = (venv, menv)
-                | foldParam(A.SingleParam{name, ty, escape, pos}, (venv, menv)) =
-                  let
-                    val paramTy = getExplicitType(ty, T.S_TY(T.S_BOTTOM))
-                    val menv' = case paramTy of
-                                     T.S_TY(T.S_META(sm)) => Symbol.enter(menv, sm, paramTy)
-                                   | _ => menv
-                  in
-                    (Symbol.enter(venv, name, paramTy), menv')
-                  end
-                | foldParam(A.TupleParams(fs), (venv, menv)) = 
-                  foldl (fn({name, ty, escape, pos}, (v, m)) => (let
-                                                              val paramTy = getExplicitType(ty, T.S_TY(T.S_BOTTOM))
-                                                              val menv' = case paramTy of
-                                                                               T.S_TY(T.S_META(sm)) => Symbol.enter(m, sm, paramTy)
-                                                                             | _ => m
-                                                              val venv' = Symbol.enter(v, name, paramTy)
-                                                            in
-                                                              (venv', menv')
-                                                            end)) (venv, menv) fs
-                | foldParam(A.RecordParams(fs), (venv, menv)) =
-                  foldl (fn({name, ty, escape, pos}, (v, m)) => (let
-                                                              val paramTy = getExplicitType(ty, T.S_TY(T.S_BOTTOM))
-                                                              val menv' = case paramTy of
-                                                                               T.S_TY(T.S_META(sm)) => Symbol.enter(m, sm, paramTy)
-                                                                             | _ => m
-                                                              val venv' = Symbol.enter(v, name, paramTy)
-                                                            in
-                                                              (venv', menv')
-                                                            end)) (venv, menv) fs
-              val (venv', menv') = foldl foldParam (venv, menv) params
+              
+              val (venv', menv') = foldl foldSWParam (venv, menv) params
 
               (* enter function header with 'a -> 'b type *)
               val funHeaderTy = T.S_TY(T.ARROW(T.S_META(M.newMeta()), T.S_META(M.newMeta())))
@@ -689,34 +767,12 @@ struct
               val sub = U.unify(getExplicitType(resultTy, T.S_TY(T.S_BOTTOM)), bodyTy, resultPos)
               val smap'' = augmentSmap(smap', [sub], resultPos)
 
-              (* add function to venv *)
-              fun getParamTy(A.NoParam) = T.S_RECORD([])
-                | getParamTy(A.SingleParam({name, ty, escape, pos})) = getExplicitSWType(ty, T.S_BOTTOM)
-                | getParamTy(A.TupleParams(fs)) =
-                  let
-                    fun makeTupleParamTy([], SOME(sty), _) = sty
-                      | makeTupleParamTy({name, ty, escape, pos}::fs, NONE, i) = makeTupleParamTy(fs, SOME(T.S_RECORD([(Symbol.symbol(Int.toString(i)), getExplicitSWType(ty, T.S_BOTTOM))])), i + 1)
-                      | makeTupleParamTy({name, ty, escape, pos}::fs, SOME(T.S_RECORD(rs)), i) = makeTupleParamTy(fs, SOME(T.S_RECORD(rs @ [(Symbol.symbol(Int.toString(i)), getExplicitSWType(ty, T.S_BOTTOM))])), i + 1)
-                      | makeTupleParamTy(_) = raise Match
-                  in
-                    makeTupleParamTy(fs, NONE, 1)
-                  end
-                | getParamTy(A.RecordParams(fs)) =
-                  let
-                    fun makeRecordParamTy([], SOME(sty)) = sty
-                      | makeRecordParamTy({name, ty, escape, pos}::fs, NONE) = makeRecordParamTy(fs, SOME(T.S_RECORD([(name, getExplicitSWType(ty, T.S_BOTTOM))])))
-                      | makeRecordParamTy({name, ty, escape, pos}::fs, SOME(T.S_RECORD(rs))) = makeRecordParamTy(fs, SOME(T.S_RECORD(rs @ [(name, getExplicitSWType(ty, T.S_BOTTOM))])))
-                      | makeRecordParamTy(_) = raise Match
-                  in
-                    makeRecordParamTy(fs, NONE)
-                  end
-
               fun makeFunTy([], SOME(sty)) = sty
                 | makeFunTy(t::ts, NONE) = makeFunTy(ts, SOME(t))
                 | makeFunTy(t::ts, SOME(sty)) = makeFunTy(ts, SOME(T.ARROW(t, sty)))
                 | makeFunTy(_) = raise Match
 
-              val funTy = makeFunTy(getSWType(bodyTy)::List.rev(map getParamTy params), NONE)
+              val funTy = makeFunTy(getSWType(bodyTy)::List.rev(map getSWParamTy params), NONE)
               val venv'' = Symbol.enter(venv, name, T.S_TY(funTy))
               val venv''' = S.substitute(smap'', venv'')
 
@@ -752,6 +808,7 @@ struct
                 | flattenHWMetas(T.H_DATATYPE(tys, u)) = List.rev(foldl (fn((tyv, hty_opt), metas)  => case hty_opt of SOME(h) => flattenHWMetas(h) @ metas | NONE => metas) [] tys)
                 | flattenHWMetas(_) = []
               and flattenModMetas(T.MODULE(h1, h2)) = flattenHWMetas(h1) @ flattenHWMetas(h2)
+                | flattenModMetas(T.PARAMETERIZED_MODULE(s, h1, h2)) = flattenMetas(s) @ flattenHWMetas(h1) @ flattenHWMetas(h2)
                 | flattenModMetas(_) = []
               val paramMetas = flattenMetas params'
 
@@ -871,88 +928,32 @@ struct
         end
       | infdec(A.ModuleDec(moddecs)) =
         let
-          fun foldModDec({name, arg, result = (resultTy, resultPos), body, pos}, {menv, tenv, venv, decs, smap}) =
+          fun foldModDec({name, arg, sw_arg, result = (resultTy, resultPos), body, pos}, {menv, tenv, venv, decs, smap}) =
             let
-              (* enter params into venv and menv *)
-              fun foldParam(A.NoParam, (venv, menv)) = (venv, menv)
-                | foldParam(A.SingleParam{name, ty, escape, pos}, (venv, menv)) =
-                  let
-                    val paramTy = T.H_TY(getExplicitHWType(ty, T.H_BOTTOM))
-                    val menv' = case paramTy of
-                                     T.H_TY(T.H_META(hm)) => Symbol.enter(menv, hm, paramTy)
-                                   | _ => menv
-                  in
-                    (Symbol.enter(venv, name, paramTy), menv')
-                  end
-                | foldParam(A.TupleParams(fs), (venv, menv)) = 
-                  foldl (fn({name, ty, escape, pos}, (v, m)) => (let
-                                                              val paramTy = T.H_TY(getExplicitHWType(ty, T.H_BOTTOM))
-                                                              val menv' = case paramTy of
-                                                                               T.H_TY(T.H_META(hm)) => Symbol.enter(m, hm, paramTy)
-                                                                             | _ => m
-                                                              val venv' = Symbol.enter(v, name, paramTy)
-                                                            in
-                                                              (venv', menv')
-                                                            end)) (venv, menv) fs
-                | foldParam(A.RecordParams(fs), (venv, menv)) =
-                  foldl (fn({name, ty, escape, pos}, (v, m)) => (let
-                                                              val paramTy = T.H_TY(getExplicitHWType(ty, T.H_BOTTOM))
-                                                              val menv' = case paramTy of
-                                                                               T.H_TY(T.H_META(hm)) => Symbol.enter(m, hm, paramTy)
-                                                                             | _ => m
-                                                              val venv' = Symbol.enter(v, name, paramTy)
-                                                            in
-                                                              (venv', menv')
-                                                            end)) (venv, menv) fs
-              val (venv', menv') = foldl foldParam (venv, menv) [arg]
+              
+              val (venv1, menv1) = foldl foldSWParam (venv, menv) (case sw_arg of SOME(a) => [a] | _ => [])
+              val (venv', menv') = foldl foldHWParam (venv1, menv1) [arg]
 
-              (* enter module header *)
-              val modHeaderTy = T.M_TY(T.MODULE(T.H_META(M.newMeta()), T.H_META(M.newMeta())))
-              val venvWithHeader = Symbol.enter(venv', name, modHeaderTy)
-
-              (* process body with augmented venv *)
-              val (body', smap', _, bodyTy) = inferExp(menv', tenv, venvWithHeader, smap, body)
+              (* process body *)
+              val (body', smap', _, bodyTy) = inferExp(menv', tenv, venv', smap, body)
 
               (* unify bodyTy with resultTy *)
               val sub = U.unify(getExplicitType(resultTy, T.H_TY(T.H_BOTTOM)), bodyTy, resultPos)
               val smap'' = augmentSmap(smap', [sub], resultPos)
 
-              (* add module to venv *)
-              fun getParamTy(A.NoParam) = T.H_RECORD([])
-                | getParamTy(A.SingleParam({name, ty, escape, pos})) = getExplicitHWType(ty, T.H_BOTTOM)
-                | getParamTy(A.TupleParams(fs)) =
-                  let
-                    fun makeTupleParamTy([], SOME(hty), _) = hty
-                      | makeTupleParamTy({name, ty, escape, pos}::fs, NONE, i) = makeTupleParamTy(fs, SOME(T.H_RECORD([(Symbol.symbol(Int.toString(i)), getExplicitHWType(ty, T.H_BOTTOM))])), i + 1)
-                      | makeTupleParamTy({name, ty, escape, pos}::fs, SOME(T.H_RECORD(rs)), i) = makeTupleParamTy(fs, SOME(T.H_RECORD(rs @ [(Symbol.symbol(Int.toString(i)), getExplicitHWType(ty, T.H_BOTTOM))])), i + 1)
-                      | makeTupleParamTy(_) = raise Match
-                  in
-                    makeTupleParamTy(fs, NONE, 1)
-                  end
-                | getParamTy(A.RecordParams(fs)) =
-                  let
-                    fun makeRecordParamTy([], SOME(hty)) = hty
-                      | makeRecordParamTy({name, ty, escape, pos}::fs, NONE) = makeRecordParamTy(fs, SOME(T.H_RECORD([(name, getExplicitHWType(ty, T.H_BOTTOM))])))
-                      | makeRecordParamTy({name, ty, escape, pos}::fs, SOME(T.H_RECORD(rs))) = makeRecordParamTy(fs, SOME(T.H_RECORD(rs @ [(name, getExplicitHWType(ty, T.H_BOTTOM))])))
-                      | makeRecordParamTy(_) = raise Match
-                  in
-                    makeRecordParamTy(fs, NONE)
-                  end
-
-              fun makeFunTy([], SOME(hty)) = hty
-                | makeFunTy(t::ts, NONE) = makeFunTy(ts, SOME(t))
-                | makeFunTy(t::ts, SOME(hty)) = makeFunTy(ts, SOME(T.ARROW(t, hty)))
-                | makeFunTy(_) = raise Match
-
-              val modTy = T.MODULE(getParamTy arg, getHWType(bodyTy))
+              val modTy = case sw_arg of 
+                               SOME(a) => T.PARAMETERIZED_MODULE(getSWParamTy a, getHWParamTy arg, getHWType(bodyTy))
+                             | NONE => T.MODULE(getHWParamTy arg, getHWType(bodyTy))
               val venv'' = Symbol.enter(venv, name, T.M_TY(modTy))
               val venv''' = S.substitute(smap'', venv'')
 
               val subbedModTy = valOf(Symbol.look(venv''', name))
+
               (* find metas part of substituted module parameters and POLY based on those *)
-              val param' = case subbedModTy of
-                                T.M_TY(T.MODULE(pTy, _)) => pTy
-                              | _ => (ErrorMsg.error pos ("unbound module: " ^ Symbol.name(name)); T.H_BOTTOM)
+              val (param', swParam) = case subbedModTy of
+                                           T.M_TY(T.MODULE(pTy, _)) => (pTy, NONE)
+                                         | T.M_TY(T.PARAMETERIZED_MODULE(swPty, pTy, _)) => (pTy, SOME(swPty))
+                                         | _ => (ErrorMsg.error pos ("unbound module: " ^ Symbol.name(name)); (T.H_BOTTOM, NONE))
 
               fun flattenSWMetas(T.S_META(sm)) = (case Symbol.look(menv, sm) of
                                                     SOME(_) => []
@@ -975,9 +976,10 @@ struct
                 | flattenHWMetas(T.H_DATATYPE(tys, u)) = List.rev(foldl (fn((tyv, hty_opt), metas)  => case hty_opt of SOME(h) => flattenHWMetas(h) @ metas | NONE => metas) [] tys)
                 | flattenHWMetas(_) = []
               and flattenModMetas(T.MODULE(h1, h2)) = flattenHWMetas(h1) @ flattenHWMetas(h2)
+                | flattenModMetas(T.PARAMETERIZED_MODULE(s, h1, h2)) = flattenSWMetas(s) @ flattenHWMetas(h1) @ flattenHWMetas(h2)
                 | flattenModMetas(_) = []
 
-              val paramMetas = flattenHWMetas param'
+              val paramMetas = (flattenHWMetas param') @ (case swParam of SOME(a) => flattenSWMetas a | _ => [])
 
               val modTy' = case paramMetas of
                                 [] => subbedModTy
@@ -993,6 +995,7 @@ struct
 
               val arg' = substituteArgTypes(arg, case getModType(subbedModTy) of
                                                       T.MODULE(h1, _) => SOME(h1)
+                                                    | T.PARAMETERIZED_MODULE(_, h1, _) => SOME(h1)
                                                     | _ => NONE)
 
               val venv'''' = Symbol.enter(venv''', name, modTy')
@@ -1000,7 +1003,7 @@ struct
               {menv = menv,
                tenv = tenv,
                venv = venv'''',
-               decs = decs @ [{name = name, arg = arg', result = (resultTy, resultPos), body = body, pos = pos}],
+               decs = decs @ [{name = name, arg = arg', sw_arg = sw_arg, result = (resultTy, resultPos), body = body, pos = pos}],
                smap = smap''}
             end
           val {menv = menv', tenv = tenv', venv = venv', decs = decs', smap = smap'} = foldl foldModDec {menv = menv, tenv = tenv, venv = venv, decs = [], smap = smap} moddecs

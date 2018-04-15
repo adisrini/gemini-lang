@@ -89,6 +89,8 @@ val RBRACK:  linenum * linenum -> token
 val LBRACK:  linenum * linenum -> token
 val RPAREN:  linenum * linenum -> token
 val LPAREN:  linenum * linenum -> token
+val DOUBLE_LANGLE:  linenum * linenum -> token
+val DOUBLE_RANGLE:  linenum * linenum -> token
 
 (******* MISCELLANEOUS *******)
 val DOT:  linenum * linenum -> token

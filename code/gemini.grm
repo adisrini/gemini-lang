@@ -63,6 +63,7 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
   | BIT_DOUBLE_AND | BIT_DOUBLE_OR | BIT_DOUBLE_XOR
   | BIT_NOT | BIT_OR | BIT_AND | BIT_XOR | BIT_SLL | BIT_SRL | BIT_SRA
   | GE | GT | LE | LT | NEQ | EQ
+  | DOUBLE_LANGLE | DOUBLE_RANGLE
   | UMINUS | INT_DIVIDE | INT_TIMES | INT_PLUS | INT_MINUS | INT_MOD | REAL_DIVIDE | REAL_TIMES | REAL_PLUS | REAL_MINUS
   | RBRACE | LBRACE | RBRACK | LBRACK | RPAREN | LPAREN
   | DOT | SEMICOLON | COLON | COMMA | POUND | AT | ASSIGN | BANG | CONS | POUND_TIMES | AND
@@ -125,6 +126,7 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
                         | module_dec_no_type of A.moddec
                         | module_dec_with_type of A.moddec
                         | mod_param of A.param
+                        | mod_sw_param of A.param option
                     | non_val_dec of A.dec list
                     | non_fun_dec of A.dec list
                     | non_ty_dec of A.dec list
@@ -241,6 +243,7 @@ fun hw_coalesce((A.HWRecordTy(fields1, rp1), p1), (A.HWRecordTy(fields2, rp2), p
 
 %nonassoc LBRACE RBRACE
 %nonassoc LPAREN RPAREN
+%nonassoc DOUBLE_LANGLE DOUBLE_RANGLE
 
 %left APPLY
 
@@ -252,6 +255,7 @@ program	      : structs_or_sigs                                             (str
               | exp                                                         (exp)
 
 exp           : exp exp %prec APPLY                                         (A.ApplyExp(exp1, exp2, exp1left))
+              | exp DOUBLE_LANGLE exp DOUBLE_RANGLE %prec APPLY             (A.ParameterApplyExp(exp1, exp2, exp1left))
               | INT                                                         (A.IntExp(INT, INTleft))
               | STRING                                                      (A.StringExp(STRING, STRINGleft))
               | REAL                                                        (A.RealExp(REAL, REALleft))
@@ -524,10 +528,13 @@ module_dec    : module_dec_no_type                                          (A.M
               | module_dec_with_type module_dec                             (A.ModuleDec(module_dec_with_type::valOf(extractModDecList(module_dec))))
 
 module_dec_no_type
-              : MODULE ID mod_param EQ exp                                  ({name = Symbol.symbol(ID), arg = mod_param, result = (A.PlaceholderTy(ref ()), IDleft), body = exp, pos = MODULEleft})
+              : MODULE ID mod_sw_param mod_param EQ exp                     ({name = Symbol.symbol(ID), arg = mod_param, sw_arg = mod_sw_param, result = (A.PlaceholderTy(ref ()), IDleft), body = exp, pos = MODULEleft})
 
 module_dec_with_type
-              : MODULE ID mod_param COLON ty EQ exp                         ({name = Symbol.symbol(ID), arg = mod_param, result = (ty, tyleft), body = exp, pos = MODULEleft})
+              : MODULE ID mod_sw_param mod_param COLON ty EQ exp            ({name = Symbol.symbol(ID), arg = mod_param, sw_arg = mod_sw_param, result = (ty, tyleft), body = exp, pos = MODULEleft})
+
+mod_sw_param  : DOUBLE_LANGLE fun_param DOUBLE_RANGLE                       (SOME(fun_param))
+              | epsilon                                                     (NONE)                    
 
 semicolon_exp0: SEMICOLON exp semicolon_exp0                                ([(exp1, exp1left)] @ semicolon_exp0)
               | epsilon                                                     ([])

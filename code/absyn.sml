@@ -11,6 +11,7 @@ struct
           | RealExp of real * pos
           | BitExp of GeminiBit.bit * pos
           | ApplyExp of (exp * exp * pos)
+          | ParameterApplyExp of (exp * exp * pos)
           | BinOpExp of {left: exp, oper: oper, right: exp, pos: pos}
           | UnOpExp of {exp: exp, oper: oper, pos: pos}
           | LetExp of {decs: dec list, body: exp, pos: pos}
@@ -89,7 +90,7 @@ struct
 
   and tydec = {name: symbol, ty: ty, tyvars: (symbol list) option, opdef: (opdef list) option, pos: pos}
 
-  and moddec = {name: symbol, arg: param, result: ty * pos, body: exp, pos: pos}
+  and moddec = {name: symbol, arg: param, sw_arg: param option, result: ty * pos, body: exp, pos: pos}
 
   and datacon = {datacon: symbol, ty: ty, pos: pos}
 

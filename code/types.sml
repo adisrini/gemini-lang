@@ -43,6 +43,7 @@ struct
 
   and m_ty =
             MODULE of h_ty * h_ty
+          | PARAMETERIZED_MODULE of s_ty * h_ty * h_ty
           | M_POLY of tyvar list * m_ty
           | M_BOTTOM
 
@@ -111,6 +112,7 @@ struct
         | hty(H_BOTTOM) = "h_bottom"
 
       and mty(MODULE(h1, h2)) = hty(h1) ^ " ~> " ^ hty(h2)
+        | mty(PARAMETERIZED_MODULE(s, h1, h2)) = sty(s) ^ " -> " ^ hty(h1) ^ " ~> " ^ hty(h2)
         | mty(M_POLY(tyvars, m)) = "M_POLY([" ^ (String.concat(map (fn(tyv) => hty(H_META(tyv)) ^ ", ") tyvars)) ^ "], " ^ mty(m) ^ ")"
         | mty(M_BOTTOM) = "m_bottom"
     in

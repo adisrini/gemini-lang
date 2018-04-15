@@ -186,6 +186,15 @@ struct
                    | V.ModuleVal(m, _) => m e2Val
                    | _ => raise TypeError
               end
+            | evexp(A.ParameterApplyExp(e1, e2, pos)) =
+              let
+                val e1Val = evexp(e1)
+                val e2Val = evexp(e2)
+              in
+                case e1Val of
+                     V.PreParameterizedModuleVal(f, args) => V.ModuleVal(f e2Val, args)
+                   | _ => raise TypeError
+              end
             | evexp(A.BinOpExp({left, oper, right, pos})) =
               let
                 val leftVal = evexp(left)
@@ -561,7 +570,15 @@ struct
                 | makeNamedArgs(A.TupleParams(fs)) = V.HWRecordVal (List.rev(#2(foldl (fn ({name, ty, escape, pos}, (i, acc)) => (i + 1, (Symbol.symbol(Int.toString(i)), V.NamedVal(name, getExplicitTy(ty)))::acc)) (1, []) fs)))
                 | makeNamedArgs(A.RecordParams(fs)) = V.HWRecordVal (map (fn {name, ty, escape, pos} => (name, V.NamedVal(name, getExplicitTy(ty)))) fs)
 
-              fun foldDec({name, arg, result, body, pos}, vs) =
+              fun foldDec({name, arg, sw_arg = SOME(sw), result, body, pos}, vs) =
+                let
+                  val namedArgs = makeNamedArgs(arg)
+                  val mfun = fn(swv) => fn(hwv) => evalExp(augmentParam(arg, augmentParam(sw, vs, swv), hwv), body)
+                  val vs' = Symbol.enter(vs, name, V.PreParameterizedModuleVal(mfun, namedArgs))
+                in
+                  vs'
+                end
+                | foldDec({name, arg, sw_arg = NONE, result, body, pos}, vs) =
                 let
                   val namedArgs = makeNamedArgs(arg)
                   val mfun = fn(v) => evalExp(augmentParam(arg, vs, v), body)

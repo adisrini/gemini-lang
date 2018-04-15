@@ -93,6 +93,8 @@ fun RBRACK(a, b) = "RBRACK @" ^ locationToString(a, b)
 fun LBRACK(a, b) = "LBRACK @" ^ locationToString(a, b)
 fun RPAREN(a, b) = "RPAREN @" ^ locationToString(a, b)
 fun LPAREN(a, b) = "LPAREN @" ^ locationToString(a, b)
+fun DOUBLE_LANGLE(a, b) = "DOUBLE_LANGLE @" ^ locationToString(a, b)
+fun DOUBLE_RANGLE(a, b) = "DOUBLE_RANGLE @" ^ locationToString(a, b)
 
 (******* MISCELLANEOUS *******)
 fun DOT(a, b) = "DOT @" ^ locationToString(a, b)

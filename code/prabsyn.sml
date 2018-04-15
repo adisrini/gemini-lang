@@ -71,6 +71,7 @@ fun print (outstream, e0) =
     | exp(A.RealExp(r, pos), d) = (indent d; say "RealExp("; say(Real.toString r); say ")")
     | exp(A.BitExp(b, pos), d) = (indent d; say "BitExp("; say(GeminiBit.toString b); say ")")
     | exp(A.ApplyExp(e1, e2, pos), d) = (indent d; sayln "ApplyExp("; exp(e1, d + 1); sayln ","; exp(e2, d + 1); sayln ""; indent d; say ")")
+    | exp(A.ParameterApplyExp(e1, e2, pos), d) = (indent d; sayln "ParameterApplyExp("; exp(e1, d + 1); sayln ","; exp(e2, d + 1); sayln ""; indent d; say ")")
     | exp(A.BinOpExp{left, oper, right, pos}, d) = (indent d; sayln "BinOpExp("; indent (d + 1); say(opname oper); sayln ","; exp(left, d + 1); sayln ","; exp(right, d + 1); sayln ""; indent d; say ")")
     | exp(A.UnOpExp{exp = e, oper, pos}, d) = (indent d; sayln "UnOpExp("; indent (d + 1); say(opname oper); sayln ","; exp(e, d + 1); sayln ""; indent d; say ")")
     | exp(A.LetExp{decs, body, pos}, d) = (indent d; say "LetExp(["; dolist d dec decs; sayln "],"; exp(body, d + 1); sayln ""; indent d; say ")")
@@ -138,9 +139,12 @@ fun print (outstream, e0) =
         end
     | dec(A.ModuleDec(moddecs), d) =
       let
-          fun print_mod({name, arg, result = (t, p), body, pos}, d) =
+          fun print_mod({name, arg, sw_arg, result = (t, p), body, pos}, d) =
             (indent d; say (Symbol.name name); say "(";
              dolist d print_param [arg]; sayln ",";
+             case sw_arg of
+                SOME(x) => (dolist d print_param [x]; sayln",")
+              | _ => ();
              ty(t, d + 1);
              sayln ",";
              exp(body, d + 1); sayln "";
@@ -240,7 +244,8 @@ fun print (outstream, e0) =
         | hty(T.H_BOTTOM, d) = (indent d; say "H_BOTTOM")
         | hty(T.H_POLY(tyvars, h), d) = (indent d; say "H_POLY(["; dolist (d + 1) saytyvar tyvars; sayln "],"; hty(h, d + 1); sayln ""; indent d; say ")")
 
-      and mty(T.MODULE(h1, h2), d) = (indent d; sayln "MODULE("; hty(h1, d + 1); sayln "->"; hty(h2, d + 1); sayln ""; indent d; say ")")
+      and mty(T.MODULE(h1, h2), d) = (indent d; sayln "MODULE("; hty(h1, d + 1); sayln "~>"; hty(h2, d + 1); sayln ""; indent d; say ")")
+        | mty(T.PARAMETERIZED_MODULE(s, h1, h2), d) = (indent d; sayln "MODULE("; sty(s, d + 1); sayln "->"; hty(h1, d + 1); sayln "~>"; hty(h2, d + 1); sayln ""; indent d; say ")")
         | mty(T.M_POLY(tyvars, m), d) = (indent d; say "M_POLY(["; dolist (d + 1) saytyvar tyvars; sayln "],"; mty(m, d + 1); sayln ""; indent d; say ")")
         | mty(T.M_BOTTOM, d) = (indent d; say "M_BOTTOM")
     in

@@ -124,6 +124,8 @@ fun eof() = let val pos = hd(!linePos) in
 <INITIAL>"}"                                   => (Tokens.RBRACE(yypos, yypos + 1));
 <INITIAL>"("                                   => (Tokens.LPAREN(yypos, yypos + 1));
 <INITIAL>")"                                   => (Tokens.RPAREN(yypos, yypos + 1));
+<INITIAL>"<:"                                  => (Tokens.DOUBLE_LANGLE(yypos, yypos + 2));
+<INITIAL>":>"                                  => (Tokens.DOUBLE_RANGLE(yypos, yypos + 2));
 
 <INITIAL>"."                                   => (Tokens.DOT(yypos, yypos + 1));
 <INITIAL>","                                   => (Tokens.COMMA(yypos, yypos + 1));

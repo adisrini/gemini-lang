@@ -1,0 +1,7 @@
+let
+  module mymodule <:n:> #(a : bit, b : bit) = if n = 0
+                                              then a & b
+                                              else a | b
+in
+  mymodule <:10:>
+end
