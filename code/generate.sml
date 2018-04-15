@@ -73,8 +73,8 @@ struct
   fun getArrayElementType(T.ARRAY{ty, size}) = ty
     | getArrayElementType(_) = raise TypeError
 
-  fun getRecordFieldType(T.H_RECORD fs, field) = #2(valOf(List.find (fn(sym, _) => Symbol.name(sym) = Symbol.name(field)) fs))
-    | getRecordFieldType(_) = raise TypeError
+  fun getRecordFields(T.H_RECORD fs) = fs
+    | getRecordFields(_) = raise TypeError
 
   fun getHWType(T.H_TY(h)) = h
     | getHWType(_) = raise TypeError
@@ -85,7 +85,7 @@ struct
     let
       fun buildInstrings(V.NamedVal(n, ty), acc) = ("input" ^ (sizeToType(typeToSize(getHWType(ty)))) ^ (Symbol.name(n)))::acc
         | buildInstrings(V.HWRecordVal fs, acc) = (foldr (fn((_, v), acc') => buildInstrings(v, acc')) [] fs) @ acc
-        | buildInstrings(_) = raise Match (* TODO *)
+        | buildInstrings(_) = raise Match
 
       val inStrings = buildInstrings(inputs, [])
       val outString = "output reg" ^ (sizeToType(typeToSize(output))) ^ "out"
@@ -172,17 +172,20 @@ struct
       in
         (ret, valueTy)
       end
-    (*| genExp(V.HWRecordAccVal{record, field}) =
+    | genExp(V.HWRecordAccVal{record, field}) =
       let
         val ret = freshWire()
         val (recordWire, recordTy) = genExp(record)
-        val fieldTy = getRecordFieldType(recordTy, field)
-        val insn = assign(Symbol.name(ret), )
+        val fields = getRecordFields(recordTy)
+        fun getFieldInfo(i, []) = raise Match
+          | getFieldInfo(i, (sym, ty)::rest) = if Symbol.name(field) = Symbol.name(sym) then (ty, i) else getFieldInfo(i + (typeToSize(ty)), rest)
+        val (fieldTy, fieldStart) = getFieldInfo(0, fields)
+        val insn = assign(Symbol.name(ret), Symbol.name(recordWire) ^ "[" ^ Int.toString(fieldStart) ^ "+:" ^ Int.toString(typeToSize(fieldTy)) ^"]")
         val () = ilist := insn::(!ilist)
         val () = makeWire(typeToSize(fieldTy), ret)
       in
         (ret, fieldTy)
-      end*)
+      end
     | genExp(V.HWRecordVal vs) =
       let
         val ret = freshWire()

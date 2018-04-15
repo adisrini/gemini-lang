@@ -1,5 +1,5 @@
 let
-  module simple #(a : bit[4], b: bit[2]) = #(b, a)
+  module simple #(a : (bit #* bit) #* bit) = #1(a)
 in
   simple
 end

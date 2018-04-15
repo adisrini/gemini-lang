@@ -40,6 +40,7 @@ struct
       val (hwTree, namedArgs) = case evalValue of
                                      Value.ModuleVal(m, namedArgs) => (m(namedArgs), namedArgs)
                                    | _ => (ErrorMsg.error 0 "return value of program must be a module"; raise TopLevelError)
+      val () = if debug then print("===== MODULE BODY =====\n") else ()
       val () = if debug then print(Value.toString(hwTree) ^ "\n") else ()
 
       (* GENERATING *)
