@@ -42,4 +42,9 @@ struct
 
   fun add b1 b2 = (xorb b1 b2, andb b1 b2)
 
+  fun toVerilogString b = case b of
+    ZERO => "1'b0"
+  | ONE => "1'b1"
+
+
 end

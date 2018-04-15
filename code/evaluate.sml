@@ -163,8 +163,6 @@ struct
   fun evalProg(prog) = 
     let
       val progVal = evalExp(V.base_store, prog)
-      val () = print("===== PROGRAM RESULT =====\n")
-      val () = print(V.toString(progVal) ^ "\n")
     in
       progVal
     end
@@ -358,9 +356,10 @@ struct
             | evexp(A.RecordAccExp{exp, field, pos}) =
               let
                 val recVal = evexp(exp)
-                val (_, fieldVal) = valOf(List.find (fn (sym, _) => Symbol.name(sym) = Symbol.name(field)) (case recVal of V.RecordVal _ => getRecord(recVal) | V.HWRecordVal _ => getHWRecord(recVal) | _ => raise TypeError))
               in
-                fieldVal
+                case recVal of
+                      V.RecordVal vs => #2(valOf(List.find (fn (sym, _) => Symbol.name(sym) = Symbol.name(field)) vs))
+                    | _ => V.HWRecordAccVal {record = recVal, field = field}
               end
             | evexp(A.ArrayAccExp{exp, index, pos}) =
               let

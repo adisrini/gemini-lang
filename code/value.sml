@@ -20,6 +20,7 @@ struct
                  | BinOpVal of {left: value, oper: binop, right: value}
                  | UnOpVal of {value: value, oper: unop}
                  | ArrayAccVal of {arr: value, index: int}
+                 | HWRecordAccVal of {record: value, field: symbol}
                  (*| DFFVal of int*)
                  | PreParameterizedModuleVal of (value -> value -> value) * value
                  | ModuleVal of (value -> value) * value    (* first is module function, second is named arguments value to supply to function when at top-level *)
@@ -63,6 +64,7 @@ struct
     | toString(BinOpVal{left, oper, right}) = "binop{left: " ^ toString(left) ^ ", right: " ^ toString(right) ^ ", oper: " ^ binopString(oper) ^ "}"
     | toString(UnOpVal{value, oper}) = "unop{value: " ^ toString(value) ^ ", oper: " ^ unopString(oper) ^ "}"
     | toString(ArrayAccVal{arr, index}) = "acc{arr: " ^ toString(arr) ^ ", index: " ^ Int.toString(index) ^ "}"
+    | toString(HWRecordAccVal{record, field}) = "acc{record: " ^ toString(record) ^ ", index: " ^ Symbol.name(field) ^ "}"
     | toString(PreParameterizedModuleVal(f, namedArgs)) = "preparameterizedmoduleval(" ^ toString(namedArgs) ^ ")"
     | toString(ModuleVal(m, namedArgs)) = "moduleval(" ^ toString(namedArgs) ^ ")"
     | toString(NoVal) = "noval"

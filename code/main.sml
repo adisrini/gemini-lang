@@ -10,29 +10,41 @@ struct
   structure E = Env
   structure S = Symbol
 
+  exception TopLevelError
+
+  val debug = false
+
   fun go filename =
     let
+      val () = if not (String.isSuffix ".gm" filename) then (raise Fail "cannot compile file without .gm extension") else ()
+
+      (* PARSING *)
       val ast = Parse.parse filename
+
+      (* DECORATING *)
       val (smap, explicitAST) = Decorate.decorateProg ast
-      val () = print("===== AST =====\n")
-      val () = P.print(TextIO.stdOut, ast)
-      val () = print("===== EXPLICIT AST =====\n")
-      val () = P.print(TextIO.stdOut, explicitAST)
-      val () = print("===== SMAP =====\n")
-      val () = S.print(TextIO.stdOut, smap, Types.toString)
+      val () = if debug then print("===== AST =====\n") else ()
+      val () = if debug then P.print(TextIO.stdOut, ast) else ()
+      val () = if debug then print("===== EXPLICIT AST =====\n") else ()
+      val () = if debug then P.print(TextIO.stdOut, explicitAST) else ()
+      val () = if debug then print("===== SMAP =====\n") else ()
+      val () = if debug then S.print(TextIO.stdOut, smap, Types.toString) else ()
+
+      (* INFERRING *)
       val (smap', inferredAST) = Infer.inferProg (smap, explicitAST)
-      val () = print("===== SMAP POST-INFERENCE =====\n")
-      val () = S.print(TextIO.stdOut, smap', Types.toString)
-      (* monomorphize 
-          * pull modules out into "toplevel" with everything monomorphized
-          * module_123_g_int_int
-          * rewrite module body and replace module call with new name
-          * symbol table: map from symbol module names -> (definition of module * ref map from list of types -> name of monomorphic version of that module)
-      *)
+      val () = if debug then print("===== SMAP POST-INFERENCE =====\n") else ()
+      val () = if debug then S.print(TextIO.stdOut, smap', Types.toString) else ()
+
+      (* EVALUATING *)
       val evalValue = Evaluate.evalProg inferredAST
-      val () = case evalValue of
-                    Value.ModuleVal(m, namedArgs) => print(Value.toString(m(namedArgs)) ^ "\n")
-                  | _ => ()
+      val (hwTree, namedArgs) = case evalValue of
+                                     Value.ModuleVal(m, namedArgs) => (m(namedArgs), namedArgs)
+                                   | _ => (ErrorMsg.error 0 "return value of program must be a module"; raise TopLevelError)
+      val () = if debug then print(Value.toString(hwTree) ^ "\n") else ()
+
+      (* GENERATING *)
+      val () = if debug then print("===== VERILOG =====\n") else ()
+      val () = Generate.genProg(String.substring(filename, 0, size(filename) - 3), namedArgs, hwTree)
     in
       ()
     end

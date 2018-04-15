@@ -431,10 +431,6 @@ struct
                 end
 
               val {menv = menv', tenv = tenv', venv = venv', augmented_decs = decs', smap = smap'} = foldl foldDec {menv = menv, tenv = tenv, venv = venv, augmented_decs = decs, smap = smap} decs
-              val () = print("====== VENV ======\n")
-              val () = Symbol.print(TextIO.stdOut, venv', Types.toString)
-              val () = print("====== TENV ======\n")
-              val () = Symbol.print(TextIO.stdOut, tenv', Types.toString)
               val (body', smap'', venv'', bodyTy) = inferExp(menv', tenv', venv', smap', body)
             in
               (A.LetExp{decs = decs', body = body', pos = pos}, smap'', venv'', bodyTy)
@@ -751,9 +747,6 @@ struct
         let
           fun foldFunDec({name, params, result = (resultTy, resultPos), body, pos}, {menv, tenv, venv, smap}) =
             let
-              val () = print("=== MENV IN " ^ Symbol.name(name) ^ " ===\n")
-              val () = Symbol.print(TextIO.stdOut, menv, T.toString)
-              
               val (venv', menv') = foldl foldSWParam (venv, menv) params
 
               (* enter function header with 'a -> 'b type *)

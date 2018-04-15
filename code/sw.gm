@@ -5,10 +5,13 @@ let
                          |: NOT of explicitLogic
                          |: INP of bit sw
 
+  fun NAND lst = NOT(AND lst)
+  fun NOR lst = NOT(OR lst)
+
   fun toHW expl =
     let
       fun listToArray elist =
-        sw #[32'u:(List.length elist); gen i => (unsw (toHW (List.nth(elist, i))))]
+        sw #[List.length elist; gen i => (unsw (toHW (List.nth(elist, i))))]
     in
        case expl of
             INP(b) => b

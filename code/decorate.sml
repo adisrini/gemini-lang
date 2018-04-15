@@ -424,7 +424,6 @@ struct
                               | T.M_TY(m) => T.S_TY(T.SW_M(m))
                               | T.META(x) => T.S_TY(T.SW_H(T.H_META(x)))
                               | _ => T.S_TY(T.S_TOP))
-              val () = print(T.toString(exTy) ^ "\n")
             in
               retTy
             end
