@@ -688,7 +688,7 @@ struct
             let
               (* process size expression *)
               val (size', smap', venv', sizeTy) = inferExp(menv, tenv, venv, smap, size)
-              val sub = U.unify(T.H_TY(T.ARRAY{ty = T.BIT, size = ref ~1}), sizeTy, pos)
+              val sub = U.unify(T.S_TY(T.INT), sizeTy, pos)
               val smap'' = augmentSmap(smap', [sub], pos)
 
               (* add counter variable to venv *)

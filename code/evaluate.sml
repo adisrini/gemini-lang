@@ -433,9 +433,8 @@ struct
               end
             | evexp(A.BitArrayGenExp{size, counter, genfun, pos}) =
               let
-                val sizeArr = getBitArray(evexp(size))
-                val sizeVal = GBA.toUnsignedInt(sizeArr)
-                fun gen(i, acc) = if i >= sizeVal
+                val sizeInt = getInt(evexp(size))
+                fun gen(i, acc) = if i >= sizeInt
                                   then acc
                                   else (let
                                           (* add counter *)
@@ -518,9 +517,8 @@ struct
                 case init of
                      A.BitArrayGenExp({size, counter, genfun, pos}) =>
                       let
-                        val sizeArr = getBitArray(evalExp(vs, size))
-                        val sizeVal = GBA.toUnsignedInt(sizeArr)
-                        fun gen(i, acc) = if i >= sizeVal
+                        val sizeInt = getInt(evalExp(vs, size))
+                        fun gen(i, acc) = if i >= sizeInt
                                           then acc
                                           else (let
                                                   (* add counter *)

@@ -1,4 +1,6 @@
 let
+  val numbits = 2
+
   module rca_helper #(ai : bit, bi : bit, cin : bit) =
     let
       val sum = ai ^ bi ^ cin
@@ -13,7 +15,7 @@ let
 
   fun getSecond x = (sw #2(unsw x))
 
-  module rca #(a, b, n) =
+  module rca <:n:> #(a, b) =
     let
       val couts = #[n; gen i => if i = 0 then
                                   rca_helper #(a[:i:], b[:i:], 'b:0)
@@ -23,7 +25,7 @@ let
       unsw Array.fromList(map getSecond (Array.toList(sw couts)))
     end
 
-  module two_bit_rca #(a : bit[2], b : bit[2]) = rca #(a, b, 2'u:2)
+  module two_bit_rca #(a : bit[2], b : bit[2]) = rca <:numbits:> #(a, b)
 
 in
   two_bit_rca
