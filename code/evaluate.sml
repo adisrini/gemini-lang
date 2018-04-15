@@ -152,9 +152,11 @@ struct
 
   fun evalDoubleBitOp(bitop, leftVal, rightVal) =
     let
-      val bitwiseResult = evalBinaryBitwiseOp(bitop, leftVal, rightVal)
+      val leftBit  = evalReduceOp(V.OrReduceOp, leftVal)
+      val rightBit = evalReduceOp(V.OrReduceOp, rightVal)
+      val result = evalBinaryBitwiseOp(bitop, leftBit, rightBit)
     in
-      evalReduceOp(bitToReduceOp(bitop), bitwiseResult)
+      result
     end
 
   (* evaluation functions *)
