@@ -12,7 +12,7 @@ struct
 
   exception TopLevelError
 
-  val debug = false
+  val debug = true
 
   fun go filename =
     let

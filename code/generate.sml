@@ -76,24 +76,39 @@ struct
   fun getRecordFieldType(T.H_RECORD fs, field) = #2(valOf(List.find (fn(sym, _) => Symbol.name(sym) = Symbol.name(field)) fs))
     | getRecordFieldType(_) = raise TypeError
 
+  fun getHWType(T.H_TY(h)) = h
+    | getHWType(_) = raise TypeError
+
   fun say s = print(s)
+
+  fun inputsAndOutputs(inputs, output) =
+    let
+      fun buildInstrings(V.NamedVal(n, ty), acc) = ("input" ^ (sizeToType(typeToSize(getHWType(ty)))) ^ (Symbol.name(n)))::acc
+        | buildInstrings(V.HWRecordVal fs, acc) = (foldr (fn((_, v), acc') => buildInstrings(v, acc')) [] fs) @ acc
+        | buildInstrings(_) = raise Match (* TODO *)
+
+      val inStrings = buildInstrings(inputs, [])
+      val outString = "output reg" ^ (sizeToType(typeToSize(output))) ^ "out"
+    in
+      makelist (fn(s) => s) (inStrings @ [outString])
+    end
 
   fun genProg(name, args, v) =
     let
       val (outputWire, outputType) = genExp(v)
       val () = ilist := (assign("out", Symbol.name(outputWire)))::(!ilist)
     in
-      say("module " ^ name ^ "();\n");
+      say("module " ^ name ^ "(" ^ (inputsAndOutputs(args, outputType)) ^ ");\n");
       app (fn(i, ws) => say("\treg" ^ (sizeToType(i)) ^ (makelist Symbol.name ws) ^ ";\n")) (IntBinaryMap.listItemsi(!wires));
       say("\n");
       say("\talways @(*)\n");
       say("\tbegin\n");
       app (fn(s) => say("\t\t" ^ s ^ "\n")) (rev(!ilist));
       say("\tend\n");
-      say("endmodule;\n")
+      say("endmodule\n")
     end
 
-  and genExp(V.NamedVal(n, ty)) = (n, case ty of T.H_TY(hty) => hty | _ => raise TypeError)
+  and genExp(V.NamedVal(n, ty)) = (n, getHWType(ty))
     | genExp(V.BitVal b) =
       let
         val ret = freshWire()
