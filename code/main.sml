@@ -45,7 +45,10 @@ struct
 
       (* GENERATING *)
       val () = if debug then print("===== VERILOG =====\n") else ()
-      val () = Generate.genProg(String.substring(filename, 0, size(filename) - 3), namedArgs, hwTree)
+      val pathName = String.substring(filename, 0, size(filename) - 3)
+      val split = String.tokens (fn(c) => c = #"/") pathName
+      val moduleName = List.last split
+      val () = Generate.genProg(moduleName, namedArgs, hwTree)
     in
       ()
     end

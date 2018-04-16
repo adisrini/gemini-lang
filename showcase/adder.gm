@@ -1,5 +1,5 @@
 let
-  val numbits = 4
+  val numbits = 2
 
   module rca_helper #(ai : bit, bi : bit, cin : bit) =
     let
@@ -25,7 +25,7 @@ let
       unsw Array.fromList(map getSecond (Array.toList(sw couts)))
     end
 
-  module two_bit_rca #(a : bit[4], b : bit[4]) = rca <:numbits:> #(a, b)
+  module two_bit_rca #(a : bit[2], b : bit[2]) = rca <:numbits:> #(a, b)
 
 in
   two_bit_rca

@@ -359,6 +359,7 @@ struct
               in
                 case recVal of
                       V.RecordVal vs => #2(valOf(List.find (fn (sym, _) => Symbol.name(sym) = Symbol.name(field)) vs))
+                    | V.HWRecordVal vs => #2(valOf(List.find (fn (sym, _) => Symbol.name(sym) = Symbol.name(field)) vs))
                     | _ => V.HWRecordAccVal {record = recVal, field = field}
               end
             | evexp(A.ArrayAccExp{exp, index, pos}) =
