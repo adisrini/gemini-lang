@@ -21,7 +21,7 @@ struct
                  | UnOpVal of {value: value, oper: unop}
                  | ArrayAccVal of {arr: value, index: int}
                  | HWRecordAccVal of {record: value, field: symbol}
-                 (*| DFFVal of int*)
+                 | DFFVal of {data: value, clk: value}
                  | PreParameterizedModuleVal of (value -> value -> value) * value
                  | ModuleVal of (value -> value) * value    (* first is module function, second is named arguments value to supply to function when at top-level *)
 
@@ -65,6 +65,7 @@ struct
     | toString(UnOpVal{value, oper}) = "unop{value: " ^ toString(value) ^ ", oper: " ^ unopString(oper) ^ "}"
     | toString(ArrayAccVal{arr, index}) = "acc{arr: " ^ toString(arr) ^ ", index: " ^ Int.toString(index) ^ "}"
     | toString(HWRecordAccVal{record, field}) = "acc{record: " ^ toString(record) ^ ", index: " ^ Symbol.name(field) ^ "}"
+    | toString(DFFVal{data, clk}) = "dff{data: " ^ toString(data) ^ ", clk: " ^ toString(clk) ^ ")"
     | toString(PreParameterizedModuleVal(f, namedArgs)) = "preparameterizedmoduleval(" ^ toString(namedArgs) ^ ")"
     | toString(ModuleVal(m, namedArgs)) = "moduleval(" ^ toString(namedArgs) ^ ")"
     | toString(NoVal) = "noval"

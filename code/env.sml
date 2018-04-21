@@ -63,7 +63,8 @@ struct
                             ),
                             (
                               S.symbol("HW"), makeEnv [
-                                                         (S.symbol("dff"), (L.HW.dff_ty, L.HW.dff_impl))
+                                                         (S.symbol("dff"), (L.HW.dff_ty, L.HW.dff_impl)),
+                                                         (S.symbol("clk"), (L.HW.clk_ty, L.HW.clk_impl))
                                                        ]
                             ),
                             (

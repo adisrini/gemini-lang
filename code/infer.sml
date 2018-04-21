@@ -824,9 +824,9 @@ struct
         let
           fun foldValDec({name, escape, ty = (ty, tyPos), init, pos}, {menv, tenv, venv, smap}) =
             let
-              (* add variable in case of BitArrayGenExp since can be defined recursively *)
+              (* add variable in case of BitArrayGenExp or DFF since can be defined recursively *)
               val venv = case init of
-                              A.BitArrayGenExp (_) => Symbol.enter(venv, name, T.H_TY(T.H_META(M.newMeta())))
+                              A.BitArrayGenExp(_) => Symbol.enter(venv, name, T.H_TY(T.H_META(M.newMeta())))
                             | _ => venv
               (* infer type of initializing expression *)
               val (init', smap', venv', initTy) = inferExp(menv, tenv, venv, smap, init)

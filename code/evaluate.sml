@@ -127,13 +127,7 @@ struct
                                              | V.ArrayAccVal _ => V.UnOpVal{value = expVal, oper = bitop}
                                              | _ => raise TypeError
 
-  fun evalShiftOp(bitop, leftVal, rightVal) =
-    let
-      val leftArr  = getArray(leftVal)
-      val rightArr = getArray(rightVal)
-    in
-      V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
-    end
+  fun evalShiftOp(bitop, leftVal, rightVal) = V.BinOpVal{left = leftVal, oper = bitop, right = rightVal}
 
   fun reduceToBitOp(V.AndReduceOp) = V.AndOp
     | reduceToBitOp(V.OrReduceOp) = V.OrOp

@@ -40,6 +40,11 @@ struct
   fun getSWInner(V.SWVal x) = x
     | getSWInner(_) = raise TypeError
 
+  fun getHWRecord(V.HWRecordVal x) = x
+    | getHWRecord(_) = raise TypeError
+
+  fun getHWRecordField(fs, field) = #2(valOf(List.find (fn (sym, v) => Symbol.name(sym) = field) fs))
+
   structure Core = 
   struct
 
@@ -159,12 +164,24 @@ struct
     (* dff *)
     val dff_ty =
       let
-        val meta = Meta.newMeta()
+        val meta1 = Meta.newMeta()
+        val meta2 = Meta.newMeta()
       in
-        T.M_TY(T.MODULE(T.H_META(meta), T.TEMPORAL{ty = T.H_META(meta), time = ref ~1}))
+        T.M_TY(T.MODULE(T.H_RECORD[(Symbol.symbol("data"), T.H_META(meta1)), (Symbol.symbol("clk"), T.H_META(meta2))], T.TEMPORAL{ty = T.H_META(meta1), time = ref ~1}))
       end
-    val dff_impl = V.NoVal (* V.ModuleVal (fn(v) => V.TemporalVal v) *)
+    val dff_impl = V.ModuleVal((fn(v) =>  let
+                                            val record = getHWRecord(v)
+                                            val data = getHWRecordField(record, "data")
+                                            val clk = getHWRecordField(record, "clk")
+                                          in
+                                            V.DFFVal {data = data, clk = clk}
+                                          end), V.HWRecordVal[(Symbol.symbol("data"), V.NamedVal(Symbol.symbol("data"), T.H_TY(T.H_META(Meta.newMeta())))),
+                                                              (Symbol.symbol("clk"), V.NamedVal(Symbol.symbol("clk"), T.H_TY(T.BIT)))])
     
+    (* clk *)
+    val clk_ty = T.H_TY(T.BIT)
+    val clk_impl = V.NamedVal(Symbol.symbol("clk"), T.H_TY(T.BIT))
+
   end
 
 end

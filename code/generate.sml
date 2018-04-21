@@ -9,28 +9,37 @@ end
 structure Generate : GENERATE = 
 struct
 
+  (* STRUCTURES *)
   structure V = Value
   structure S = Symbol
   structure T = Types
 
   exception TypeError
 
+  (* TYPES *)
   type wire = S.symbol
   type size = int
 
+  (* DATASTRUCTURES *)
   val ilist : string list ref = ref []
   type 'a table = 'a IntBinaryMap.map
   val wires : wire list table ref = ref IntBinaryMap.empty
 
-  val count = ref 1
-
+  (* FRESH VARIABLES *)
+  val wireCount = ref 1
   fun freshWire () =
     let
-      val i = !count
-      val () = count := i + 1
+      val i = !wireCount
+      val () = wireCount := i + 1
     in
-      S.symbol("r" ^ Int.toString(i))
+      S.symbol("w" ^ Int.toString(i))
     end
+
+  val andGateCount = ref 1
+  val orGateCount  = ref 1
+  val xorGateCount = ref 1 
+  val notGateCount = ref 1
+  val dffCount = ref 1
 
   fun typeToSize(T.BIT) = 1
     | typeToSize(T.ARRAY{ty, size}) = !size
@@ -57,7 +66,6 @@ struct
                             | [x] => f x
                             | x::xs => (f x) ^ ", " ^ (makelist f xs)
 
-
   fun makeWire(key, value) =
     let
       val value' = case IntBinaryMap.find(!wires, key) of
@@ -68,7 +76,39 @@ struct
     end
 
   fun assign(lhs, rhs) =
-    lhs ^ " <= " ^ rhs ^ ";"
+    "assign " ^ lhs ^ " = " ^ rhs ^ ";"
+
+  fun (*binop(V.AndOp, out, in1, in2) =
+    let
+      val i = !andGateCount
+      val () = andGateCount := i + 1
+    in
+      "and a" ^ Int.toString(i) ^ "(" ^ out ^ ", " ^ in1 ^ ", " ^ in2 ^ ")"
+    end
+    | binop(V.OrOp, out, in1, in2) =
+    let
+      val i = !orGateCount
+      val () = orGateCount := i + 1
+    in
+      "or o" ^ Int.toString(i) ^ "(" ^ out ^ ", " ^ in1 ^ ", " ^ in2 ^ ")"
+    end
+    | binop(V.XorOp, out, in1, in2) =
+    let
+      val i = !xorGateCount
+      val () = xorGateCount := i + 1
+    in
+      "xor x" ^ Int.toString(i) ^ "(" ^ out ^ ", " ^ in1 ^ ", " ^ in2 ^ ")"
+    end
+    |*) binop(oper, out, in1, in2) = assign(out, in1 ^ (binOperToString(oper)) ^ in2)
+
+  fun (*unop(V.NotOp, out, inp) =
+    let
+      val i = !notGateCount
+      val () = notGateCount := i + 1
+    in
+      "not n" ^ Int.toString(i) ^ "(" ^ out ^ ", " ^ inp ^ ")"
+    end
+    |*) unop(oper, out, inp) = assign(out, (unOperToString(oper)) ^ inp)
 
   fun getArrayElementType(T.ARRAY{ty, size}) = ty
     | getArrayElementType(_) = raise TypeError
@@ -88,7 +128,7 @@ struct
         | buildInstrings(_) = raise Match
 
       val inStrings = buildInstrings(inputs, [])
-      val outString = "output reg" ^ (sizeToType(typeToSize(output))) ^ "out"
+      val outString = "output " ^ (sizeToType(typeToSize(output))) ^ "out"
     in
       makelist (fn(s) => s) (inStrings @ [outString])
     end
@@ -98,26 +138,15 @@ struct
       val (outputWire, outputType) = genExp(v)
       val () = ilist := (assign("out", Symbol.name(outputWire)))::(!ilist)
     in
-      say("module " ^ name ^ "(" ^ (inputsAndOutputs(args, outputType)) ^ ");\n");
-      app (fn(i, ws) => say("\treg" ^ (sizeToType(i)) ^ (makelist Symbol.name ws) ^ ";\n")) (IntBinaryMap.listItemsi(!wires));
+      say("module " ^ name ^ "(input clk, input ena, input rst, " ^ (inputsAndOutputs(args, outputType)) ^ ");\n");
+      app (fn(i, ws) => say("\twire" ^ (sizeToType(i)) ^ (makelist Symbol.name ws) ^ ";\n")) (IntBinaryMap.listItemsi(!wires));
       say("\n");
-      say("\talways @(*)\n");
-      say("\tbegin\n");
-      app (fn(s) => say("\t\t" ^ s ^ "\n")) (rev(!ilist));
-      say("\tend\n");
+      app (fn(s) => say("\t" ^ s ^ "\n")) (rev(!ilist));
       say("endmodule\n")
     end
 
   and genExp(V.NamedVal(n, ty)) = (n, getHWType(ty))
-    | genExp(V.BitVal b) =
-      let
-        val ret = freshWire()
-        val insn = assign(Symbol.name(ret), GeminiBit.toVerilogString(b))
-        val () = ilist := insn::(!ilist)
-        val () = makeWire(1, ret)
-      in
-        (ret, T.BIT)
-      end
+    | genExp(V.BitVal b) = (Symbol.symbol(GeminiBit.toVerilogString(b)), T.BIT)
     | genExp(V.ArrayVal vs) =
       let
         val ret = freshWire()
@@ -155,7 +184,7 @@ struct
         val ret = freshWire()
         val (leftWire,  leftTy)  = genExp(left)
         val (rightWire, rightTy) = genExp(right)
-        val insn = assign(Symbol.name(ret), (Symbol.name(leftWire) ^ (binOperToString(oper)) ^ (Symbol.name(rightWire))))
+        val insn = binop(oper, Symbol.name(ret), Symbol.name(leftWire), Symbol.name(rightWire))
         val unifiedTy = leftTy  (* TODO: unify/typecheck *)
         val () = ilist := insn::(!ilist)
         val () = makeWire(typeToSize(unifiedTy), ret)
@@ -166,7 +195,7 @@ struct
       let
         val ret = freshWire()
         val (wire,  valueTy)  = genExp(value)
-        val insn = assign(Symbol.name(ret), (unOperToString(oper)) ^ (Symbol.name(wire)))
+        val insn = unop(oper, Symbol.name(ret), Symbol.name(wire))
         val () = ilist := insn::(!ilist)
         val () = makeWire(typeToSize(valueTy), ret)
       in
@@ -202,6 +231,21 @@ struct
         val () = makeWire(totalSize, ret)
       in
         (ret, T.ARRAY{ty = T.H_BOTTOM, size = ref totalSize})
+      end
+    | genExp(V.DFFVal{data, clk}) =
+      let
+        val (dataWire, dataTy) = genExp(data)
+        val (clkWire, clkTy) = genExp(clk)
+        val q = freshWire()
+
+        val c = !dffCount
+        val () = dffCount := c + 1
+
+        val insn = "dff d" ^ Int.toString(c) ^ "(.d(" ^ Symbol.name(dataWire) ^ "), .clk(" ^ Symbol.name(clkWire) ^ "), .rstn(rstn), .q(" ^ Symbol.name(q) ^ "))"
+        val () = ilist := insn::(!ilist)
+        val () = makeWire(1, q)
+      in
+        (q, T.BIT)
       end
     | genExp(_) = raise Match
 

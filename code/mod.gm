@@ -1,5 +1,10 @@
 let
-  module simple #(a : (bit #* bit) #* bit) = #2(a)
+  module simple #(a : bit) =
+    let
+      val w = HW.dff(#{data = w, clk = HW.clk})
+    in
+      w
+    end
 in
   simple
 end
